@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>কৃষিখাতা অ্যাপ — বীজ, সার ও কীটনাশক দোকানের হিসাব</title>
+<meta name="description" content="বিক্রি, স্টক, বাকি, লাভ-ক্ষতি — বীজ, সার ও কীটনাশক দোকানের সব হিসাব মোবাইলে। Android অ্যাপ ফ্রি ডাউনলোড, ফ্রি ডেমো।">
+<meta name="theme-color" content="#1f6b2a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="কৃষিখাতা — দোকানের সব হিসাব মোবাইলে">
+<meta property="og:description" content="বীজ, সার ও কীটনাশক ব্যবসার জন্য। ক্যাশ মেমো, স্টক, বাকি, লাভ-ক্ষতি। Android অ্যাপ ফ্রি ডাউনলোড ও ফ্রি ডেমো।">
+<meta property="og:url" content="{{BASE}}/app">
+<meta property="og:image" content="{{BASE}}/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500;600;700;800&text=%E0%A7%A6%E0%A7%A7%E0%A7%A8%E0%A7%A9%E0%A7%AA%E0%A7%AB%E0%A7%AC%E0%A7%AD%E0%A7%AE%E0%A7%AF%E0%A7%B3&display=swap">
+<style>
+:root{--g:#1f6b2a;--g2:#2f8f3a;--leaf-l:#dff1d8;--sun:#f2a516;--sun-l:#fff1d2;--bg:#eef5e6;--fg:#1d2b17;--mu:#5d6e55;--line:#d5e3c8;--card:#fff;
+  --display:"Noto Sans Bengali","Baloo Da 2","Hind Siliguri",system-ui,sans-serif;--body:"Noto Sans Bengali","Hind Siliguri",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root{--bg:#0f1a0e;--fg:#e6f0df;--mu:#9db497;--line:#2b3f2b;--card:#18261a;--leaf-l:#1f3a22;--sun-l:#3a2e12}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.6}
+a{color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);line-height:1.2;margin:0;text-wrap:balance}
+.hero{color:#fff;background:radial-gradient(120% 90% at 90% 0%,#4f9a2c 0%,#1f6b2a 45%,#0f3b17 100%);padding-top:calc(env(safe-area-inset-top,0px) + 28px);padding-bottom:56px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;opacity:.08;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='%23ffffff'%3E%3Cpath d='M30 40c18-22 44-20 44-20s2 26-20 44c-14 11-28 8-28 8s-7-17 4-32z'/%3E%3Cpath d='M120 110c-14-17-34-15-34-15s-2 20 15 34c11 9 22 6 22 6s5-13-3-25z'/%3E%3C/g%3E%3C/svg%3E")}
+.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:30px;align-items:center}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.logo{width:56px;height:56px;border-radius:16px;background:#fff;display:grid;place-items:center;box-shadow:inset 0 -5px 0 var(--sun);flex:none}
+.logo svg{width:34px;height:34px}
+.brand b{font-family:var(--display);font-size:1.9rem;font-weight:800;line-height:1}
+.brand small{display:block;opacity:.85}
+.hero h1{font-size:clamp(2rem,5.5vw,3.2rem);font-weight:800}
+.hero h1 em{font-style:normal;color:#ffd34d}
+.hero p.lead{font-size:1.15rem;opacity:.93;margin:12px 0 22px;max-width:46ch}
+.dl{display:inline-flex;align-items:center;gap:12px;background:var(--sun);color:#2d1e00;text-decoration:none;font-weight:800;font-size:1.2rem;padding:15px 24px;border-radius:16px;box-shadow:0 5px 0 #b97a05;font-family:var(--display)}
+.dl:active{transform:translateY(2px);box-shadow:0 3px 0 #b97a05}
+.dl svg{width:26px;height:26px}
+.dl:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.meta{font-size:.9rem;opacity:.85;margin-top:12px}
+.web{display:inline-block;margin-top:10px;color:#fff;font-weight:600}
+.phone{justify-self:center;width:250px;max-width:100%;border-radius:34px;border:12px solid #0b1f0e;background:#0b1f0e;box-shadow:0 30px 60px -20px rgba(0,0,0,.7);overflow:hidden;aspect-ratio:1/1.9}
+.phone img{display:block;width:100%;height:100%;object-fit:cover;object-position:top}
+section{padding:46px 0 0}
+.eyebrow{color:var(--g2);font-weight:700;letter-spacing:.06em;font-size:.82rem;text-transform:uppercase}
+@media (prefers-color-scheme: dark){.eyebrow{color:#8ee09a}}
+h2{font-size:1.8rem;margin:4px 0 18px}
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.feat .ic{font-size:1.7rem}
+.feat h3{font-size:1.15rem;margin:6px 0 4px}
+.feat p{margin:0;color:var(--mu);font-size:.95rem}
+.demos{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.demo{background:var(--card);border:2px solid var(--sun);border-radius:18px;padding:18px}
+.demo .tag{display:inline-block;background:var(--sun);color:#3a2700;font-weight:800;font-size:.85rem;padding:2px 12px;border-radius:99px}
+.demo .addr{font:700 1.2rem/1.3 ui-monospace,Menlo,Consolas,monospace;color:var(--g2);margin:10px 0 8px;word-break:break-all}
+@media (prefers-color-scheme: dark){.demo .addr{color:#8ee09a}}
+.demo dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0}
+.demo dt{color:var(--mu)}
+.demo dd{margin:0;font:700 1.05rem ui-monospace,Menlo,Consolas,monospace;text-align:right}
+.steps{counter-reset:s;display:grid;gap:12px;padding:0;margin:0;list-style:none}
+.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px 14px 62px;position:relative}
+.steps li::before{content:counter(s);position:absolute;left:16px;top:14px;width:32px;height:32px;border-radius:50%;background:var(--g2);color:#fff;font-weight:800;display:grid;place-items:center;font-family:var(--display)}
+.steps b{display:block}
+.steps span{color:var(--mu);font-size:.95rem}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:26px}
+.note{background:var(--sun-l);border-radius:14px;padding:12px 16px;margin-top:12px;font-size:.95rem}
+.cta{margin:50px 0 0;background:var(--g);color:#fff;border-radius:24px;padding:30px 24px;text-align:center}
+.cta h2{margin:0 0 8px;color:#fff}
+.cta p{margin:0 0 18px;opacity:.9}
+.contact{font:800 1.4rem var(--display);display:inline-block;margin-top:4px;user-select:all}
+footer{text-align:center;color:var(--mu);font-size:.85rem;padding:30px 0 calc(30px + env(safe-area-inset-bottom,0px))}
+@media (max-width:760px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.phone{width:210px}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="brand"><div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#2f8f3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c.5-6 3-10 9-13"/><path d="M20 3c-9 0-15 4-15 11 0 2 1 4 1 4s9 1 12-7c1-3 2-8 2-8z" fill="#2f8f3a" fill-opacity=".2"/></svg></div>
+        <div><b>কৃষিখাতা</b><small>বীজ · সার · কীটনাশক ব্যবসার হিসাব</small></div></div>
+      <h1>খাতা-কলম ছাড়ুন, দোকানের <em>সব হিসাব মোবাইলে</em></h1>
+      <p class="lead">বিক্রি, ক্যাশ মেমো, স্টক, বাকি আর মাস শেষের লাভ-ক্ষতি — বাংলায়, এক জায়গায়। কম্পিউটার আর মোবাইল দুটোতেই চলে।</p>
+      <a class="dl" href="/krishikhata.apk" download="krishikhata.apk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M4 20h16"/></svg>Android অ্যাপ ডাউনলোড</a>
+      <div class="meta">ফ্রি · মাত্র ২০ KB · Android 7 বা তার পরের ফোন</div>
+      <a class="web" href="/">আইফোন বা কম্পিউটারে? ব্রাউজারেই চালান →</a>
+    </div>
+    <div class="phone"><img src="/app-screen.jpg" alt="কৃষিখাতা অ্যাপে বিক্রির পেজ: পণ্য খোঁজা ও যোগ করা" width="390" height="780"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div class="eyebrow">কেন কৃষিখাতা</div>
+    <h2>বীজ-সার-কীটনাশকের দোকানের জন্যই বানানো</h2>
+    <div class="feats">
+      <div class="feat"><div class="ic" aria-hidden="true">🧾</div><h3>ক্যাশ মেমো এক ক্লিকে</h3><p>পণ্য বাছাই করলেই হিসাব হয়ে যায়। মেমো PDF বা ছবি করে ক্রেতাকে পাঠান।</p></div>
+      <div class="feat"><div class="ic" aria-hidden="true">📦</div><h3>স্টক নিজে থেকে</h3><p>বিক্রি ও কেনায় স্টক কমে-বাড়ে। কম হলে সতর্কতা। বক্স/র‍্যাক নম্বর দিয়ে খুঁজুন।</p></div>
+      <div class="feat"><div class="ic" aria-hidden="true">💰</div><h3>বাকির হিসাব</h3><p>মোবাইল নম্বর দিলেই ক্রেতার সব কেনা, জমা ও বাকি এক নজরে।</p></div>
+      <div class="feat"><div class="ic" aria-hidden="true">📈</div><h3>লাভ-ক্ষতি</h3><p>দিনের বিক্রি, মাসের লাভ, খরচ, ক্যাশ ব্যালেন্স — সব হিসাব তৈরি।</p></div>
+      <div class="feat"><div class="ic" aria-hidden="true">👥</div><h3>৩ জন সেলার</h3><p>প্রত্যেকের আলাদা আইডি। সেলার শুধু বিক্রি লিখবে, লাভ বা কেনা দাম দেখবে না।</p></div>
+      <div class="feat"><div class="ic" aria-hidden="true">🌐</div><h3>নিজস্ব ঠিকানা</h3><p>প্রতিটি দোকানের নিজের ওয়েব ঠিকানা; কৃষকরা দেখতে পাবেন পণ্য ও দাম।</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">নিজে চালিয়ে দেখুন</div>
+    <h2>ফ্রি ডেমো</h2>
+    <div class="demos">
+      <div class="demo"><span class="tag">ডেমো ১</span><div class="addr">demoshop</div>
+        <dl><dt>অ্যাপে ঠিকানা</dt><dd>demoshop</dd><dt>মোবাইল</dt><dd>01900000000</dd><dt>পাসওয়ার্ড</dt><dd>Demo@123</dd></dl>
+        <p style="margin:10px 0 0"><a href="https://demoshop.{{DOMAIN}}/">ব্রাউজারে খুলুন →</a></p></div>
+      <div class="demo"><span class="tag">ডেমো ২</span><div class="addr">rafid</div>
+        <dl><dt>অ্যাপে ঠিকানা</dt><dd>rafid</dd><dt>মোবাইল</dt><dd>01518459839</dd><dt>পাসওয়ার্ড</dt><dd>rafid5-</dd></dl>
+        <p style="margin:10px 0 0"><a href="https://rafid.{{DOMAIN}}/">ব্রাউজারে খুলুন →</a></p></div>
+    </div>
+  </section>
+
+  <section class="two">
+    <div>
+      <div class="eyebrow">ইনস্টল</div>
+      <h2>অ্যাপ ইনস্টল করার নিয়ম</h2>
+      <ol class="steps">
+        <li><b>উপরের হলুদ "ডাউনলোড" বোতাম চাপুন</b><span>krishikhata.apk ফাইলটি নামবে।</span></li>
+        <li><b>ডাউনলোড হওয়া ফাইলটি খুলুন</b><span>নোটিফিকেশন থেকে বা Files → Downloads থেকে।</span></li>
+        <li><b>"Unknown apps" অনুমতি দিন</b><span>ফোন জানতে চাইলে Settings → Allow from this source চালু করে পেছনে আসুন। এটা একবারই লাগে।</span></li>
+        <li><b>Install চাপুন</b><span>হোম স্ক্রিনে সবুজ পাতার "কৃষিখাতা" আইকন আসবে।</span></li>
+      </ol>
+      <p class="note">অ্যাপটি Play Store-এ নয়, তাই এই অনুমতি চায়। অ্যাপ শুধু আপনার দোকানের হিসাবের ওয়েবসাইট খোলে; ফোনের অন্য কিছুতে হাত দেয় না।</p>
+    </div>
+    <div>
+      <div class="eyebrow">ব্যবহার</div>
+      <h2>প্রথমবার ব্যবহার</h2>
+      <ol class="steps">
+        <li><b>দোকানের ঠিকানা লিখুন</b><span>যেমন দোকানের ঠিকানা karim.{{DOMAIN}} হলে শুধু <b style="display:inline">karim</b> লিখুন। অ্যাপ মনে রাখবে।</span></li>
+        <li><b>মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে লগইন</b><span>মালিক ও সেলার — সবার নিজের আইডি।</span></li>
+        <li><b>নতুন বিক্রি</b><span>পণ্যের নাম লিখে বা সার/বীজ/কীটনাশক বেছে পণ্যে চাপুন, ক্রেতার নম্বর দিন, সেভ করুন — মেমো তৈরি।</span></li>
+        <li><b>মেমো ডাউনলোড বা প্রিন্ট</b><span>PDF ফোনের Downloads/KrishiKhata ফোল্ডারে সেভ হয়।</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <div class="cta">
+    <h2>নিজের দোকানের অ্যাকাউন্ট নিন</h2>
+    <p>প্রতিটি দোকান পায় নিজস্ব ঠিকানা, মালিক ও ৩ জন সেলারের আইডি, আর সব হিসাব নিরাপদে অনলাইনে।</p>
+    {{CONTACT_BLOCK}}
+  </div>
+</main>
+<footer>© কৃষিখাতা · {{DOMAIN}}</footer>
+</body>
+</html>

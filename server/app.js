@@ -41,7 +41,21 @@ function createApp() {
   app.use('/vendor/html2canvas.min.js', (_req, res) => res.sendFile(require.resolve('html2canvas/dist/html2canvas.min.js')));
   app.use('/vendor/jspdf.umd.min.js', (_req, res) => res.sendFile(require.resolve('jspdf/dist/jspdf.umd.min.js')));
   app.use(express.static(path.join(__dirname, '..', 'public'), { index: false, maxAge: '1h' }));
-  app.get(['/', '/shop', '/shop/:slug', '/app', '/login'], (_req, res) => {
+  // Shareable app page: /app (download, short ad, demo logins, how-to)
+  const fs = require('node:fs');
+  const tpl = fs.readFileSync(path.join(__dirname, 'views', 'download.html'), 'utf8');
+  const { DOMAIN } = require('./config');
+  const { getSetting } = require('./db');
+  app.get(['/app', '/download'], (req, res) => {
+    const host = DOMAIN || req.hostname;
+    const phone = getSetting('pay_to', '').replace(/\D/g, '');
+    const contact = /^01\d{9}$/.test(phone)
+      ? `<p style="margin:0 0 6px">যোগাযোগ / বিকাশ / নগদ:</p><a class="contact" href="tel:+88${phone}">${phone.slice(0, 5)}-${phone.slice(5)}</a>`
+      : '<p style="margin:0">ফেসবুক পেজে ইনবক্স করুন।</p>';
+    res.setHeader('Cache-Control', 'no-cache');
+    res.type('html').send(tpl.replaceAll('{{BASE}}', `https://${host}`).replaceAll('{{DOMAIN}}', host).replace('{{CONTACT_BLOCK}}', contact));
+  });
+  app.get(['/', '/shop', '/shop/:slug', '/login'], (_req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
   });

@@ -21,6 +21,7 @@ VIEWS.home = () => {
   return `
   <div class="pagehead"><div><h2>${L('সব ব্যবসা', 'All businesses')}</h2><p>${L('প্রতিটি ব্যবসায়ীর আলাদা অ্যাকাউন্ট সেটআপ ও নিয়ন্ত্রণ করুন।', 'Set up and control a separate account for each business owner.')}</p></div>
   <button class="btn sun" data-nav="wizard">${I('plus')} ${L('নতুন ব্যবসা সেটআপ', 'Set up new business')}</button></div>
+  ${appCard('super')}
   <div class="grid g-kpi">
     ${kpi('k-leaf', 'build', L('মোট ব্যবসা', 'Businesses'), bn(B.length), L(`${bn(B.filter((b) => isLockedSub(b.sub)).length)} টি বন্ধ / মেয়াদ শেষ`, `${bn(B.filter((b) => isLockedSub(b.sub)).length)} locked`))}
     ${kpi('k-sky', 'cart', L('মোট বিক্রি (সব ব্যবসা)', 'Total sales (all)'), tk(tot.s))}
