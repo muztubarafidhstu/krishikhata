@@ -112,7 +112,9 @@ public class MainActivity extends Activity {
         });
 
         if (savedInstanceState != null && web.restoreState(savedInstanceState) != null) return;
-        openSaved();
+        // Every fresh start is locked: forget the previous sign-in, then show the shop's login page
+        // (number and password are filled in from the encrypted store if "remember" was ticked).
+        CookieManager.getInstance().removeAllCookies(v -> { CookieManager.getInstance().flush(); openSaved(); });
     }
 
     /** Keeps the web page clear of the status bar, navigation bar and keyboard (Android 15 draws edge to edge). */
@@ -189,6 +191,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() { super.onPause(); CookieManager.getInstance().flush(); }
 
+    /** Closing the app (back button or swiping it away) locks it. */
+    @Override
+    protected void onDestroy() {
+        if (isFinishing()) { CookieManager.getInstance().removeAllCookies(null); CookieManager.getInstance().flush(); }
+        super.onDestroy();
+    }
+
     /** Functions the web pages can call through window.KKAndroid */
     private class Bridge {
         @JavascriptInterface
@@ -212,7 +221,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void saveLogin(String host, String phone, String pass) {
             try {
-                JSONObject o = new JSONObject().put("phone", phone).put("pass", pass);
+                JSONObject o = new JSONObject().put("phone", phone).put("pass", pass).put("t", System.currentTimeMillis());
                 prefs.edit().putString(hostKey(host), seal(o.toString())).apply();
             } catch (Exception e) { prefs.edit().remove(hostKey(host)).apply(); }
         }
@@ -221,7 +230,12 @@ public class MainActivity extends Activity {
         public String getLogin(String host) {
             String s = prefs.getString(hostKey(host), null);
             if (s == null) return "";
-            try { return open(s); } catch (Exception e) { prefs.edit().remove(hostKey(host)).apply(); return ""; }
+            try {
+                String json = open(s);
+                long saved = new JSONObject(json).optLong("t", System.currentTimeMillis());
+                if (System.currentTimeMillis() - saved > 365L * 24 * 3600 * 1000) { prefs.edit().remove(hostKey(host)).apply(); return ""; }
+                return json;
+            } catch (Exception e) { prefs.edit().remove(hostKey(host)).apply(); return ""; }
         }
 
         @JavascriptInterface

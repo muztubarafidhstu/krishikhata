@@ -33,9 +33,9 @@ VIEWS.login = () => `<div class="loginwrap">
     <form id="loginform" style="display:flex;flex-direction:column;gap:12px">
       <label class="f">${L('মোবাইল নম্বর (আইডি)', 'Mobile number (ID)')}<input class="in num" id="lg-phone" type="tel" inputmode="tel" autocomplete="username" placeholder="01XXXXXXXXX" required></label>
       <label class="f">${L('পাসওয়ার্ড', 'Password')}<span style="display:flex;gap:6px"><input class="in" id="lg-pass" type="password" autocomplete="current-password" required><button type="button" class="eyebtn" style="width:42px;height:42px" data-lgeye aria-label="${L('পাসওয়ার্ড দেখুন', 'Show password')}">${I('eye')}</button></span></label>
-      <label style="display:flex;gap:10px;align-items:center;font-weight:600;cursor:pointer"><input type="checkbox" id="lg-remember" style="width:20px;height:20px;accent-color:var(--leaf)" checked> ${window.KKAndroid ? L('মোবাইল নম্বর ও পাসওয়ার্ড মনে রাখুন (৩০ দিন লগইন থাকবে)', 'Remember my number and password (stay signed in 30 days)') : L('মনে রাখুন (৩০ দিন লগইন থাকবে)', 'Remember me (stay signed in 30 days)')}</label>
+      <label style="display:flex;gap:10px;align-items:center;font-weight:600;cursor:pointer"><input type="checkbox" id="lg-remember" style="width:20px;height:20px;accent-color:var(--leaf)" checked> ${window.KKAndroid ? L('মোবাইল নম্বর ও পাসওয়ার্ড মনে রাখুন (১ বছর)', 'Remember my number and password (1 year)') : L('মনে রাখুন (৩০ দিন লগইন থাকবে)', 'Remember me (stay signed in 30 days)')}</label>
       <button class="btn" type="submit" style="justify-content:center">${I('check')} ${L('লগইন', 'Sign in')}</button>
-      ${window.KKAndroid ? `<p class="muted" style="margin:0;font-size:.82rem">${L('পাসওয়ার্ড শুধু এই ফোনে এনক্রিপ্ট করে রাখা হয়। নিজের ফোন ছাড়া টিক দেবেন না।', 'The password is stored encrypted on this phone only. Untick on a shared phone.')}</p>` : ''}
+      ${window.KKAndroid ? `<p class="muted" style="margin:0;font-size:.82rem">${L('অ্যাপ বন্ধ করলে নিজে থেকে লক হয়ে যায়; খুললে নম্বর ও পাসওয়ার্ড বসানো থাকবে, শুধু লগইন চাপুন। পাসওয়ার্ড শুধু এই ফোনে এনক্রিপ্ট করে রাখা হয় — অন্যের ফোনে টিক দেবেন না।', 'The app locks when you close it; when you open it, your number and password are filled in — just tap Sign in. The password is stored encrypted on this phone only — untick on someone else’s phone.')}</p>` : ''}
     </form>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-forgot>${L('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}</button>${window.KKAndroid ? `<button class="btn ghost sm" data-changeshop>${I('build')} ${L('অন্য দোকানের ঠিকানা', 'Another shop address')}</button>` : ''}</div>
   </div>
@@ -71,7 +71,8 @@ async function doLogin(btn) {
   const phone = pk($('#lg-phone').value), password = $('#lg-pass').value, remember = !!$('#lg-remember')?.checked;
   if (!validPhone(phone)) return toast(L('সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন', 'Enter a valid 11-digit mobile number'), 'err');
   await act(btn, async () => {
-    const res = await api('POST', '/api/login', { phone, password, remember });
+    // In the app the session ends when the app closes, so ask the server for a normal (short) session there.
+    const res = await api('POST', '/api/login', { phone, password, remember: remember && !window.KKAndroid });
     if (!res.ok) { toast(errText(res.data), 'err'); if (res.data.redirect) setTimeout(() => { location.href = res.data.redirect; }, 2500); return; }
     rememberLogin(remember, phone, password);
     S.me = res.data.me; S.otp = res.data.otp; await boot();
