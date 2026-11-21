@@ -7,6 +7,7 @@ const { fail } = require('./core');
 const COOKIE = 'kk_sid';
 const SESSION_DAYS = 14;
 const IDLE_MS = 12 * 3600 * 1000; // sign out after 12 hours without activity
+const REMEMBER_MS = 30 * 86400 * 1000; // "Remember me": stay signed in for 30 days
 
 function parseCookies(h = '') {
   const out = {};
@@ -17,10 +18,11 @@ function cookieStr(val, maxAgeSec, req) {
   const secure = COOKIE_SECURE || req.secure ? '; Secure' : '';
   return `${COOKIE}=${val}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}${secure}`;
 }
-function createSession(res, req, userId) {
+function createSession(res, req, userId, remember) {
+  const ttl = remember ? REMEMBER_MS : IDLE_MS;
   const t = token();
-  run('INSERT INTO sessions(token_hash,user_id,expires_at,created_at) VALUES(?,?,?,?)', sha256(t), userId, Date.now() + IDLE_MS, Date.now());
-  res.setHeader('Set-Cookie', cookieStr(t, SESSION_DAYS * 86400, req));
+  run('INSERT INTO sessions(token_hash,user_id,expires_at,created_at,ttl) VALUES(?,?,?,?,?)', sha256(t), userId, Date.now() + ttl, Date.now(), ttl);
+  res.setHeader('Set-Cookie', cookieStr(t, Math.max(SESSION_DAYS * 86400, ttl / 1000), req));
 }
 function destroySession(req, res) {
   const t = parseCookies(req.headers.cookie)[COOKIE];
@@ -37,7 +39,7 @@ function loadUser(req, _res, next) {
     const s = get('SELECT * FROM sessions WHERE token_hash=?', h);
     if (s && s.expires_at > Date.now()) {
       const u = get('SELECT * FROM users WHERE id=? AND active=1', s.user_id);
-      if (u) { req.user = u; run('UPDATE sessions SET expires_at=? WHERE token_hash=?', Date.now() + IDLE_MS, h); }
+      if (u) { req.user = u; run('UPDATE sessions SET expires_at=? WHERE token_hash=?', Date.now() + (s.ttl || IDLE_MS), h); }
     } else if (s) run('DELETE FROM sessions WHERE token_hash=?', h);
   }
   next();

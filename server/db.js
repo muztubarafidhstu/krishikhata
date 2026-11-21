@@ -79,6 +79,8 @@ CREATE INDEX IF NOT EXISTS ix_notif_b ON notifications(business_id);
 
 // Columns added after the first release.
 {
+  const scols = db.prepare('PRAGMA table_info(sessions)').all().map((c) => c.name);
+  if (!scols.includes('ttl')) db.exec('ALTER TABLE sessions ADD COLUMN ttl INTEGER');
   const cols = db.prepare('PRAGMA table_info(businesses)').all().map((c) => c.name);
   for (const [c, t] of [['price_monthly', 'REAL'], ['price_yearly', 'REAL'], ['demo', 'INTEGER DEFAULT 0']])
     if (!cols.includes(c)) db.exec(`ALTER TABLE businesses ADD COLUMN ${c} ${t}`);

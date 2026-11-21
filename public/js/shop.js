@@ -33,7 +33,9 @@ VIEWS.login = () => `<div class="loginwrap">
     <form id="loginform" style="display:flex;flex-direction:column;gap:12px">
       <label class="f">${L('মোবাইল নম্বর (আইডি)', 'Mobile number (ID)')}<input class="in num" id="lg-phone" type="tel" inputmode="tel" autocomplete="username" placeholder="01XXXXXXXXX" required></label>
       <label class="f">${L('পাসওয়ার্ড', 'Password')}<span style="display:flex;gap:6px"><input class="in" id="lg-pass" type="password" autocomplete="current-password" required><button type="button" class="eyebtn" style="width:42px;height:42px" data-lgeye aria-label="${L('পাসওয়ার্ড দেখুন', 'Show password')}">${I('eye')}</button></span></label>
+      <label style="display:flex;gap:10px;align-items:center;font-weight:600;cursor:pointer"><input type="checkbox" id="lg-remember" style="width:20px;height:20px;accent-color:var(--leaf)" checked> ${window.KKAndroid ? L('মোবাইল নম্বর ও পাসওয়ার্ড মনে রাখুন (৩০ দিন লগইন থাকবে)', 'Remember my number and password (stay signed in 30 days)') : L('মনে রাখুন (৩০ দিন লগইন থাকবে)', 'Remember me (stay signed in 30 days)')}</label>
       <button class="btn" type="submit" style="justify-content:center">${I('check')} ${L('লগইন', 'Sign in')}</button>
+      ${window.KKAndroid ? `<p class="muted" style="margin:0;font-size:.82rem">${L('পাসওয়ার্ড শুধু এই ফোনে এনক্রিপ্ট করে রাখা হয়। নিজের ফোন ছাড়া টিক দেবেন না।', 'The password is stored encrypted on this phone only. Untick on a shared phone.')}</p>` : ''}
     </form>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-forgot>${L('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}</button>${window.KKAndroid ? `<button class="btn ghost sm" data-changeshop>${I('build')} ${L('অন্য দোকানের ঠিকানা', 'Another shop address')}</button>` : ''}</div>
   </div>
@@ -47,12 +49,31 @@ VIEWS.login = () => `<div class="loginwrap">
     </ul>
     ${window.KKAndroid ? '' : `<a class="btn sun" href="/krishikhata.apk" style="align-self:flex-start">${I('down')} ${L('Android অ্যাপ ডাউনলোড', 'Download the Android app')}</a><p class="muted" style="margin:0">${L('ফোনে ব্রাউজারের মেনু থেকে "হোম স্ক্রিনে যোগ করুন" দিলে অ্যাপের মতো আইকন হবে।', 'On a phone, use “Add to Home screen” in the browser menu to get an app icon.')}</p>`}
   </div></div>`;
+// Saved sign-in: the Android app keeps number + password encrypted on the phone; browsers keep only the number.
+function savedLogin() {
+  try {
+    if (window.KKAndroid && window.KKAndroid.getLogin) { const j = window.KKAndroid.getLogin(location.hostname); return j ? JSON.parse(j) : null; }
+    const phone = localStorage.getItem('kk-phone:' + location.hostname); return phone ? { phone } : null;
+  } catch (e) { return null; }
+}
+function rememberLogin(on, phone, pass) {
+  try {
+    if (window.KKAndroid && window.KKAndroid.saveLogin) { if (on) window.KKAndroid.saveLogin(location.hostname, phone, pass); else window.KKAndroid.clearLogin(location.hostname); return; }
+    if (on) localStorage.setItem('kk-phone:' + location.hostname, phone); else localStorage.removeItem('kk-phone:' + location.hostname);
+  } catch (e) {}
+}
+after.login = () => {
+  const s = savedLogin(); if (!s) return;
+  if (s.phone && $('#lg-phone')) $('#lg-phone').value = fmtPhone(s.phone);
+  if (s.pass && $('#lg-pass')) $('#lg-pass').value = s.pass;
+};
 async function doLogin(btn) {
-  const phone = pk($('#lg-phone').value), password = $('#lg-pass').value;
+  const phone = pk($('#lg-phone').value), password = $('#lg-pass').value, remember = !!$('#lg-remember')?.checked;
   if (!validPhone(phone)) return toast(L('সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন', 'Enter a valid 11-digit mobile number'), 'err');
   await act(btn, async () => {
-    const res = await api('POST', '/api/login', { phone, password });
+    const res = await api('POST', '/api/login', { phone, password, remember });
     if (!res.ok) { toast(errText(res.data), 'err'); if (res.data.redirect) setTimeout(() => { location.href = res.data.redirect; }, 2500); return; }
+    rememberLogin(remember, phone, password);
     S.me = res.data.me; S.otp = res.data.otp; await boot();
   });
 }

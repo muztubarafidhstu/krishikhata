@@ -31,7 +31,18 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+
+import org.json.JSONObject;
+
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.regex.Pattern;
@@ -94,6 +105,9 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 CookieManager.getInstance().flush();
+                // Remember the last shop address that loaded, so the app reopens there.
+                Uri u = Uri.parse(url);
+                if (isOurs(u)) prefs.edit().putString("url", "https://" + u.getHost() + "/").apply();
             }
         });
 
@@ -128,6 +142,35 @@ public class MainActivity extends Activity {
         String url = prefs.getString("url", null);
         web.loadUrl(url != null ? url : START_PAGE);
     }
+
+    /* ---------- Saved sign-in, encrypted with a key that never leaves the phone's keystore ---------- */
+    private static final String KEY_NAME = "krishikhata-login";
+
+    private SecretKey loginKey() throws Exception {
+        KeyStore ks = KeyStore.getInstance("AndroidKeyStore");
+        ks.load(null);
+        if (ks.containsAlias(KEY_NAME)) return ((KeyStore.SecretKeyEntry) ks.getEntry(KEY_NAME, null)).getSecretKey();
+        KeyGenerator kg = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+        kg.init(new KeyGenParameterSpec.Builder(KEY_NAME, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build());
+        return kg.generateKey();
+    }
+
+    private String seal(String plain) throws Exception {
+        Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+        c.init(Cipher.ENCRYPT_MODE, loginKey());
+        byte[] enc = c.doFinal(plain.getBytes(StandardCharsets.UTF_8));
+        return Base64.encodeToString(c.getIV(), Base64.NO_WRAP) + ":" + Base64.encodeToString(enc, Base64.NO_WRAP);
+    }
+
+    private String open(String sealed) throws Exception {
+        String[] p = sealed.split(":");
+        Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+        c.init(Cipher.DECRYPT_MODE, loginKey(), new GCMParameterSpec(128, Base64.decode(p[0], Base64.NO_WRAP)));
+        return new String(c.doFinal(Base64.decode(p[1], Base64.NO_WRAP)), StandardCharsets.UTF_8);
+    }
+
+    private static String hostKey(String host) { return "login:" + (host == null ? "" : host.toLowerCase()); }
 
     private void toast(String m) { runOnUiThread(() -> Toast.makeText(this, m, Toast.LENGTH_LONG).show()); }
 
@@ -165,6 +208,24 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> { web.clearHistory(); web.loadUrl(url); });
             return true;
         }
+
+        @JavascriptInterface
+        public void saveLogin(String host, String phone, String pass) {
+            try {
+                JSONObject o = new JSONObject().put("phone", phone).put("pass", pass);
+                prefs.edit().putString(hostKey(host), seal(o.toString())).apply();
+            } catch (Exception e) { prefs.edit().remove(hostKey(host)).apply(); }
+        }
+
+        @JavascriptInterface
+        public String getLogin(String host) {
+            String s = prefs.getString(hostKey(host), null);
+            if (s == null) return "";
+            try { return open(s); } catch (Exception e) { prefs.edit().remove(hostKey(host)).apply(); return ""; }
+        }
+
+        @JavascriptInterface
+        public void clearLogin(String host) { prefs.edit().remove(hostKey(host)).apply(); }
 
         @JavascriptInterface
         public void changeShop() {

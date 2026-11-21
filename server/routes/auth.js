@@ -45,7 +45,7 @@ r.post('/login', (req, res) => {
     const own = get('SELECT slug FROM businesses WHERE id=?', u.business_id);
     fail(403, `এই আইডি অন্য দোকানের। আপনার ঠিকানা: ${own ? shopUrl(own.slug) : ''}`, `This ID belongs to another shop. Your address: ${own ? shopUrl(own.slug) : ''}`, { login: true, redirect: own ? shopUrl(own.slug) : '' });
   }
-  createSession(res, req, u.id);
+  createSession(res, req, u.id, !!req.body.remember);
   audit(u.id, 'login');
   res.json({ me: meOf(u), otp: otpEnabled() });
 });
