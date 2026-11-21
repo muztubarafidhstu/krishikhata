@@ -56,7 +56,7 @@ VIEWS.home = () => {
 VIEWS.subs = () => {
   const P = P_(), B = S.sup.businesses;
   const active = B.filter((b) => !isLockedSub(b.sub)), soon = B.filter((b) => subStateOf(b.sub) === 'soon'), locked = B.filter((b) => isLockedSub(b.sub));
-  const mrr = active.reduce((a, b) => a + (b.sub.plan === 'monthly' ? P.monthly : b.sub.plan === 'yearly' ? P.yearly / 12 : 0), 0);
+  const mrr = active.reduce((a, b) => a + (b.sub.plan === 'monthly' ? b.prices.monthly : b.sub.plan === 'yearly' ? b.prices.yearly / 12 : 0), 0);
   const total = B.reduce((a, b) => a + b.sub.payments.reduce((x, p) => x + p.amount, 0), 0);
   const pays = B.flatMap((b) => b.sub.payments.map((p) => ({ ...p, b }))).sort((x, y) => y.date.localeCompare(x.date));
   const rows = B.filter(matchBiz);
@@ -71,9 +71,10 @@ VIEWS.subs = () => {
   ${searchBar('q', S.q, L('মালিক বা সেলারের মোবাইল নম্বর দিয়ে খুঁজুন', 'Search by owner or seller mobile number'))}
   <div class="card"><div class="tablewrap"><table><thead><tr><th>${L('ব্যবসা', 'Business')}</th><th>${L('মোবাইল', 'Mobile')}</th><th>${L('প্ল্যান', 'Plan')}</th><th>${L('মেয়াদ শেষ', 'Expires')}</th><th>${L('অবস্থা', 'Status')}</th><th class="r">${L('কাজ', 'Actions')}</th></tr></thead><tbody>
   ${rows.length ? '' : `<tr><td colspan="6"><div class="empty">${L('কিছু পাওয়া যায়নি।', 'Nothing found.')}</div></td></tr>`}
-  ${rows.map((b) => `<tr><td><b>${esc(b.name)}</b><div class="muted" style="font-size:.8rem">${esc(b.owner)}</div></td><td class="num muted" style="white-space:nowrap">${esc(dg(fmtPhone(b.admin.phone)))}</td><td>${N(PLAN_N[b.sub.plan])}</td><td class="num" style="white-space:nowrap">${fmtLong(b.sub.expiry)}</td><td>${subPill(b.sub)}</td>
+  ${rows.map((b) => `<tr><td><b>${esc(b.name)}</b><div class="muted" style="font-size:.8rem">${esc(b.owner)}</div></td><td class="num muted" style="white-space:nowrap">${esc(dg(fmtPhone(b.admin.phone)))}</td><td>${N(PLAN_N[b.sub.plan])}${b.demo ? ` <span class="pill p-fert">${L('ডেমো', 'Demo')}</span>` : ''}<div class="muted num" style="font-size:.78rem">${tk(b.prices.monthly)}/${L('মাস', 'mo')} · ${tk(b.prices.yearly)}/${L('বছর', 'yr')}${b.prices.custom ? ` <b style="color:var(--soil)">${L('বিশেষ দাম', 'special')}</b>` : ''}</div></td><td class="num" style="white-space:nowrap">${fmtLong(b.sub.expiry)}</td><td>${subPill(b.sub)}</td>
     <td class="r"><div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap"><button class="btn sm" data-pay="${b.id}">${I('money')} ${L('পেমেন্ট নিন', 'Record payment')}</button>
     <button class="btn ghost sm" data-react="${b.id}">${I('check')} ${isLockedSub(b.sub) ? L('চালু করুন', 'Activate') : L('মেয়াদ বদলান', 'Change expiry')}</button>
+    <button class="btn ghost sm" data-price="${b.id}">${I('tag')} ${L('দাম', 'Price')}</button>
     ${b.sub.status !== 'off' ? `<button class="btn red sm" data-deact="${b.id}">${I('x')} ${L('বন্ধ করুন', 'Deactivate')}</button>` : ''}</div></td></tr>`).join('')}
   </tbody></table></div></div>
   <div class="card"><h3 style="margin-bottom:8px">${I('receipt')} ${L('সাম্প্রতিক পেমেন্ট', 'Recent payments')}</h3>
@@ -89,7 +90,7 @@ function showPay(id) {
   const plan = b.sub.plan === 'trial' ? 'monthly' : b.sub.plan;
   modal(`<h3>${L('সাবস্ক্রিপশন পেমেন্ট', 'Subscription payment')}</h3><div style="opacity:.9">${esc(b.name)} · ${esc(b.owner)}</div>`, `
     <div class="form-g">
-      <label class="f">${L('প্ল্যান', 'Plan')}<select class="in" id="pay-plan"><option value="monthly" ${plan === 'monthly' ? 'selected' : ''}>${N(PLAN_N.monthly)} — ${tk(P_().monthly)}</option><option value="yearly" ${plan === 'yearly' ? 'selected' : ''}>${N(PLAN_N.yearly)} — ${tk(P_().yearly)}</option></select></label>
+      <label class="f">${L('প্ল্যান', 'Plan')}<select class="in" id="pay-plan"><option value="monthly" ${plan === 'monthly' ? 'selected' : ''}>${N(PLAN_N.monthly)} — ${tk(b.prices.monthly)}</option><option value="yearly" ${plan === 'yearly' ? 'selected' : ''}>${N(PLAN_N.yearly)} — ${tk(b.prices.yearly)}</option></select></label>
       <label class="f">${L('কত মাস / বছর', 'How many months / years')}<input class="in num" type="text" inputmode="decimal" data-amt id="pay-qty" value="1"></label>
       <label class="f">${L('মাধ্যম', 'Method')}<select class="in" id="pay-m">${Object.keys(METHOD).map((m) => `<option value="${m}">${N(METHOD[m])}</option>`).join('')}</select></label>
       <label class="f">${L('ট্রানজেকশন আইডি', 'Transaction ID')}<input class="in" id="pay-ref" maxlength="40" placeholder="${L('ঐচ্ছিক', 'Optional')}"></label>
@@ -102,7 +103,7 @@ function showPay(id) {
 function payCalc() {
   const b = supBiz(payFor), plan = $('#pay-plan').value, qty = Math.min(Math.max(Math.round(toNum($('#pay-qty').value)) || 1, 1), 12);
   const base = b.sub.expiry > todayStr() ? b.sub.expiry : todayStr();
-  return { b, plan, qty, amount: (plan === 'yearly' ? P_().yearly : P_().monthly) * qty, newExp: addMonths(base, plan === 'yearly' ? 12 * qty : qty) };
+  return { b, plan, qty, amount: (plan === 'yearly' ? b.prices.yearly : b.prices.monthly) * qty, newExp: addMonths(base, plan === 'yearly' ? 12 * qty : qty) };
 }
 function updPay() {
   if (!$('#pay-sum')) return; const c = payCalc(); const di = $('#pay-date');
@@ -394,4 +395,22 @@ function editSlug(id) {
     <p class="muted" style="margin:0;font-size:.85rem">${L('ঠিকানা বদলালে পুরোনো ঠিকানা আর কাজ করবে না। মালিককে নতুন ঠিকানা জানানো হবে।', 'The old address stops working. The owner is told the new address.')}</p>
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" id="sl-save">${I('check')} ${L('সেভ করুন', 'Save')}</button></div>`, { width: 480 });
   $('#sl-save').onclick = (e) => act(e.currentTarget, async () => { const r = await call('PUT', `/api/super/businesses/${id}/slug`, { slug: $('#sl-in').value.trim().toLowerCase() }); closeModal(); await loadSuper(); render(); toast(L('নতুন ঠিকানা: ', 'New address: ') + r.url); });
+}
+
+/* Special subscription price for one shop */
+function editPrice(id) {
+  const b = supBiz(id), P = P_();
+  modal(`<h3>${I('tag')} ${L('এই দোকানের দাম', 'Price for this shop')}</h3><div style="opacity:.9">${esc(b.name)}</div>`, `
+    <p class="muted" style="margin:0">${L(`খালি রাখলে সাধারণ দাম: মাসিক ${tk(P.monthly)}, বার্ষিক ${tk(P.yearly)}`, `Leave empty for the standard price: ${tk(P.monthly)} monthly, ${tk(P.yearly)} yearly`)}</p>
+    <div class="form-g">
+      <label class="f">${L('মাসিক (৳)', 'Monthly (৳)')}<input class="in num" id="pr-m" type="text" inputmode="decimal" data-amt value="${b.prices.custom ? b.prices.monthly : ''}" placeholder="${P.monthly}"></label>
+      <label class="f">${L('বার্ষিক (৳)', 'Yearly (৳)')}<input class="in num" id="pr-y" type="text" inputmode="decimal" data-amt value="${b.prices.custom ? b.prices.yearly : ''}" placeholder="${P.yearly}"></label>
+    </div>
+    <p class="muted" style="margin:0;font-size:.85rem">${L('নতুন দাম পরের পেমেন্ট থেকে লাগবে। মালিক তার "আমার সাবস্ক্রিপশন" পেজে এই দামই দেখবেন।', 'The new price applies from the next payment. The owner sees this price on their subscription page.')}</p>
+    <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" id="pr-save">${I('check')} ${L('সেভ করুন', 'Save')}</button></div>`, { width: 480 });
+  $('#pr-save').onclick = (e) => act(e.currentTarget, async () => {
+    const v = (id) => ($(id).value.trim() === '' ? '' : toNum($(id).value));
+    await call('PUT', `/api/super/businesses/${id}/price`, { monthly: v('#pr-m'), yearly: v('#pr-y') });
+    closeModal(); await loadSuper(); render(); toast(L('দাম সেভ হয়েছে', 'Price saved'));
+  });
 }

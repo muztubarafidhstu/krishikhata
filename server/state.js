@@ -1,7 +1,7 @@
 'use strict';
 // Builds the JSON the browser works with. Shapes match the front-end views.
 const { get, all, today } = require('./db');
-const { subState, isLocked, plans } = require('./core');
+const { subState, isLocked, plansFor } = require('./core');
 
 const subOf = (b, withPayments) => ({
   plan: b.plan, status: b.status, start: b.sub_start, expiry: b.expiry, state: subState(b),
@@ -15,7 +15,7 @@ function bizState(bid, viewer) {
   const isAdmin = viewer.role === 'admin';
   const base = {
     id: b.id, name: b.name, owner: b.owner, place: b.place, phone: b.phone, slug: b.slug,
-    cats: JSON.parse(b.cats), modules: JSON.parse(b.modules), sub: subOf(b, isAdmin), plans: plans(),
+    cats: JSON.parse(b.cats), modules: JSON.parse(b.modules), sub: subOf(b, isAdmin), plans: plansFor(b), demo: !!b.demo,
     admin: { name: admin.name, phone: admin.phone }, locked: isLocked(b), today: today(),
   };
   const notes = isAdmin ? all('SELECT id,date d,text_bn,text_en,read FROM notifications WHERE business_id=? ORDER BY id DESC LIMIT 40', bid)
@@ -62,7 +62,7 @@ function bizSummary(b) {
   const admin = get("SELECT id,name,phone FROM users WHERE business_id=? AND role='admin'", b.id) || {};
   return {
     id: b.id, name: b.name, owner: b.owner, place: b.place, phone: b.phone, slug: b.slug,
-    cats: JSON.parse(b.cats), modules: JSON.parse(b.modules), sub: subOf(b, true),
+    cats: JSON.parse(b.cats), modules: JSON.parse(b.modules), sub: subOf(b, true), prices: plansFor(b), demo: !!b.demo,
     admin, sellers: all("SELECT id uid,seller_code id,name,phone FROM users WHERE business_id=? AND role='seller' AND active=1 ORDER BY seller_code", b.id),
     hasBackup: !!get('SELECT 1 x FROM backups WHERE business_id=?', b.id),
     stats: {

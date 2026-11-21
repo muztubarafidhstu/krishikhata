@@ -53,6 +53,7 @@ document.addEventListener('click', async (e) => {
   if (d.pay) return showPay(d.pay);
   if (d.savepay !== undefined) return savePay(t);
   if (d.react) return showReact(d.react);
+  if (d.price) return editPrice(d.price);
   if (d.requick) { $('#re-date').value = addMonths(todayStr(), +d.requick); return updReact(); }
   if (d.resave !== undefined) return saveReact(t);
   if (d.deact) return deactivate(d.deact);

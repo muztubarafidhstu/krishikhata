@@ -3,7 +3,7 @@ const express = require('express');
 const { get, all, run, tx, getSetting, setSetting, today, addMonths } = require('../db');
 const { decrypt, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
 const { requireSuper } = require('../auth');
-const { fail, money, str, notify, otpGate, otpEnabled, plans, audit, isLocked, CATS, MODULE_KEYS, METHODS } = require('../core');
+const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, audit, isLocked, CATS, MODULE_KEYS, METHODS } = require('../core');
 const { bizSummary } = require('../state');
 const { createBusiness } = require('../business');
 const { PASS_MSG } = require('./auth');
@@ -106,11 +106,21 @@ r.put('/businesses/:id/slug', (req, res) => {
   res.json({ ok: true, url: shopUrl(s) });
 });
 
+// Special price for one shop. Send empty values to go back to the standard price.
+r.put('/businesses/:id/price', (req, res) => {
+  const b = bizOr404(req.params.id);
+  const val = (v) => (v === '' || v === null || v === undefined ? null : money(v, { name: 'price' }));
+  const m = val(req.body.monthly), y = val(req.body.yearly);
+  run('UPDATE businesses SET price_monthly=?, price_yearly=? WHERE id=?', m, y, b.id);
+  audit(req.user.id, 'price', `${b.id} ${m}/${y}`);
+  res.json(plansFor(get('SELECT * FROM businesses WHERE id=?', b.id)));
+});
+
 r.post('/businesses/:id/payment', (req, res) => {
   const b = bizOr404(req.params.id);
   const plan = req.body.plan === 'yearly' ? 'yearly' : 'monthly';
   const qty = Math.min(Math.max(parseInt(req.body.qty, 10) || 1, 1), 12);
-  const P = plans();
+  const P = plansFor(b);
   const amount = (plan === 'yearly' ? P.yearly : P.monthly) * qty;
   const base = b.expiry > today() ? b.expiry : today();
   let expiry = addMonths(base, plan === 'yearly' ? 12 * qty : qty);

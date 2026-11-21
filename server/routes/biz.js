@@ -28,6 +28,8 @@ r.use((req, _res, next) => {
 });
 const adminOnly = (req, _res, next) => { if (req.viewer.role !== 'admin') fail(403, 'শুধু মালিক / অ্যাডমিন এটি করতে পারেন', 'Only the owner / admin can do this'); next(); };
 const bid = (req) => req.biz.id;
+// Public demo shops: visitors may try everything except changing logins.
+const noDemo = (req, _res, next) => { if (req.biz.demo && !req.viewer.isSuper) fail(403, 'ডেমো দোকানে আইডি ও পাসওয়ার্ড বদলানো যায় না', 'IDs and passwords cannot be changed in a demo shop'); next(); };
 
 r.get('/state', (req, res) => res.json(bizState(bid(req), req.viewer)));
 
@@ -177,7 +179,7 @@ r.put('/opening', adminOnly, (req, res) => {
 });
 
 /* ---------- Sellers (max 3) ---------- */
-r.post('/sellers', adminOnly, (req, res) => {
+r.post('/sellers', adminOnly, noDemo, (req, res) => {
   const name = str(req.body.name, 60), phone = normPhone(req.body.phone), pw = String(req.body.password || '');
   if (!name) fail(400, 'সেলারের নাম লিখুন', 'Enter the seller’s name');
   if (!validPhone(phone)) fail(400, 'সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন (01XXXXXXXXX)', 'Enter a valid 11-digit mobile number (01XXXXXXXXX)');
@@ -193,7 +195,7 @@ r.post('/sellers', adminOnly, (req, res) => {
   audit(req.user.id, 'seller-add', `${bid(req)} ${phone}`);
   res.json({ ok: true, code });
 });
-r.post('/sellers/:uid/remove', adminOnly, (req, res) => {
+r.post('/sellers/:uid/remove', adminOnly, noDemo, (req, res) => {
   const c = run("UPDATE users SET active=0 WHERE id=? AND business_id=? AND role='seller'", Number(req.params.uid), bid(req));
   if (!c.changes) fail(404, 'সেলার পাওয়া যায়নি', 'Seller not found');
   run('DELETE FROM sessions WHERE user_id=?', Number(req.params.uid));
@@ -201,7 +203,7 @@ r.post('/sellers/:uid/remove', adminOnly, (req, res) => {
   res.json({ ok: true });
 });
 // Owner sets a seller's password. OTP goes to the seller's phone.
-r.post('/sellers/:uid/password', adminOnly, (req, res) => {
+r.post('/sellers/:uid/password', adminOnly, noDemo, (req, res) => {
   const u = get("SELECT * FROM users WHERE id=? AND business_id=? AND role='seller' AND active=1", Number(req.params.uid), bid(req)) || fail(404, 'সেলার পাওয়া যায়নি', 'Seller not found');
   const pw = String(req.body.password || '');
   if (!passOk(pw)) fail(400, ...PASS_MSG);

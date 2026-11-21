@@ -235,7 +235,7 @@ function renderChrome() {
   $('#brandsub').textContent = L('বীজ · সার · কীটনাশক ব্যবসা ব্যবস্থাপনা', 'Seed · Fertilizer · Pesticide business manager');
   const bz = $('#bizname');
   bz.hidden = r === 'guest' || r === 'public';
-  bz.innerHTML = r === 'super' ? `${I('crown')} ${L('মাদার প্যানেল', 'Mother panel')}` : S.cur ? `${I('build')} ${esc(S.cur.name)}` : '';
+  bz.innerHTML = r === 'super' ? `${I('crown')} ${L('মাদার প্যানেল', 'Mother panel')}` : S.cur ? `${I('build')} ${esc(S.cur.name)}${S.cur.demo ? ` · ${L('ডেমো', 'Demo')}` : ''}` : '';
   const ub = $('#userbar');
   ub.hidden = !S.me;
   if (S.me) ub.innerHTML = (S.bid ? `<button data-backsuper>${I('back')} ${L('মাদার প্যানেল', 'Mother panel')}</button>` : '') +

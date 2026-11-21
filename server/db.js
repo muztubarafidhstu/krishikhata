@@ -77,6 +77,13 @@ CREATE INDEX IF NOT EXISTS ix_sms_status ON sms(status, created_at);
 CREATE INDEX IF NOT EXISTS ix_notif_b ON notifications(business_id);
 `);
 
+// Columns added after the first release.
+{
+  const cols = db.prepare('PRAGMA table_info(businesses)').all().map((c) => c.name);
+  for (const [c, t] of [['price_monthly', 'REAL'], ['price_yearly', 'REAL'], ['demo', 'INTEGER DEFAULT 0']])
+    if (!cols.includes(c)) db.exec(`ALTER TABLE businesses ADD COLUMN ${c} ${t}`);
+}
+
 // node:sqlite does not accept undefined — convert to null.
 const clean = (p) => p.map((v) => (v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v));
 const get = (sql, ...p) => db.prepare(sql).get(...clean(p));

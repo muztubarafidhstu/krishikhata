@@ -39,6 +39,8 @@ function subState(b) {
   return 'active';
 }
 const isLocked = (b) => ['off', 'expired'].includes(subState(b));
+// A shop can have its own price; empty means the standard price.
+const plansFor = (b) => { const P = plans(); return { ...P, monthly: b.price_monthly ?? P.monthly, yearly: b.price_yearly ?? P.yearly, custom: b.price_monthly != null || b.price_yearly != null }; };
 const plans = () => ({
   monthly: Number(getSetting('plan_monthly', '500')),
   yearly: Number(getSetting('plan_yearly', '5000')),
@@ -103,5 +105,5 @@ const STARTER = [
   { cat: 'pest', name: 'গ্লাইফোসেট আগাছানাশক (১ লি)', unit: 'bottle', buy: 420, sell: 500, min: 10 },
 ];
 
-module.exports = { HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, otpEnabled, otpGate, audit,
+module.exports = { HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, plansFor, otpEnabled, otpGate, audit,
   CATS, MODULE_KEYS, UNITS, EXP_TYPES, METHODS, STARTER, all };

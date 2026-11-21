@@ -34,6 +34,12 @@ if (cmd === 'backup') {
   run('UPDATE businesses SET expiry=?, plan=? WHERE id=?', addMonths(today(), 7), 'yearly', shops[0]);
   fillSample(shops[0]);
   console.log('Demo shops created. Logins: 01711100001 / Rahim@12 (admin), 01811200001 / Jamal#1 (seller).');
+} else if (cmd === 'mark-demo') {
+  // npm run mark-demo -- rafid        (add "off" to undo)
+  const b = get('SELECT id FROM businesses WHERE slug=?', String(a1 || ''));
+  if (!b) { console.error('No shop with address: ' + a1); process.exit(1); }
+  run('UPDATE businesses SET demo=? WHERE id=?', a2 === 'off' ? 0 : 1, b.id);
+  console.log(a2 === 'off' ? `${a1}: demo protection OFF` : `${a1}: demo protection ON (logins can't be changed by visitors)`);
 } else if (cmd === 'demo-shop') {
   // A ready-made demo shop to show customers:  npm run demo-shop -- demoshop 01XXXXXXXXX "Demo@123" [sellerPhone "Seller#1"]
   const [slug, phone, pass, sPhone, sPass] = process.argv.slice(3);
@@ -46,7 +52,7 @@ if (cmd === 'backup') {
   const bid = createBusiness({ name: 'ডেমো কৃষি ভাণ্ডার', slug, owner: 'ডেমো মালিক', place: 'বগুড়া সদর', cats: ['seed', 'fert', 'pest'],
     modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop'], admin: { phone, password: pass },
     sellers: sPhone ? [{ name: 'ডেমো সেলার', phone: sPhone, password: sPass }] : [], opening: 150000, starter: true, plan: 'trial' });
-  run("UPDATE businesses SET plan='yearly', expiry=? WHERE id=?", addMonths(today(), 60), bid);
+  run("UPDATE businesses SET plan='yearly', expiry=?, demo=1 WHERE id=?", addMonths(today(), 60), bid);
   fillSample(bid);
   console.log(`Demo shop ready: https://${slug}.${process.env.DOMAIN || 'your-domain'}  login ${normPhone(phone)}` + (sPhone ? `, seller ${normPhone(sPhone)}` : ''));
 } else {

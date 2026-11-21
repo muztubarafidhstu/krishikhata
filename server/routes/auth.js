@@ -23,6 +23,7 @@ r.get('/tls-check', (req, res) => {
   res.sendStatus(404);
 });
 
+const isDemoUser = (u) => !!(u.business_id && get('SELECT demo FROM businesses WHERE id=?', u.business_id)?.demo);
 const meOf = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone, businessId: u.business_id, sellerCode: u.seller_code });
 
 r.post('/login', (req, res) => {
@@ -56,6 +57,7 @@ module.exports.hostInfo = hostInfo;
 
 // Change own password. OTP goes to the user's own phone (when OTP is on).
 r.post('/password', requireLogin, (req, res) => {
+  if (isDemoUser(req.user)) fail(403, 'ডেমো অ্যাকাউন্টে পাসওয়ার্ড বদলানো যায় না', 'Passwords cannot be changed on a demo account');
   const pw = String(req.body.password || '');
   if (!passOk(pw)) fail(400, ...PASS_MSG);
   if (!verifyPassword(String(req.body.current || ''), req.user.pass_hash)) fail(400, 'বর্তমান পাসওয়ার্ড ভুল', 'Current password is wrong');
@@ -74,6 +76,7 @@ r.post('/forgot', (req, res) => {
   if (!limit('forgot:' + req.ip, 10, 3600000)) fail(429, 'পরে চেষ্টা করুন', 'Try again later');
   const u = get('SELECT * FROM users WHERE phone=? AND active=1', phone);
   if (!u) fail(404, 'এই নম্বরে কোনো অ্যাকাউন্ট নেই', 'No account uses this number');
+  if (isDemoUser(u)) fail(403, 'ডেমো অ্যাকাউন্টে পাসওয়ার্ড বদলানো যায় না', 'Passwords cannot be changed on a demo account');
   const pw = String(req.body.password || '');
   if (!passOk(pw)) fail(400, ...PASS_MSG);
   otpGate(req, { purpose: 'forgot', key: 'forgot:' + u.id, phone, label: 'password reset' });
