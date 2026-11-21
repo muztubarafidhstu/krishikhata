@@ -36,7 +36,7 @@ function createBusiness(data) {
     if (data.starter !== false) {
       let n = 1;
       for (const p of STARTER.filter((x) => data.cats.includes(x.cat)))
-        run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box) VALUES(?,?,?,?,?,?,?,?,?)', bid, p.name, p.cat, p.unit, p.buy, p.sell, 0, p.min, 'B-' + String(n++).padStart(2, '0'));
+        run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,weight,per_pack) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', bid, p.name, p.cat, p.unit, p.buy, p.sell, 0, p.min, 'B-' + String(n++).padStart(2, '0'), p.brand || '', p.size || '', p.weight ?? null, p.per_pack ?? null);
     }
     if (plan !== 'trial') run('INSERT INTO sub_payments(business_id,date,plan,qty,amount,method,ref) VALUES(?,?,?,?,?,?,?)', bid, t, plan, 1, plan === 'yearly' ? P.yearly : P.monthly, data.payMethod || 'cash', data.payRef || '');
     return bid;

@@ -1,6 +1,6 @@
 'use strict';
 // Usage: npm run seed-demo | npm run reset-super -- <phone> <newPassword> | npm run backup
-const { get, run, today, addDays, addMonths } = require('./db');
+const { get, run, tx, today, addDays, addMonths } = require('./db');
 const { hashPassword, encrypt, normPhone, validPhone, passOk } = require('./security');
 const { createBusiness } = require('./business');
 const jobs = require('./jobs');
@@ -40,6 +40,21 @@ if (cmd === 'backup') {
   if (!b) { console.error('No shop with address: ' + a1); process.exit(1); }
   run('UPDATE businesses SET demo=? WHERE id=?', a2 === 'off' ? 0 : 1, b.id);
   console.log(a2 === 'off' ? `${a1}: demo protection OFF` : `${a1}: demo protection ON (logins can't be changed by visitors)`);
+} else if (cmd === 'refill-demo') {
+  // npm run refill-demo -- demosteel   → wipes a DEMO shop and fills it again with fresh sample data
+  const b = get('SELECT * FROM businesses WHERE slug=?', String(a1 || ''));
+  if (!b) { console.error('No shop with address: ' + a1); process.exit(1); }
+  if (!b.demo) { console.error('Only demo shops can be refilled (mark it first: npm run mark-demo -- ' + a1 + ')'); process.exit(1); }
+  const { STARTER } = require('./core');
+  tx(() => {
+    for (const t of ['sales', 'purchases', 'expenses', 'collections', 'vendor_payments', 'customers', 'vendors', 'products']) run(`DELETE FROM ${t} WHERE business_id=?`, b.id);
+    run('UPDATE businesses SET next_inv=1001 WHERE id=?', b.id);
+    let n = 1;
+    for (const p of STARTER.filter((x) => JSON.parse(b.cats).includes(x.cat)))
+      run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,weight,per_pack) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', b.id, p.name, p.cat, p.unit, p.buy, p.sell, 0, p.min, 'B-' + String(n++).padStart(2, '0'), p.brand || '', p.size || '', p.weight ?? null, p.per_pack ?? null);
+    fillSample(b.id, (b.btype || 'agri') === 'build');
+  });
+  console.log(`Demo shop ${a1} refilled with fresh sample data.`);
 } else if (cmd === 'demo-shop') {
   // A ready-made demo shop to show customers:  npm run demo-shop -- demoshop 01XXXXXXXXX "Demo@123" [sellerPhone "Seller#1"]
   const build = process.argv.includes('--build');
@@ -62,6 +77,11 @@ if (cmd === 'backup') {
 
 // Sample stock, customers, vendors, a week of sales and some expenses for one shop.
 function fillSample(bid, build = false) {
+  if (build) {
+    // Demo brands so the shop looks real; owners type their own brands.
+    for (const [like, brand] of [['MS Rod 10%', 'BSRM'], ['MS Rod 12%', 'BSRM'], ['MS Rod 16%', 'KSRM'], ['Cement PCC%', 'Shah'], ['Cement OPC%', 'Seven Rings'], ['CI Sheet%', 'PHP']])
+      run("UPDATE products SET brand=?, name=? || ' ' || name WHERE business_id=? AND name LIKE ?", brand, brand, bid, like);
+  }
   run("UPDATE products SET stock=CASE WHEN cat IN ('rod','angle','bar') THEN 3000 WHEN cat='fert' THEN 60 ELSE 120 END WHERE business_id=?", bid);
   const custs = [['আব্দুল মালেক', 'শিবগঞ্জ', '01999000001'], ['হাসান আলী', 'মহাস্থান', '01999000002'], ['সুফিয়া বেগম', 'গাবতলী', '01999000003'], ['রফিকুল ইসলাম', 'নন্দীগ্রাম', '01999000004']]
     .map(([n, v, p]) => Number(run('INSERT INTO customers(business_id,name,village,phone,due) VALUES(?,?,?,?,0)', bid, n, v, p).lastInsertRowid));

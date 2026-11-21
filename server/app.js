@@ -34,7 +34,7 @@ function createApp() {
     if (!b || isLocked(b) || !JSON.parse(b.modules).includes('shop')) return res.status(404).json({ error: 'দোকান পাওয়া যায়নি', error_en: 'Shop not found' });
     res.json({
       name: b.name, place: b.place, phone: b.phone, cats: JSON.parse(b.cats), btype: b.btype || 'agri',
-      products: all('SELECT id,name,cat,unit,sell,stock>0 inStock FROM products WHERE business_id=? AND active=1 ORDER BY cat,id', b.id),
+      products: all('SELECT id,name,cat,unit,sell,brand,size,stock>0 inStock FROM products WHERE business_id=? AND active=1 ORDER BY cat,id', b.id),
     });
   });
 

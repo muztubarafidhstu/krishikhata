@@ -22,15 +22,15 @@ function bizState(bid, viewer) {
     .map((n) => ({ id: n.id, d: n.d, text: { bn: n.text_bn, en: n.text_en }, read: !!n.read })) : [];
   if (base.locked) return { ...base, notes, products: [], customers: [], vendors: [], sales: [], purchases: [], expenses: [], collections: [], vpay: [], sellers: [], opening: 0 };
 
-  const products = all('SELECT id,name,cat,unit,buy,sell,stock,min_stock,box FROM products WHERE business_id=? AND active=1 ORDER BY id', bid)
-    .map((p) => { const o = { id: p.id, name: p.name, cat: p.cat, unit: p.unit, sell: p.sell, stock: p.stock, min: p.min_stock, box: p.box }; if (isAdmin) o.buy = p.buy; return o; });
+  const products = all('SELECT id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,weight,per_pack FROM products WHERE business_id=? AND active=1 ORDER BY id', bid)
+    .map((p) => { const o = { id: p.id, name: p.name, cat: p.cat, unit: p.unit, sell: p.sell, stock: p.stock, min: p.min_stock, box: p.box, brand: p.brand || '', size: p.size || '', weight: p.weight, perPack: p.per_pack }; if (isAdmin) o.buy = p.buy; return o; });
   const customers = all('SELECT id,name,village,phone,due FROM customers WHERE business_id=? ORDER BY name', bid);
   const saleRows = isAdmin
     ? all('SELECT * FROM sales WHERE business_id=? AND void=0 ORDER BY id', bid)
     : all('SELECT * FROM sales WHERE business_id=? AND void=0 AND seller_user_id=? ORDER BY id', bid, viewer.id);
   const itemRows = all(`SELECT si.* FROM sale_items si JOIN sales s ON s.id=si.sale_id WHERE s.business_id=? AND s.void=0 ${isAdmin ? '' : 'AND s.seller_user_id=?'}`, ...(isAdmin ? [bid] : [bid, viewer.id]));
   const items = new Map();
-  for (const it of itemRows) { if (!items.has(it.sale_id)) items.set(it.sale_id, []); const o = { pid: it.product_id, qty: it.qty, price: it.price }; if (isAdmin) o.cost = it.cost; items.get(it.sale_id).push(o); }
+  for (const it of itemRows) { if (!items.has(it.sale_id)) items.set(it.sale_id, []); const o = { pid: it.product_id, qty: it.qty, price: it.price, pcs: it.pcs }; if (isAdmin) o.cost = it.cost; items.get(it.sale_id).push(o); }
   const sales = saleRows.map((s) => ({ id: s.memo_no, sid: s.id, date: s.date, cust: s.customer_id || 0, items: items.get(s.id) || [], total: s.total, paid: s.paid, seller: s.seller_label }));
   const sellers = all("SELECT id,name,phone,seller_code FROM users WHERE business_id=? AND role='seller' AND active=1 ORDER BY seller_code", bid)
     .map((u) => ({ id: u.seller_code, uid: u.id, name: u.name, phone: u.phone }));

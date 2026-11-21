@@ -43,7 +43,13 @@ const I = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden
 
 /* ---------- Language & formatting ---------- */
 let LANG = 'bn';
-try { LANG = localStorage.getItem('kk-lang') || 'bn'; } catch (e) {}
+let LANG_SET = false; // true once this person picked a language on this address
+try { const v = localStorage.getItem('kk-lang'); if (v) { LANG = v; LANG_SET = true; } } catch (e) {}
+// NirmanKhata shop panels (owners and sellers) open in English; KrishiKhata, mother panels and public pages in Bangla.
+function applyDefaultLang() {
+  if (LANG_SET) return;
+  LANG = btype() === 'build' && !(S.site && S.site.admin) && !(S.me && S.me.role === 'super') && role() !== 'public' ? 'en' : 'bn';
+}
 const L = (b, e) => (LANG === 'en' ? e : b);
 const N = (x) => (x == null ? '' : typeof x === 'string' ? x : (x[LANG] ?? x.bn ?? x.en));
 const BN_DIG = '০১২৩৪৫৬৭৮৯';
@@ -130,6 +136,22 @@ const BRAND = {
     search: { bn: 'যেমন: রড ১২, সিমেন্ট, B-05', en: 'e.g. rod 12, cement, B-05' }, hero: { bn: 'ভালো মানের রড, সিমেন্ট ও টিন — আপনার নির্মাণের বিশ্বস্ত সঙ্গী।', en: 'Quality rod, cement and sheet for your building.' },
     login: { bn: 'রড, সিমেন্ট ও নির্মাণ সামগ্রী ব্যবসার সহজ হিসাব', en: 'Simple accounts for rod, cement and building-material shops' }, apk: '/nirmankhata.apk', page: '/nirman' },
 };
+// Product details for building materials: brand + size suggestions, weight per piece/bag, pieces per bundle.
+const ROD_KG = { '8 mm': 4.74, '10 mm': 7.4, '12 mm': 10.66, '16 mm': 18.96, '20 mm': 29.6, '22 mm': 35.8, '25 mm': 46.3 }; // 40 ft (12 m) piece
+const SPEC = {
+  rod: { brands: ['BSRM', 'KSRM', 'AKS', 'GPH', 'Anwar Ispat', 'Rahim Steel', 'SAS'], sizes: Object.keys(ROD_KG), unit: 'kg', en: 'Rod', w: { bn: 'ওজন প্রতি পিস (কেজি, ৪০ ফুট)', en: 'Weight per piece (kg, 40 ft)' } },
+  cement: { brands: ['Shah', 'Seven Rings', 'Bashundhara', 'Crown', 'Premier', 'Fresh', 'Akij', 'Meghna', 'Supercrete', 'Insee'], sizes: ['PCC', 'OPC'], unit: 'bag', weight: 50, en: 'Cement', w: { bn: 'ওজন প্রতি বস্তা (কেজি)', en: 'Weight per bag (kg)' } },
+  sheet: { brands: ['PHP', 'KY Steel', 'Abul Khair', 'Appollo', 'Anwar', 'Super'], sizes: ['0.12 mm', '0.15 mm', '0.17 mm', '0.19 mm', '0.20 mm', '0.22 mm', '0.25 mm', '0.32 mm', '0.36 mm', '0.42 mm', '0.46 mm', '0.51 mm'], unit: 'bundle', en: 'CI Sheet', w: { bn: 'ওজন প্রতি পিস (কেজি)', en: 'Weight per sheet (kg)' } },
+  angle: { brands: [], sizes: ['1" x 1" x 3 mm', '1.25" x 1.25" x 3 mm', '1.5" x 1.5" x 5 mm', '2" x 2" x 5 mm', '2.5" x 2.5" x 6 mm', '3" x 3" x 6 mm'], unit: 'kg', en: 'Angle', w: { bn: 'ওজন প্রতি পিস (কেজি, ২০ ফুট)', en: 'Weight per piece (kg, 20 ft)' } },
+  bar: { brands: [], sizes: ['Flat 1" x 1/8"', 'Flat 1" x 1/4"', 'Flat 1.5" x 1/4"', 'Square 10 mm', 'Square 12 mm', 'Round 12 mm'], unit: 'kg', en: 'Bar', w: { bn: 'ওজন প্রতি পিস (কেজি, ২০ ফুট)', en: 'Weight per piece (kg, 20 ft)' } },
+  other: { brands: [], sizes: [], unit: 'piece', en: '', w: { bn: 'ওজন প্রতি পিস (কেজি)', en: 'Weight per piece (kg)' } },
+};
+// "BSRM · 12 mm · 10.66 kg/pc"
+const pspec = (p) => [p.brand, p.size && !String(p.name).includes(p.size) ? p.size : '',
+  p.weight ? `${bn(p.weight)} ${L('কেজি', 'kg')}/${p.unit === 'bag' ? L('বস্তা', 'bag') : L('পিস', 'pc')}` : '',
+  p.perPack ? `${bn(p.perPack)} ${L('পিস', 'pcs')}/${U(p.unit)}` : ''].filter(Boolean).join(' · ');
+// Selling by piece count: rod/angle by kg (pieces × kg per piece), tin by bundle (pieces ÷ pieces per bundle).
+const pcsConv = (p) => (!p ? 0 : p.weight > 0 && p.unit === 'kg' ? p.weight : p.weight > 0 && p.unit === 'ton' ? p.weight / 1000 : p.perPack > 0 && p.unit === 'bundle' ? 1 / p.perPack : 0);
 const btype = () => (S.cur && S.cur.btype) || (S.sup && S.sup.btype) || (S.pub && S.pub.btype) || (S.site && ((S.site.shop && S.site.shop.btype) || S.site.btype)) || 'agri';
 const brand = () => BRAND[btype()] || BRAND.agri;
 const hasBox = (b) => (b.modules || []).includes('box');
@@ -291,6 +313,7 @@ function renderChrome() {
 const VIEWS = {};
 const after = {};
 function render() {
+  applyDefaultLang();
   renderChrome();
   const r = role();
   let v = S.view;

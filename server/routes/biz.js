@@ -45,7 +45,8 @@ r.post('/sales', (req, res) => {
       const qty = money(it.qty, { min: 0.001, name: 'qty' });
       // Sellers always sell at the admin's price.
       const price = req.viewer.role === 'seller' ? p.sell : money(it.price, { name: 'price' });
-      return { p, qty, price };
+      const pcs = it.pcs === undefined || it.pcs === null || it.pcs === '' ? null : money(it.pcs, { name: 'pcs' });
+      return { p, qty, price, pcs };
     });
     const need = new Map();
     for (const l of lines) need.set(l.p.id, (need.get(l.p.id) || 0) + l.qty);
@@ -71,7 +72,7 @@ r.post('/sales', (req, res) => {
     const sid = Number(run('INSERT INTO sales(business_id,memo_no,date,customer_id,total,paid,seller_user_id,seller_label) VALUES(?,?,?,?,?,?,?,?)',
       bid(req), memo, today(), cust ? cust.id : null, total, paid, req.viewer.id, req.viewer.label).lastInsertRowid);
     for (const l of lines) {
-      run('INSERT INTO sale_items(sale_id,product_id,qty,price,cost) VALUES(?,?,?,?,?)', sid, l.p.id, l.qty, l.price, l.p.buy);
+      run('INSERT INTO sale_items(sale_id,product_id,qty,price,cost,pcs) VALUES(?,?,?,?,?,?)', sid, l.p.id, l.qty, l.price, l.p.buy, l.pcs);
       run('UPDATE products SET stock=stock-? WHERE id=?', l.qty, l.p.id);
     }
     if (cust && total > paid) run('UPDATE customers SET due=due+? WHERE id=?', total - paid, cust.id);
@@ -94,20 +95,23 @@ r.post('/sales/:sid/void', adminOnly, (req, res) => {
 
 /* ---------- Products ---------- */
 function productFields(b, biz) {
-  const name = str(b.name, 80);
+  const brand = str(b.brand, 40), size = str(b.size, 40);
+  // A building-material product may leave the name empty: it is made from brand + size.
+  const name = str(b.name, 80) || str([brand, b.catName, size].filter(Boolean).join(' '), 80);
   if (!name) fail(400, 'পণ্যের নাম লিখুন', 'Enter a product name');
+  const opt = (v, n) => (v === '' || v === null || v === undefined ? null : money(v, { name: n }));
   if (!CATS.includes(b.cat) || !JSON.parse(biz.cats).includes(b.cat)) fail(400, 'ক্যাটাগরি বাছাই করুন', 'Choose a category');
   if (!UNITS.includes(b.unit)) fail(400, 'একক বাছাই করুন', 'Choose a unit');
-  return { name, cat: b.cat, unit: b.unit, buy: money(b.buy, { name: 'cost' }), sell: money(b.sell, { name: 'price' }), min: money(b.min || 0, { name: 'min' }), box: str(b.box, 20) };
+  return { name, cat: b.cat, unit: b.unit, buy: money(b.buy, { name: 'cost' }), sell: money(b.sell, { name: 'price' }), min: money(b.min || 0, { name: 'min' }), box: str(b.box, 20), brand, size, weight: opt(b.weight, 'weight'), perPack: opt(b.perPack, 'pieces') };
 }
 r.post('/products', adminOnly, (req, res) => {
   const f = productFields(req.body, req.biz);
-  const id = Number(run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box) VALUES(?,?,?,?,?,?,0,?,?)', bid(req), f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box).lastInsertRowid);
+  const id = Number(run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,weight,per_pack) VALUES(?,?,?,?,?,?,0,?,?,?,?,?,?)', bid(req), f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box, f.brand, f.size, f.weight, f.perPack).lastInsertRowid);
   res.json({ id });
 });
 r.put('/products/:id', adminOnly, (req, res) => {
   const f = productFields(req.body, req.biz);
-  const c = run('UPDATE products SET name=?,cat=?,unit=?,buy=?,sell=?,min_stock=?,box=? WHERE id=? AND business_id=?', f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box, Number(req.params.id), bid(req));
+  const c = run('UPDATE products SET name=?,cat=?,unit=?,buy=?,sell=?,min_stock=?,box=?,brand=?,size=?,weight=?,per_pack=? WHERE id=? AND business_id=?', f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box, f.brand, f.size, f.weight, f.perPack, Number(req.params.id), bid(req));
   if (!c.changes) fail(404, 'পণ্য পাওয়া যায়নি', 'Product not found');
   res.json({ ok: true });
 });

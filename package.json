@@ -12,6 +12,7 @@
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
     "seed-demo": "node --disable-warning=ExperimentalWarning server/cli.js seed-demo",
     "demo-shop": "node --disable-warning=ExperimentalWarning server/cli.js demo-shop",
+    "refill-demo": "node --disable-warning=ExperimentalWarning server/cli.js refill-demo",
     "mark-demo": "node --disable-warning=ExperimentalWarning server/cli.js mark-demo",
     "reset-super": "node --disable-warning=ExperimentalWarning server/cli.js reset-super",
     "backup": "node --disable-warning=ExperimentalWarning server/cli.js backup",

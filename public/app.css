@@ -340,3 +340,10 @@ a.btn{text-decoration:none}
 :root[data-brand="build"] .hero,:root[data-brand="build"] .shop-h,:root[data-brand="build"] .inv-h{background:linear-gradient(120deg,#6b3318 0%,#a8532b 50%,#d08a3a 100%)}
 :root[data-brand="build"] .logo{color:#a8532b}
 :root[data-brand="build"] .btn{box-shadow:0 3px 0 var(--leaf-d)}
+
+/* sale lines: column headers and piece-count box */
+.line-h{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:0 2px}
+.pcsbox{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:.85rem;color:var(--muted)}
+.pcsbox input{width:74px;padding:6px 8px}
+.pcsbox b{color:var(--leaf-d)}
+@media (max-width:720px){.line-h{display:none}}

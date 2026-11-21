@@ -84,6 +84,12 @@ CREATE INDEX IF NOT EXISTS ix_notif_b ON notifications(business_id);
   if (!scols.includes('unlock_bid')) db.exec('ALTER TABLE sessions ADD COLUMN unlock_bid INTEGER');
   if (!scols.includes('unlock_until')) db.exec('ALTER TABLE sessions ADD COLUMN unlock_until INTEGER');
   const cols = db.prepare('PRAGMA table_info(businesses)').all().map((c) => c.name);
+  const pcols = db.prepare('PRAGMA table_info(products)').all().map((c) => c.name);
+  // Building materials: brand, thickness/size, weight per piece or bag (kg), pieces per bundle
+  for (const [c, t] of [['brand', "TEXT DEFAULT ''"], ['size', "TEXT DEFAULT ''"], ['weight', 'REAL'], ['per_pack', 'REAL']])
+    if (!pcols.includes(c)) db.exec(`ALTER TABLE products ADD COLUMN ${c} ${t}`);
+  const icols = db.prepare('PRAGMA table_info(sale_items)').all().map((c) => c.name);
+  if (!icols.includes('pcs')) db.exec('ALTER TABLE sale_items ADD COLUMN pcs REAL');
   for (const [c, t] of [['price_monthly', 'REAL'], ['price_yearly', 'REAL'], ['demo', 'INTEGER DEFAULT 0'], ['btype', "TEXT DEFAULT 'agri'"]])
     if (!cols.includes(c)) db.exec(`ALTER TABLE businesses ADD COLUMN ${c} ${t}`);
 }

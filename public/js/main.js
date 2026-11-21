@@ -26,6 +26,7 @@ async function boot() {
 function switchLang() {
   if (S.view === 'wizard') saveWizInputs();
   LANG = LANG === 'bn' ? 'en' : 'bn';
+  LANG_SET = true;
   try { localStorage.setItem('kk-lang', LANG); } catch (e) {}
   const inv = invOpen; render(); if (inv) showInvoice(inv);
 }
@@ -137,6 +138,8 @@ document.addEventListener('click', async (e) => {
 
 document.addEventListener('change', (e) => {
   const t = e.target, d = t.dataset;
+  if (d.pfcat) updateProductForm(d.pfcat);
+  if (d.pfsize) autoWeight(d.pfsize);
   if (d.wcat) { const w = S.wiz; w.cats = t.checked ? [...new Set([...w.cats, d.wcat])] : w.cats.filter((k) => k !== d.wcat); t.closest('.tile').classList.toggle('sel', t.checked); }
   if (d.wmod) { const w = S.wiz; w.modules = t.checked ? [...new Set([...w.modules, d.wmod])] : w.modules.filter((k) => k !== d.wmod); t.closest('.mod').classList.toggle('sel', t.checked); }
   if (d.wstarter !== undefined) { S.wiz.starter = t.checked; t.closest('.mod').classList.toggle('sel', t.checked); }
@@ -156,7 +159,19 @@ document.addEventListener('input', (e) => {
   if (!draft) return;
   if (t.id === 's-pq') { draft.pq = t.value; $('#p-res').innerHTML = prodResults(); return; }
   if (t.id === 's-cq') { draft.cq = t.value; $('#cq-res').innerHTML = custResults(); return; }
-  if (d.lq !== undefined) { draft.lines[+d.lq].qty = Math.max(toNum(t.value), 0); updSum(); }
+  if (d.lq !== undefined) {
+    const l = draft.lines[+d.lq]; l.qty = Math.max(toNum(t.value), 0);
+    if (l.pcs) { l.pcs = null; const pi = document.querySelector(`[data-lpcs="${d.lq}"]`); if (pi) pi.value = ''; const pq = document.querySelector(`[data-lpq="${d.lq}"]`); if (pq) pq.textContent = L('পিস লিখলে হিসাব হবে', 'type pieces to convert'); }
+    updSum();
+  }
+  // Pieces typed: work out the quantity (rod: pieces × kg per piece; sheet: pieces ÷ pieces per bundle)
+  if (d.lpcs !== undefined) {
+    const l = draft.lines[+d.lpcs], p = S.cur.products.find((x) => x.id == l.pid), per = pcsConv(p), pcs = Math.max(toNum(t.value), 0);
+    l.pcs = pcs || null;
+    if (pcs && per) { l.qty = Math.round(pcs * per * 1000) / 1000; const q = document.querySelector(`[data-lq="${d.lpcs}"]`); if (q) q.value = l.qty; }
+    const pq = document.querySelector(`[data-lpq="${d.lpcs}"]`); if (pq) pq.textContent = pcs ? `${bn(l.qty)} ${U(p.unit)}` : L('পিস লিখলে হিসাব হবে', 'type pieces to convert');
+    updSum();
+  }
   if (d.lr !== undefined) { draft.lines[+d.lr].price = Math.max(toNum(t.value), 0); updSum(); }
   if (t.id === 's-paid') { draft.paid = t.value; updSum(); }
   if (t.id === 's-newname') draft.newName = t.value;

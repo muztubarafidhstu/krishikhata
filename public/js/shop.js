@@ -105,7 +105,7 @@ VIEWS.public = () => {
     <h2 style="font-size:2rem;margin-top:8px">${esc(s.name)}</h2><p style="max-width:44ch;opacity:.92">${N(brand().hero)}</p>
     ${s.phone ? `<p style="margin:0;font-weight:700" class="num">${I('phone')} ${esc(dg(fmtPhone(s.phone)))}</p>` : ''}</div></section>
   ${s.cats.map((k) => { const list = s.products.filter((p) => p.cat === k); return list.length ? `<h3 style="margin-top:6px">${catPill(k)}</h3><div class="grid g-kpi">${list.map((p) => `<div class="card prod"><div class="img" style="background:${CAT[p.cat].bg};color:${CAT[p.cat].color}">${I(CAT[p.cat].icon)}</div>
-    <b>${esc(p.name)}</b><div style="display:flex;justify-content:space-between;align-items:center"><span class="num" style="font-family:var(--display);font-size:1.2rem;font-weight:800;color:var(--leaf-d)">${tk(p.sell)}</span><span class="muted">/ ${U(p.unit)}</span></div>
+    <b>${esc(p.name)}</b>${p.brand || p.size ? `<span class="muted" style="font-size:.85rem">${esc([p.brand, p.size].filter(Boolean).join(' · '))}</span>` : ''}<div style="display:flex;justify-content:space-between;align-items:center"><span class="num" style="font-family:var(--display);font-size:1.2rem;font-weight:800;color:var(--leaf-d)">${tk(p.sell)}</span><span class="muted">/ ${U(p.unit)}</span></div>
     <span class="pill ${p.inStock ? 'p-ok' : 'p-out'}" style="align-self:flex-start">${p.inStock ? L('স্টকে আছে', 'In stock') : L('স্টকে নেই', 'Out of stock')}</span></div>`).join('')}</div>` : ''; }).join('')}`;
 };
 
@@ -258,13 +258,13 @@ VIEWS.sale = () => {
 after.sale = () => updSum();
 function prodResults() {
   const b = S.cur, q = toAscii((draft?.pq || '').trim()).toLowerCase(), cat = draft?.pcat || 'all';
-  const list = b.products.filter((p) => (cat === 'all' || p.cat === cat) && (!q || (/^#?\d+$/.test(q) && String(p.id) === q.replace('#', '')) || [p.name, p.box].filter(Boolean).some((x) => toAscii(String(x)).toLowerCase().includes(q))));
+  const list = b.products.filter((p) => (cat === 'all' || p.cat === cat) && (!q || (/^#?\d+$/.test(q) && String(p.id) === q.replace('#', '')) || [p.name, p.box, p.brand, p.size].filter(Boolean).some((x) => toAscii(String(x)).toLowerCase().includes(q))));
   list.sort((a, z) => (String(z.id) === q.replace('#', '')) - (String(a.id) === q.replace('#', '')));
   if (!list.length) return `<div class="empty" style="grid-column:1/-1;padding:10px">${L('কোনো পণ্য পাওয়া যায়নি।', 'No products found.')}</div>`;
   return list.slice(0, 12).map((p) => { const inCart = draft.lines.find((l) => l.pid == p.id);
     return `<button type="button" class="pitem" data-addp="${p.id}" ${p.stock <= 0 ? 'disabled' : ''}>
       <span class="meta"><span class="num">${L('আইডি', 'ID')} #${dg(p.id)}</span>${hasBox(b) && p.box ? `<span class="num">${esc(dg(p.box))}</span>` : ''}</span>
-      <b>${esc(p.name)}</b>
+      <b>${esc(p.name)}</b>${pspec(p) ? `<span class="meta"><span>${esc(pspec(p))}</span></span>` : ''}
       <span class="meta"><span class="price num">${tk(p.sell)}/${U(p.unit)}</span><span class="num">${p.stock <= 0 ? L('স্টক শেষ', 'Out of stock') : L('স্টক ', 'Stock ') + bn(p.stock)}</span></span>
       <span class="meta"><span class="pill ${CAT[p.cat].cls}" style="font-size:.72rem">${N(CAT[p.cat].n)}</span><span style="color:var(--leaf-d);font-weight:700">${inCart ? L(`✓ ${bn(inCart.qty)} টি`, `✓ ${bn(inCart.qty)} added`) : '+ ' + L('যোগ করুন', 'Add')}</span></span>
     </button>`; }).join('');
@@ -272,18 +272,20 @@ function prodResults() {
 function lineHTML(l, i) {
   const p = S.cur.products.find((x) => x.id == l.pid);
   return `<div class="line" data-line="${i}">
-    <div style="min-width:0"><b style="display:block;overflow-wrap:anywhere">${esc(p?.name || '—')}</b><span class="muted num" style="font-size:.8rem">${L('স্টক', 'Stock')} ${bn(p?.stock)} ${U(p?.unit)}</span></div>
+    <div style="min-width:0"><b style="display:block;overflow-wrap:anywhere">${esc(p?.name || '—')}</b><span class="muted num" style="font-size:.8rem">${p && pspec(p) ? esc(pspec(p)) + ' · ' : ''}${L('স্টক', 'Stock')} ${bn(p?.stock)} ${U(p?.unit)}</span>
+      ${pcsConv(p) ? `<span class="pcsbox"><input class="in num" type="text" inputmode="decimal" data-amt data-lpcs="${i}" value="${l.pcs ?? ''}" placeholder="0" aria-label="${L('কত পিস', 'How many pieces')}"> ${L('পিস', 'pcs')} → <b class="num" data-lpq="${i}">${l.pcs ? bn(l.qty) + ' ' + U(p.unit) : L('পিস লিখলে হিসাব হবে', 'type pieces to convert')}</b></span>` : ''}</div>
     <input class="in num" type="text" inputmode="decimal" data-amt data-lq="${i}" value="${l.qty}" aria-label="${L('পরিমাণ', 'Quantity')}">
     <input class="in num" type="text" inputmode="decimal" data-amt data-lr="${i}" value="${l.price}" aria-label="${L('দর', 'Rate')}" ${role() === 'seller' ? `readonly title="${L('দর অ্যাডমিন নির্ধারণ করেন', 'Prices are set by the admin')}"` : ''}>
     <span class="tot num" data-lt="${i}">${tk(l.qty * l.price)}</span>
     <button class="iconbtn" data-dline="${i}" aria-label="${L('সারি মুছুন', 'Remove row')}">${I('x')}</button></div>`;
 }
-const linesHTML = () => (draft.lines.length ? draft.lines.map(lineHTML).join('') : `<div class="empty" style="padding:12px;border:1.5px dashed var(--line);border-radius:12px">${L('উপরে থেকে পণ্যে ক্লিক করে যোগ করুন।', 'Click a product above to add it.')}</div>`);
+const linesHead = () => `<div class="line line-h"><span>${L('পণ্য', 'Product')}</span><span>${L('পরিমাণ', 'Qty')}</span><span>${L('দর (৳)', 'Rate (৳)')}</span><span style="text-align:right">${L('টাকা', 'Amount')}</span><span></span></div>`;
+const linesHTML = () => (draft.lines.length ? linesHead() + draft.lines.map(lineHTML).join('') : `<div class="empty" style="padding:12px;border:1.5px dashed var(--line);border-radius:12px">${L('উপরে থেকে পণ্যে ক্লিক করে যোগ করুন।', 'Click a product above to add it.')}</div>`);
 function addProduct(pid) {
   const p = S.cur.products.find((x) => x.id == pid); if (!p || p.stock <= 0) return;
   const l = draft.lines.find((x) => x.pid == pid);
   if (l) { if (l.qty + 1 > p.stock) return toast(L('স্টকে আর নেই', 'No more in stock'), 'err'); l.qty++; }
-  else draft.lines.push({ pid: p.id, qty: 1, price: p.sell });
+  else draft.lines.push({ pid: p.id, qty: 1, price: p.sell, pcs: null });
   $('#lines').innerHTML = linesHTML(); $('#p-res').innerHTML = prodResults(); updSum();
 }
 function custResults() {
@@ -308,7 +310,7 @@ async function saveSale(btn) {
   if (!draft.lines.length) return toast(L('অন্তত একটি পণ্য যোগ করুন', 'Add at least one product'), 'err');
   if (draft.cust === 'new' && (!draft.newName.trim() || !validPhone(draft.newPhone))) return toast(L('নতুন ক্রেতার নাম ও সঠিক মোবাইল নম্বর দিন', 'Enter the new customer’s name and a valid mobile number'), 'err');
   await act(btn, async () => {
-    const r = await call('POST', bizUrl('/sales'), { cust: draft.cust, newCustomer: { name: draft.newName, village: draft.newVillage, phone: pk(draft.newPhone) }, items: draft.lines.map((l) => ({ pid: l.pid, qty: l.qty, price: l.price })), paid: draft.paid === '' ? '' : toNum(draft.paid) });
+    const r = await call('POST', bizUrl('/sales'), { cust: draft.cust, newCustomer: { name: draft.newName, village: draft.newVillage, phone: pk(draft.newPhone) }, items: draft.lines.map((l) => ({ pid: l.pid, qty: l.qty, price: l.price, pcs: l.pcs || null })), paid: draft.paid === '' ? '' : toNum(draft.paid) });
     draft = null; await loadBiz(); render(); showInvoice(r.memo); toast(L('বিক্রি সেভ হয়েছে · স্টক আপডেট হয়েছে', 'Sale saved · stock updated'));
   });
 }
@@ -329,7 +331,7 @@ VIEWS.account = () => `<div class="pagehead"><div><h2>${L('আমার অ্�
     <button class="btn" style="margin-top:12px" data-ownpass>${I('shield')} ${L('পাসওয়ার্ড বদলান', 'Change password')}</button></div>`;
 
 /* ---------- Stock ---------- */
-function stockMatch(p) { const q = toAscii((S.sq || '').trim()).toLowerCase(); return !q || [p.name, p.box, '#' + p.id].filter(Boolean).some((x) => toAscii(String(x)).toLowerCase().includes(q)); }
+function stockMatch(p) { const q = toAscii((S.sq || '').trim()).toLowerCase(); return !q || [p.name, p.box, p.brand, p.size, '#' + p.id].filter(Boolean).some((x) => toAscii(String(x)).toLowerCase().includes(q)); }
 VIEWS.stock = () => {
   const b = S.cur, c = calc(b), box = hasBox(b);
   return `<div class="pagehead"><div><h2>${L('স্টক ও ইনভেন্টরি', 'Stock & inventory')}</h2><p>${L('প্রতিটি বিক্রি ও ক্রয়ে স্টক নিজে থেকে কমে-বাড়ে।', 'Stock goes down with every sale and up with every purchase.')}</p></div>${b.modules.includes('pur') ? `<button class="btn" data-nav="purchase">${I('truck')} ${L('স্টক যোগ (ক্রয়)', 'Add stock (purchase)')}</button>` : ''}</div>
@@ -337,31 +339,57 @@ VIEWS.stock = () => {
   ${searchBar('sq', S.sq, box ? L('পণ্যের নাম, আইডি বা বক্স নম্বর দিয়ে খুঁজুন', 'Search by product name, ID or box number') : L('পণ্যের নাম দিয়ে খুঁজুন', 'Search by product name'))}
   ${b.cats.map((k) => `<div class="card"><div class="card-h"><h3>${catPill(k)}</h3></div>
   <div class="tablewrap"><table><thead><tr><th>#</th><th>${L('পণ্য', 'Product')}</th>${box ? `<th>${L('বক্স নং', 'Box no.')}</th>` : ''}<th class="r">${L('স্টক', 'Stock')}</th><th class="r">${L('ক্রয় দর', 'Cost')}</th><th class="r">${L('বিক্রয় দর', 'Price')}</th><th class="r">${L('স্টক মূল্য', 'Value')}</th><th>${L('অবস্থা', 'Status')}</th></tr></thead><tbody>
-  ${b.products.filter((p) => p.cat === k && stockMatch(p)).map((p) => { const [cl, t] = stockState(p); return `<tr><td class="num muted">${dg(p.id)}</td><td><b>${esc(p.name)}</b></td>${box ? `<td><span class="pill p-low num">${esc(dg(p.box || '—'))}</span></td>` : ''}<td class="r num">${bn(p.stock)} ${U(p.unit)}</td><td class="r num">${tk(p.buy)}</td><td class="r num">${tk(p.sell)}</td><td class="r num">${tk(p.stock * p.buy)}</td><td><span class="pill ${cl}">${t}</span></td></tr>`; }).join('')}
+  ${b.products.filter((p) => p.cat === k && stockMatch(p)).map((p) => { const [cl, t] = stockState(p); return `<tr><td class="num muted">${dg(p.id)}</td><td><b>${esc(p.name)}</b>${pspec(p) ? `<div class="muted" style="font-size:.8rem">${esc(pspec(p))}</div>` : ''}</td>${box ? `<td><span class="pill p-low num">${esc(dg(p.box || '—'))}</span></td>` : ''}<td class="r num">${bn(p.stock)} ${U(p.unit)}</td><td class="r num">${tk(p.buy)}</td><td class="r num">${tk(p.sell)}</td><td class="r num">${tk(p.stock * p.buy)}</td><td><span class="pill ${cl}">${t}</span></td></tr>`; }).join('')}
   </tbody></table></div></div>`).join('')}`;
 };
 
 /* ---------- Product catalog ---------- */
+const dlOpts = (arr) => (arr || []).map((v) => `<option value="${esc(v)}"></option>`).join('');
 function productForm(p, x = 'c') {
-  const b = S.cur;
+  const b = S.cur, build = btype() === 'build';
+  const cat = p?.cat || b.cats[0], sp = SPEC[cat] || {};
+  const unit = p?.unit || (build ? sp.unit : 'kg');
   return `<div class="form-g">
-    <label class="f">${L('পণ্যের নাম', 'Product name')}<input class="in" id="${x}-name" maxlength="80" value="${esc(p?.name || '')}" placeholder="${L('যেমন: বোরো ধান বীজ (ব্রি-৮৯)', 'e.g. Boro rice seed (BRRI-89)')}"></label>
-    <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat">${b.cats.map((k) => `<option value="${k}" ${p?.cat === k ? 'selected' : ''}>${N(CAT[k].n)}</option>`).join('')}</select></label>
-    <label class="f">${L('একক', 'Unit')}<select class="in" id="${x}-unit">${Object.keys(UNIT).map((u) => `<option value="${u}" ${p?.unit === u ? 'selected' : ''}>${U(u)}</option>`).join('')}</select></label>
+    <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat" data-pfcat="${x}">${b.cats.map((k) => `<option value="${k}" ${cat === k ? 'selected' : ''}>${N(CAT[k].n)}</option>`).join('')}</select></label>
+    ${build ? `<label class="f">${L('ব্র্যান্ড / কোম্পানি', 'Brand / company')}<input class="in" id="${x}-brand" list="${x}-dlb" maxlength="40" value="${esc(p?.brand || '')}" placeholder="${L('যেমন: BSRM, Shah, PHP', 'e.g. BSRM, Shah, PHP')}" autocomplete="off"><datalist id="${x}-dlb">${dlOpts(sp.brands)}</datalist></label>
+    <label class="f">${L('মাপ / পুরুত্ব', 'Size / thickness')}<input class="in" id="${x}-size" list="${x}-dls" maxlength="40" value="${esc(p?.size || '')}" placeholder="${L('যেমন: 12 mm, 0.32 mm, PCC', 'e.g. 12 mm, 0.32 mm, PCC')}" data-pfsize="${x}" autocomplete="off"><datalist id="${x}-dls">${dlOpts(sp.sizes)}</datalist></label>` : ''}
+    <label class="f">${build ? L('পণ্যের নাম (ঐচ্ছিক)', 'Product name (optional)') : L('পণ্যের নাম', 'Product name')}<input class="in" id="${x}-name" maxlength="80" value="${esc(p?.name || '')}" placeholder="${build ? L('খালি রাখলে ব্র্যান্ড + মাপ দিয়ে নাম হবে', 'Empty = made from brand + size') : L('যেমন: বোরো ধান বীজ (ব্রি-৮৯)', 'e.g. Boro rice seed (BRRI-89)')}"></label>
+    <label class="f">${build ? L('বিক্রির একক (দাম এই এককে)', 'Selling unit (price is per this unit)') : L('একক', 'Unit')}<select class="in" id="${x}-unit">${Object.keys(UNIT).map((u) => `<option value="${u}" ${unit === u ? 'selected' : ''}>${U(u)}</option>`).join('')}</select></label>
+    ${build ? `<label class="f"><span id="${x}-wl">${N(sp.w || SPEC.other.w)}</span><input class="in num" type="text" inputmode="decimal" data-amt id="${x}-weight" value="${p ? p.weight ?? '' : sp.weight || ''}" placeholder="${L('ঐচ্ছিক', 'Optional')}"></label>
+    <label class="f">${L('এক বান্ডিলে কত পিস', 'Pieces per bundle')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-pack" value="${p?.perPack ?? ''}" placeholder="${L('ঐচ্ছিক — টিনের জন্য', 'Optional — for sheets')}"></label>` : ''}
     ${hasBox(b) ? `<label class="f">${L('বক্স / র‍্যাক নম্বর', 'Box / rack no.')}<input class="in" id="${x}-box" maxlength="20" value="${esc(p?.box || '')}" placeholder="B-13"></label>` : ''}
     <label class="f">${L('ক্রয় দর (৳)', 'Cost price (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-buy" value="${p ? p.buy : ''}"></label>
     <label class="f">${L('বিক্রয় দর (৳)', 'Sale price (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-sell" value="${p ? p.sell : ''}"></label>
     <label class="f">${L('ন্যূনতম স্টক সতর্কতা', 'Low-stock alert at')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-min" value="${p ? p.min : 10}"></label>
-  </div>`;
+  </div>
+  ${build ? `<p class="muted" style="margin:8px 0 0;font-size:.85rem">${I('alert')} ${L('ওজন দিলে বিক্রির সময় শুধু পিস লিখলেই কেজি নিজে হিসাব হবে (যেমন ১২ মিমি রড ২০ পিস = ২১৩.২ কেজি)। টিনে "এক বান্ডিলে কত পিস" দিলে পিস হিসেবেও বিক্রি করা যাবে।', 'With a weight, you can sell by piece count and the kg is worked out (e.g. 12 mm rod, 20 pcs = 213.2 kg). For sheets, set pieces per bundle to sell single sheets.')}</p>` : ''}`;
 }
-const productBody = (x = 'c') => { const v = (k) => document.getElementById(`${x}-${k}`); return { name: v('name').value, cat: v('cat').value, unit: v('unit').value, box: v('box')?.value || '', buy: toNum(v('buy').value), sell: toNum(v('sell').value), min: toNum(v('min').value) }; };
+// Category changed: refresh suggestions, weight label, default unit and weight.
+function updateProductForm(x) {
+  const cat = document.getElementById(`${x}-cat`)?.value, sp = SPEC[cat]; if (!sp || btype() !== 'build') return;
+  const dlb = document.getElementById(`${x}-dlb`), dls = document.getElementById(`${x}-dls`), wl = document.getElementById(`${x}-wl`);
+  if (dlb) dlb.innerHTML = dlOpts(sp.brands); if (dls) dls.innerHTML = dlOpts(sp.sizes); if (wl) wl.textContent = N(sp.w);
+  if (x === 'c') { const u = document.getElementById(`${x}-unit`); if (u) u.value = sp.unit; const w = document.getElementById(`${x}-weight`); if (w) w.value = sp.weight || ''; }
+}
+// Size picked for a rod: fill the standard weight of a 40 ft piece.
+function autoWeight(x) {
+  const cat = document.getElementById(`${x}-cat`)?.value, size = (document.getElementById(`${x}-size`)?.value || '').trim().replace(/\s*mm$/i, ' mm');
+  const w = document.getElementById(`${x}-weight`);
+  if (cat === 'rod' && w && ROD_KG[size] && !w.value.trim()) w.value = ROD_KG[size];
+}
+const productBody = (x = 'c') => {
+  const v = (k) => document.getElementById(`${x}-${k}`), opt = (k) => (v(k) && v(k).value.trim() !== '' ? toNum(v(k).value) : '');
+  const cat = v('cat').value;
+  return { name: v('name').value, cat, catName: SPEC[cat] ? SPEC[cat].en : '', unit: v('unit').value, box: v('box')?.value || '', buy: toNum(v('buy').value), sell: toNum(v('sell').value), min: toNum(v('min').value),
+    brand: v('brand')?.value || '', size: v('size')?.value || '', weight: opt('weight'), perPack: opt('pack') };
+};
 VIEWS.catalog = () => {
   const b = S.cur;
   return `<div class="pagehead"><div><h2>${L('পণ্য তালিকা', 'Product catalog')}</h2><p>${L('নতুন পণ্য যোগ করুন, দর বদলান। স্টক যোগ হয় ক্রয় থেকে।', 'Add products and change prices. Stock is added through Purchases.')}</p></div></div>
   <div class="card"><h3 style="margin-bottom:10px">${I('plus')} ${L('নতুন পণ্য যোগ', 'Add product')}</h3>${productForm(null)}
     <div style="margin-top:12px"><button class="btn" data-addprod>${I('check')} ${L('পণ্য সেভ করুন', 'Save product')}</button></div></div>
   <div class="card"><div class="tablewrap"><table><thead><tr><th>${L('আইডি', 'ID')}</th><th>${L('পণ্য', 'Product')}</th><th>${L('ক্যাটাগরি', 'Category')}</th><th>${L('একক', 'Unit')}</th>${hasBox(b) ? `<th>${L('বক্স', 'Box')}</th>` : ''}<th class="r">${L('ক্রয়', 'Cost')}</th><th class="r">${L('বিক্রয়', 'Price')}</th><th class="r">${L('লাভ/একক', 'Profit/unit')}</th><th></th></tr></thead><tbody>
-  ${b.products.map((p) => `<tr><td class="num muted">#${dg(p.id)}</td><td><b>${esc(p.name)}</b></td><td>${catPill(p.cat)}</td><td>${U(p.unit)}</td>${hasBox(b) ? `<td class="num">${esc(dg(p.box || '—'))}</td>` : ''}<td class="r num">${tk(p.buy)}</td><td class="r num">${tk(p.sell)}</td><td class="r num" style="color:var(--leaf-d);font-weight:700">${tk(p.sell - p.buy)}</td>
+  ${b.products.map((p) => `<tr><td class="num muted">#${dg(p.id)}</td><td><b>${esc(p.name)}</b>${pspec(p) ? `<div class="muted" style="font-size:.8rem">${esc(pspec(p))}</div>` : ''}</td><td>${catPill(p.cat)}</td><td>${U(p.unit)}</td>${hasBox(b) ? `<td class="num">${esc(dg(p.box || '—'))}</td>` : ''}<td class="r num">${tk(p.buy)}</td><td class="r num">${tk(p.sell)}</td><td class="r num" style="color:var(--leaf-d);font-weight:700">${tk(p.sell - p.buy)}</td>
   <td class="r" style="white-space:nowrap"><button class="btn ghost sm" data-editprod="${p.id}">${I('edit')} ${L('বদলান', 'Edit')}</button></td></tr>`).join('')}
   </tbody></table></div></div>`;
 };
@@ -558,7 +586,7 @@ function showInvoice(memo) {
       <div class="two"><div><span class="muted">${L('ক্রেতা', 'Customer')}</span><br><b>${esc(custName(b, s))}</b>${cu ? `<br><span class="muted">${esc(cu.village)}</span>` : ''}${ph ? `<br><span class="muted num">${L('মোবাইল', 'Mobile')}: ${esc(dg(fmtPhone(ph)))}</span>` : ''}</div>
         <div style="text-align:right"><span class="muted">${L('বিক্রেতা', 'Sold by')}</span><br><b>${esc(sellerLabel(b, s.seller))}</b></div></div>
       <div class="tablewrap"><table><thead><tr><th>${L('পণ্য', 'Product')}</th><th class="r">${L('পরিমাণ', 'Qty')}</th><th class="r">${L('দর', 'Rate')}</th><th class="r">${L('মোট', 'Amount')}</th></tr></thead><tbody>
-        ${s.items.map((it) => { const p = b.products.find((x) => x.id == it.pid); return `<tr><td>${esc(p?.name || '—')}</td><td class="r num">${bn(it.qty)} ${U(p?.unit)}</td><td class="r num">${tk(it.price)}</td><td class="r num">${tk(it.qty * it.price)}</td></tr>`; }).join('')}
+        ${s.items.map((it) => { const p = b.products.find((x) => x.id == it.pid); return `<tr><td>${esc(p?.name || '—')}${it.pcs ? ` <span class="muted">(${bn(it.pcs)} ${L('পিস', 'pcs')})</span>` : ''}</td><td class="r num">${bn(it.qty)} ${U(p?.unit)}</td><td class="r num">${tk(it.price)}</td><td class="r num">${tk(it.qty * it.price)}</td></tr>`; }).join('')}
       </tbody></table></div>
       <div class="summary num"><div><span>${L('সর্বমোট', 'Grand total')}</span><span class="grand">${tk(s.total)}</span></div><div><span>${L('জমা', 'Paid')}</span><b>${tk(s.paid)}</b></div><div><span>${L('বাকি', 'Due')}</span><span class="due">${tk(s.total - s.paid)}</span></div></div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
