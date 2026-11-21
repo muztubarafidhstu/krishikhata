@@ -93,20 +93,20 @@ r.post('/sales/:sid/void', adminOnly, (req, res) => {
 });
 
 /* ---------- Products ---------- */
-function productFields(b) {
+function productFields(b, biz) {
   const name = str(b.name, 80);
   if (!name) fail(400, 'পণ্যের নাম লিখুন', 'Enter a product name');
-  if (!CATS.includes(b.cat)) fail(400, 'ক্যাটাগরি বাছাই করুন', 'Choose a category');
+  if (!CATS.includes(b.cat) || !JSON.parse(biz.cats).includes(b.cat)) fail(400, 'ক্যাটাগরি বাছাই করুন', 'Choose a category');
   if (!UNITS.includes(b.unit)) fail(400, 'একক বাছাই করুন', 'Choose a unit');
   return { name, cat: b.cat, unit: b.unit, buy: money(b.buy, { name: 'cost' }), sell: money(b.sell, { name: 'price' }), min: money(b.min || 0, { name: 'min' }), box: str(b.box, 20) };
 }
 r.post('/products', adminOnly, (req, res) => {
-  const f = productFields(req.body);
+  const f = productFields(req.body, req.biz);
   const id = Number(run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box) VALUES(?,?,?,?,?,?,0,?,?)', bid(req), f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box).lastInsertRowid);
   res.json({ id });
 });
 r.put('/products/:id', adminOnly, (req, res) => {
-  const f = productFields(req.body);
+  const f = productFields(req.body, req.biz);
   const c = run('UPDATE products SET name=?,cat=?,unit=?,buy=?,sell=?,min_stock=?,box=? WHERE id=? AND business_id=?', f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box, Number(req.params.id), bid(req));
   if (!c.changes) fail(404, 'পণ্য পাওয়া যায়নি', 'Product not found');
   res.json({ ok: true });

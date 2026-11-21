@@ -2,7 +2,7 @@
 const express = require('express');
 const { get, run } = require('../db');
 const { verifyPassword, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
-const { ADMIN_DOMAIN, DOMAIN } = require('../config');
+const { ADMIN_DOMAIN, BUILD_ADMIN_DOMAIN, DOMAIN } = require('../config');
 const { createSession, destroySession, requireLogin, limit } = require('../auth');
 const { fail, otpGate, otpEnabled, audit, queueSms } = require('../core');
 
@@ -13,12 +13,12 @@ const { hostInfo, shopUrl } = require('../host');
 const isAdminHost = (req) => hostInfo(req).kind === 'admin';
 r.get('/site', (req, res) => {
   const h = hostInfo(req);
-  res.json({ kind: h.kind, admin: h.kind === 'admin', shop: h.biz ? { name: h.biz.name, slug: h.biz.slug } : null, missingShop: h.kind === 'shop' && !h.biz, domain: DOMAIN, adminDomain: ADMIN_DOMAIN });
+  res.json({ kind: h.kind, admin: h.kind === 'admin', btype: h.btype || 'agri', shop: h.biz ? { name: h.biz.name, slug: h.biz.slug, btype: h.btype } : null, missingShop: h.kind === 'shop' && !h.biz, domain: DOMAIN, adminDomain: ADMIN_DOMAIN, buildAdminDomain: BUILD_ADMIN_DOMAIN });
 });
 // Caddy asks this before creating an HTTPS certificate for a new address — only real shops get one.
 r.get('/tls-check', (req, res) => {
   const d = String(req.query.domain || '').toLowerCase();
-  if (d === DOMAIN || d === ADMIN_DOMAIN) return res.sendStatus(200);
+  if (d && (d === DOMAIN || d === ADMIN_DOMAIN || d === BUILD_ADMIN_DOMAIN)) return res.sendStatus(200);
   if (DOMAIN && d.endsWith('.' + DOMAIN) && get('SELECT 1 x FROM businesses WHERE slug=?', d.slice(0, -DOMAIN.length - 1))) return res.sendStatus(200);
   res.sendStatus(404);
 });
@@ -34,7 +34,7 @@ r.post('/login', (req, res) => {
   const u = get('SELECT * FROM users WHERE phone=? AND active=1', phone);
   if (!u || !verifyPassword(String(req.body.password || ''), u.pass_hash)) fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true });
   // With ADMIN_DOMAIN set, the super admin signs in only on that address and shop users only on the main one.
-  if (ADMIN_DOMAIN) {
+  if (ADMIN_DOMAIN || BUILD_ADMIN_DOMAIN) {
     const onAdmin = isAdminHost(req);
     if (u.role === 'super' && !onAdmin) fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true });
     if (u.role !== 'super' && onAdmin) fail(403, 'এটি মাদার প্যানেল। আপনার দোকানের নিজের ঠিকানায় লগইন করুন।', 'This is the mother panel. Sign in at your shop’s own address.', { login: true });

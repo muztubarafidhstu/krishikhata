@@ -40,11 +40,13 @@ function subState(b) {
 }
 const isLocked = (b) => ['off', 'expired'].includes(subState(b));
 // A shop can have its own price; empty means the standard price.
-const plansFor = (b) => { const P = plans(); return { ...P, monthly: b.price_monthly ?? P.monthly, yearly: b.price_yearly ?? P.yearly, custom: b.price_monthly != null || b.price_yearly != null }; };
-const plans = () => ({
-  monthly: Number(getSetting('plan_monthly', '500')),
-  yearly: Number(getSetting('plan_yearly', '5000')),
-  trialDays: Number(getSetting('plan_trial_days', '14')),
+const plansFor = (b) => { const P = plans(b.btype); return { ...P, monthly: b.price_monthly ?? P.monthly, yearly: b.price_yearly ?? P.yearly, custom: b.price_monthly != null || b.price_yearly != null }; };
+// Each business type (agri / build) has its own standard prices. Agri keeps the original setting names.
+const sk = (k, t) => (t === 'build' ? k + '_build' : k);
+const plans = (t = 'agri') => ({
+  monthly: Number(getSetting(sk('plan_monthly', t), t === 'build' ? '700' : '500')),
+  yearly: Number(getSetting(sk('plan_yearly', t), t === 'build' ? '7000' : '5000')),
+  trialDays: Number(getSetting(sk('plan_trial_days', t), '14')),
   payTo: getSetting('pay_to', ''),
   whatsapp: getSetting('whatsapp', ''),
 });
@@ -84,9 +86,15 @@ function otpGate(req, { purpose, key, phone, label }) {
 
 function audit(userId, action, detail = '') { run('INSERT INTO audit(user_id,action,detail) VALUES(?,?,?)', userId || null, action, String(detail).slice(0, 500)); }
 
-const CATS = ['seed', 'fert', 'pest'];
+// Business types: agricultural inputs (KrishiKhata) and building materials (NirmanKhata).
+const TYPES = {
+  agri: { cats: ['seed', 'fert', 'pest'], brand: 'KrishiKhata' },
+  build: { cats: ['rod', 'cement', 'sheet', 'angle', 'bar', 'other'], brand: 'NirmanKhata' },
+};
+const btypeOk = (t) => (TYPES[t] ? t : 'agri');
+const CATS = [...TYPES.agri.cats, ...TYPES.build.cats];
 const MODULE_KEYS = ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop', 'app'];
-const UNITS = ['kg', 'bag', 'bottle', 'packet', 'liter'];
+const UNITS = ['kg', 'bag', 'bottle', 'packet', 'liter', 'ton', 'piece', 'bundle', 'feet'];
 const EXP_TYPES = ['rent', 'salary', 'transport', 'power', 'tea', 'other'];
 const METHODS = ['bkash', 'nagad', 'rocket', 'cash', 'bank'];
 
@@ -104,7 +112,20 @@ const STARTER = [
   { cat: 'pest', name: 'ম্যানকোজেব ছত্রাকনাশক (৫০০ গ্রা)', unit: 'packet', buy: 210, sell: 260, min: 25 },
   { cat: 'pest', name: 'কার্বোফুরান ৫জি দানাদার', unit: 'kg', buy: 150, sell: 190, min: 40 },
   { cat: 'pest', name: 'গ্লাইফোসেট আগাছানাশক (১ লি)', unit: 'bottle', buy: 420, sell: 500, min: 10 },
+  // Building materials — sample prices, the owner edits them
+  { cat: 'rod', name: 'রড ১০ মিমি (৫০০W)', unit: 'kg', buy: 88, sell: 95, min: 500 },
+  { cat: 'rod', name: 'রড ১২ মিমি (৫০০W)', unit: 'kg', buy: 87, sell: 94, min: 500 },
+  { cat: 'rod', name: 'রড ১৬ মিমি (৫০০W)', unit: 'kg', buy: 87, sell: 94, min: 300 },
+  { cat: 'cement', name: 'পোর্টল্যান্ড কম্পোজিট সিমেন্ট (৫০ কেজি)', unit: 'bag', buy: 500, sell: 530, min: 50 },
+  { cat: 'cement', name: 'অর্ডিনারি পোর্টল্যান্ড সিমেন্ট (৫০ কেজি)', unit: 'bag', buy: 540, sell: 575, min: 30 },
+  { cat: 'sheet', name: 'ঢেউটিন ০.৩২ মিমি', unit: 'bundle', buy: 9800, sell: 10500, min: 5 },
+  { cat: 'sheet', name: 'ঢেউটিন ০.৩৬ মিমি', unit: 'bundle', buy: 10800, sell: 11500, min: 5 },
+  { cat: 'sheet', name: 'প্লেইন শিট (জিআই)', unit: 'piece', buy: 950, sell: 1050, min: 10 },
+  { cat: 'angle', name: 'অ্যাঙ্গেল ১.৫" x ১.৫"', unit: 'kg', buy: 98, sell: 108, min: 100 },
+  { cat: 'angle', name: 'অ্যাঙ্গেল ২" x ২"', unit: 'kg', buy: 98, sell: 108, min: 100 },
+  { cat: 'bar', name: 'ফ্ল্যাট বার ১"', unit: 'kg', buy: 100, sell: 110, min: 100 },
+  { cat: 'bar', name: 'স্কয়ার বার ১২ মিমি', unit: 'kg', buy: 100, sell: 110, min: 100 },
 ];
 
 module.exports = { HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, plansFor, otpEnabled, otpGate, audit,
-  CATS, MODULE_KEYS, UNITS, EXP_TYPES, METHODS, STARTER, all };
+  TYPES, btypeOk, CATS, MODULE_KEYS, UNITS, EXP_TYPES, METHODS, STARTER, all };

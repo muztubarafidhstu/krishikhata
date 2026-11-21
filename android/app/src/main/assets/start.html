@@ -32,8 +32,8 @@
 <body>
 <header>
   <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#2f8f3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c.5-6 3-10 9-13"/><path d="M20 3c-9 0-15 4-15 11 0 2 1 4 1 4s9 1 12-7c1-3 2-8 2-8z" fill="#2f8f3a" fill-opacity=".2"/></svg></div>
-  <h1>কৃষিখাতা</h1>
-  <p>বীজ · সার · কীটনাশক ব্যবসার হিসাব</p>
+  <h1 id="bname">কৃষিখাতা</h1>
+  <p id="bsub">বীজ · সার · কীটনাশক ব্যবসার হিসাব</p>
 </header>
 <main>
   <form class="card" id="f">
@@ -42,14 +42,27 @@
     <div class="err" id="err"></div>
     <button type="submit">দোকান খুলুন →</button>
     <p class="help">দোকানের ঠিকানা আপনার অ্যাকাউন্ট খোলার সময় দেওয়া হয়েছে — যেমন <b>karim</b>.rafid5.com হলে শুধু <b>karim</b> লিখুন। একবার লিখলে অ্যাপ মনে রাখবে।</p>
-    <div class="demo">ফ্রি ডেমো দেখতে চাইলে লিখুন <a href="#" id="demo">demoshop</a><br>মোবাইল: 01900000000 · পাসওয়ার্ড: Demo@123</div>
+    <div class="demo">ফ্রি ডেমো দেখতে চাইলে লিখুন <a href="#" id="demo">demoshop</a><br>মোবাইল: <span id="dphone">01900000000</span> · পাসওয়ার্ড: Demo@123</div>
   </form>
 </main>
 <script>
   var A = window.KKAndroid;
   var dom = A ? A.domain() : 'rafid5.com';
+  var demoSlug = 'demoshop';
+  if (A && A.brand && A.brand() === 'build') {
+    demoSlug = 'demosteel';
+    document.title = 'নির্মাণখাতা';
+    document.getElementById('bname').textContent = 'নির্মাণখাতা';
+    document.getElementById('bsub').textContent = 'রড · সিমেন্ট · টিন · অ্যাঙ্গেল · বার ব্যবসার হিসাব';
+    document.getElementById('demo').textContent = 'demosteel';
+    document.getElementById('dphone').textContent = '01900000002';
+    document.documentElement.style.setProperty('--g', '#7a3b1d');
+    document.documentElement.style.setProperty('--g2', '#a8532b');
+    document.querySelector('header').style.background = 'linear-gradient(135deg,#7a3b1d,#a8532b 60%,#d08a3a)';
+    document.querySelector('.logo').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#a8532b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9 21v-5h6v5M9 12h6"/></svg>';
+  }
   document.getElementById('dom').textContent = '.' + dom;
-  document.getElementById('demo').onclick = function (e) { e.preventDefault(); document.getElementById('slug').value = 'demoshop'; };
+  document.getElementById('demo').onclick = function (e) { e.preventDefault(); document.getElementById('slug').value = demoSlug; };
   document.getElementById('f').onsubmit = function (e) {
     e.preventDefault();
     var v = document.getElementById('slug').value.trim().toLowerCase();

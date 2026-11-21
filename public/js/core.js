@@ -33,7 +33,11 @@ const P = {
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>', reset:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
   out:'<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 17l-5-5 5-5M5 12h11"/>', back:'<path d="M15 18l-6-6 6-6"/>',
-  edit:'<path d="M4 20h4L20 8l-4-4L4 16z"/>', trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  edit:'<path d="M4 20h4L20 8l-4-4L4 16z"/>',
+  rod:'<path d="M3 17L17 3M7 21L21 7M3 21l2-2M19 5l2-2"/>',
+  sheet:'<path d="M3 7c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+  angle:'<path d="M4 3h4v13h13v4H4z"/>',
+  bar:'<rect x="2" y="9" width="20" height="6" rx="1"/><path d="M6 9v6M18 9v6"/>', trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
 };
 const I = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ''}</svg>`;
 
@@ -79,11 +83,17 @@ const passOk = (p) => PASS_RULES.every(([r]) => r.test(p || ''));
 const passMsg = () => L('পাসওয়ার্ডে কমপক্ষে ৫ অক্ষর, একটি অক্ষর, একটি সংখ্যা ও একটি চিহ্ন লাগবে', 'The password needs 5+ characters with a letter, a number and a symbol');
 const rulesHTML = (p) => `<div class="rules">${PASS_RULES.map(([r, t]) => `<span class="${r.test(p || '') ? 'ok' : ''}">${r.test(p || '') ? '✓' : '•'} ${N(t)}</span>`).join('')}</div>`;
 
-const UNIT = { kg: { bn: 'কেজি', en: 'kg' }, bag: { bn: 'বস্তা', en: 'bag' }, bottle: { bn: 'বোতল', en: 'bottle' }, packet: { bn: 'প্যাকেট', en: 'packet' }, liter: { bn: 'লিটার', en: 'litre' } };
+const UNIT = { kg: { bn: 'কেজি', en: 'kg' }, bag: { bn: 'বস্তা', en: 'bag' }, bottle: { bn: 'বোতল', en: 'bottle' }, packet: { bn: 'প্যাকেট', en: 'packet' }, liter: { bn: 'লিটার', en: 'litre' } , ton: { bn: 'টন', en: 'ton' }, piece: { bn: 'পিস', en: 'piece' }, bundle: { bn: 'বান্ডিল', en: 'bundle' }, feet: { bn: 'ফুট', en: 'feet' } };
 const U = (u) => N(UNIT[u] || u);
 const CAT = {
   seed: { n: { bn: 'বীজ', en: 'Seed' }, icon: 'seed', cls: 'p-seed', color: 'var(--seed)', bg: 'var(--sun-l)', d: { bn: 'ধান, ভুট্টা, সবজি, পাট বীজ — প্যাকেট/কেজি হিসাবে', en: 'Rice, maize, vegetable, jute seed — by packet or kg' } },
   fert: { n: { bn: 'সার', en: 'Fertilizer' }, icon: 'sack', cls: 'p-fert', color: 'var(--fert)', bg: 'var(--sky-l)', d: { bn: 'ইউরিয়া, টিএসপি, এমওপি, জিপসাম — বস্তা/কেজি হিসাবে', en: 'Urea, TSP, MOP, gypsum — by bag or kg' } },
+  rod: { n: { bn: 'রড', en: 'Rod' }, icon: 'rod', cls: 'p-rod', color: 'var(--soil)', bg: 'var(--soil-l)', d: { bn: '৮, ১০, ১২, ১৬, ২০ মিমি — কেজি/টন হিসাবে', en: '8–25 mm deformed bar — by kg or ton' } },
+  cement: { n: { bn: 'সিমেন্ট', en: 'Cement' }, icon: 'sack', cls: 'p-cement', color: 'var(--muted)', bg: 'var(--surface2)', d: { bn: 'PCC, OPC — ৫০ কেজির ব্যাগ হিসাবে', en: 'PCC, OPC — by 50 kg bag' } },
+  sheet: { n: { bn: 'টিন / শিট', en: 'Sheet' }, icon: 'sheet', cls: 'p-sheet', color: 'var(--sky)', bg: 'var(--sky-l)', d: { bn: 'ঢেউটিন, প্লেইন শিট — পিস/বান্ডিল হিসাবে', en: 'Corrugated & plain sheet — by piece or bundle' } },
+  angle: { n: { bn: 'অ্যাঙ্গেল', en: 'Angle' }, icon: 'angle', cls: 'p-angle', color: 'var(--pest)', bg: 'var(--pest-l)', d: { bn: 'বিভিন্ন মাপের অ্যাঙ্গেল — কেজি/ফুট হিসাবে', en: 'Angles of all sizes — by kg or feet' } },
+  bar: { n: { bn: 'বার', en: 'Bar' }, icon: 'bar', cls: 'p-bar', color: 'var(--seed)', bg: 'var(--sun-l)', d: { bn: 'ফ্ল্যাট বার, স্কয়ার বার — কেজি হিসাবে', en: 'Flat & square bar — by kg' } },
+  other: { n: { bn: 'অন্যান্য', en: 'Other' }, icon: 'box', cls: 'p-ok', color: 'var(--leaf)', bg: 'var(--leaf-l)', d: { bn: 'তার, পেরেক, বালু, ইট ইত্যাদি', en: 'Wire, nails, sand, bricks and more' } },
   pest: { n: { bn: 'কীটনাশক', en: 'Pesticide' }, icon: 'spray', cls: 'p-pest', color: 'var(--pest)', bg: 'var(--pest-l)', d: { bn: 'কীটনাশক, ছত্রাকনাশক, আগাছানাশক — বোতল/প্যাকেট', en: 'Insecticide, fungicide, herbicide — by bottle or packet' } },
 };
 const MODULES = [
@@ -107,8 +117,21 @@ const S = { me: null, otp: false, view: '', sup: null, cur: null, bid: null, wiz
 const role = () => (S.pubSlug ? 'public' : !S.me ? 'guest' : S.me.role === 'super' && S.bid ? 'admin' : S.me.role);
 const shopUrl = (slug) => (S.site && S.site.domain ? `https://${slug}.${S.site.domain}` : `${location.origin}/shop/${slug}`);
 const publicUrl = (slug) => (S.site && S.site.domain ? `https://${slug}.${S.site.domain}/shop` : `${location.origin}/shop/${slug}`);
-const appLink = () => (S.site && S.site.domain ? `https://${S.site.domain}/app` : `${location.origin}/app`);
-const appCard = (who) => `<div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:var(--sun)"><span style="font-size:1.6rem" aria-hidden="true">📱</span><div style="flex:1;min-width:200px"><b>${who === 'super' ? L('অ্যাপ ডাউনলোড ও প্রচারের লিংক', 'App download & promotion link') : L('কৃষিখাতা Android অ্যাপ', 'KrishiKhata Android app')}</b><div class="muted" style="font-size:.88rem">${who === 'super' ? L('এই লিংক ফেসবুক/মেসেঞ্জারে শেয়ার করুন: ছোট বিজ্ঞাপন, ফ্রি ডেমো, অ্যাপ ডাউনলোড ও ব্যবহারের নিয়ম।', 'Share on Facebook/Messenger: short ad, free demo, app download and how-to.') : L('সেলারদের এই লিংক দিন — অ্যাপ নামিয়ে দোকানের ঠিকানা লিখলেই হবে।', 'Give this link to your sellers — download the app and type the shop address.')}</div><div class="urlbox" style="margin-top:6px">${esc(appLink())}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sun sm" data-copy="${esc(appLink())}">${L('লিংক কপি', 'Copy link')}</button><a class="btn ghost sm" href="${esc(appLink())}" target="_blank" rel="noopener">${I('globe')} ${L('খুলুন', 'Open')}</a><a class="btn ghost sm" href="/krishikhata.apk" download>${I('down')} APK</a></div></div>`;
+const appLink = () => (S.site && S.site.domain ? `https://${S.site.domain}${brand().page}` : `${location.origin}${brand().page}`);
+const appCard = (who) => `<div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:var(--sun)"><span style="font-size:1.6rem" aria-hidden="true">📱</span><div style="flex:1;min-width:200px"><b>${who === 'super' ? L('অ্যাপ ডাউনলোড ও প্রচারের লিংক', 'App download & promotion link') : N(brand().name) + ' ' + L('Android অ্যাপ', 'Android app')}</b><div class="muted" style="font-size:.88rem">${who === 'super' ? L('এই লিংক ফেসবুক/মেসেঞ্জারে শেয়ার করুন: ছোট বিজ্ঞাপন, ফ্রি ডেমো, অ্যাপ ডাউনলোড ও ব্যবহারের নিয়ম।', 'Share on Facebook/Messenger: short ad, free demo, app download and how-to.') : L('সেলারদের এই লিংক দিন — অ্যাপ নামিয়ে দোকানের ঠিকানা লিখলেই হবে।', 'Give this link to your sellers — download the app and type the shop address.')}</div><div class="urlbox" style="margin-top:6px">${esc(appLink())}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sun sm" data-copy="${esc(appLink())}">${L('লিংক কপি', 'Copy link')}</button><a class="btn ghost sm" href="${esc(appLink())}" target="_blank" rel="noopener">${I('globe')} ${L('খুলুন', 'Open')}</a><a class="btn ghost sm" href="${brand().apk}" download>${I('down')} APK</a></div></div>`;
+const TYPE_CATS = { agri: ['seed', 'fert', 'pest'], build: ['rod', 'cement', 'sheet', 'angle', 'bar', 'other'] };
+const BRAND = {
+  agri: { name: { bn: 'কৃষিখাতা', en: 'KrishiKhata' }, sub: { bn: 'বীজ · সার · কীটনাশক ব্যবসা ব্যবস্থাপনা', en: 'Seed · Fertilizer · Pesticide business manager' },
+    seller: { bn: 'বীজ, সার ও কীটনাশক বিক্রেতা', en: 'Seed, fertilizer & pesticide dealer' }, note: { bn: 'কীটনাশক ব্যবহারের আগে লেবেলের নির্দেশনা পড়ুন। ধন্যবাদ।', en: 'Read the label before using any pesticide. Thank you.' },
+    search: { bn: 'যেমন: ইউরিয়া, ৫, B-05', en: 'e.g. urea, 5, B-05' }, hero: { bn: 'ভালো বীজ, সঠিক সার, নিরাপদ বালাইনাশক — আপনার ফসলের বিশ্বস্ত সঙ্গী।', en: 'Good seed, the right fertilizer, safe crop protection.' },
+    login: { bn: 'বীজ, সার ও কীটনাশক ব্যবসার সহজ হিসাব', en: 'Simple accounts for seed, fertilizer and pesticide shops' }, apk: '/krishikhata.apk', page: '/app' },
+  build: { name: { bn: 'নির্মাণখাতা', en: 'NirmanKhata' }, sub: { bn: 'রড · সিমেন্ট · টিন · অ্যাঙ্গেল · বার ব্যবসা ব্যবস্থাপনা', en: 'Rod · Cement · Sheet · Angle · Bar business manager' },
+    seller: { bn: 'রড, সিমেন্ট, টিন ও নির্মাণ সামগ্রী বিক্রেতা', en: 'Rod, cement, sheet & building materials' }, note: { bn: 'মাল বুঝে নিয়ে মেমোটি সংরক্ষণ করুন। ধন্যবাদ।', en: 'Please check the goods and keep this memo. Thank you.' },
+    search: { bn: 'যেমন: রড ১২, সিমেন্ট, B-05', en: 'e.g. rod 12, cement, B-05' }, hero: { bn: 'ভালো মানের রড, সিমেন্ট ও টিন — আপনার নির্মাণের বিশ্বস্ত সঙ্গী।', en: 'Quality rod, cement and sheet for your building.' },
+    login: { bn: 'রড, সিমেন্ট ও নির্মাণ সামগ্রী ব্যবসার সহজ হিসাব', en: 'Simple accounts for rod, cement and building-material shops' }, apk: '/nirmankhata.apk', page: '/nirmankhata.apk' },
+};
+const btype = () => (S.cur && S.cur.btype) || (S.sup && S.sup.btype) || (S.pub && S.pub.btype) || (S.site && ((S.site.shop && S.site.shop.btype) || S.site.btype)) || 'agri';
+const brand = () => BRAND[btype()] || BRAND.agri;
 const hasBox = (b) => (b.modules || []).includes('box');
 
 /* ---------- API ---------- */
@@ -236,9 +259,15 @@ function navList() {
 function renderChrome() {
   const r = role();
   document.documentElement.lang = LANG === 'bn' ? 'bn' : 'en';
-  document.title = L('কৃষিখাতা', 'KrishiKhata');
-  $('#brandname').textContent = L('কৃষিখাতা', 'KrishiKhata');
-  $('#brandsub').textContent = L('বীজ · সার · কীটনাশক ব্যবসা ব্যবস্থাপনা', 'Seed · Fertilizer · Pesticide business manager');
+  document.title = N(brand().name);
+  if (document.documentElement.dataset.brand !== btype()) {
+    document.documentElement.dataset.brand = btype();
+    document.querySelector('.brand .logo').innerHTML = btype() === 'build'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9 21v-5h6v5M9 12h6"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c.5-6 3-10 9-13"/><path d="M20 3c-9 0-15 4-15 11 0 2 1 4 1 4s9 1 12-7c1-3 2-8 2-8z" fill="currentColor" fill-opacity=".2"/></svg>';
+  }
+  $('#brandname').textContent = N(brand().name);
+  $('#brandsub').textContent = N(brand().sub);
   const bz = $('#bizname');
   bz.hidden = r === 'guest' || r === 'public';
   bz.innerHTML = r === 'super' ? `${I('crown')} ${L('মাদার প্যানেল', 'Mother panel')}` : S.cur ? `${I('build')} ${esc(S.cur.name)}${S.cur.demo ? ` · ${L('ডেমো', 'Demo')}` : ''}` : '';

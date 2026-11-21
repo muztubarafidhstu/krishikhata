@@ -3,18 +3,28 @@ const express = require('express');
 const { get, all, run, tx, getSetting, setSetting, today, addMonths } = require('../db');
 const { decrypt, verifyPassword, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
 const { requireSuper, unlockShop, limit } = require('../auth');
-const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, audit, isLocked, CATS, MODULE_KEYS, METHODS } = require('../core');
+const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, audit, isLocked, CATS, TYPES, btypeOk, MODULE_KEYS, METHODS } = require('../core');
 const { bizSummary } = require('../state');
 const { createBusiness } = require('../business');
 const { PASS_MSG } = require('./auth');
-const { slugValid, shopUrl } = require('../host');
+const { slugValid, shopUrl, hostInfo } = require('../host');
 const SLUG_MSG = ['ঠিকানায় শুধু ইংরেজি ছোট অক্ষর, সংখ্যা ও - চলবে (৩–৩০ অক্ষর)', 'Use only small English letters, numbers and - (3–30 characters)'];
 const slugFree = (s, except) => !get('SELECT 1 x FROM businesses WHERE slug=? AND id<>?', s, except || 0);
 
 const r = express.Router();
 r.use(requireSuper);
+// Which mother panel is this: agricultural (ADMIN_DOMAIN) or building materials (BUILD_ADMIN_DOMAIN)?
+// Without separate addresses (local testing) the panel type can be picked with ?type=build.
+r.use((req, _res, next) => { const h = hostInfo(req); req.btype = h.kind === 'admin' ? h.btype : btypeOk(String(req.query.type || req.body?.type || 'agri')); next(); });
 
-const bizOr404 = (id) => get('SELECT * FROM businesses WHERE id=?', Number(id)) || fail(404, 'ব্যবসা পাওয়া যায়নি', 'Business not found');
+// Only shops of this panel's type can be reached from it.
+// A user is reachable from this panel if it is the super admin or belongs to a shop of this panel's type.
+const userOr404 = (id, req) => {
+  const u = get('SELECT u.*, COALESCE(b.btype,\'agri\') bt FROM users u LEFT JOIN businesses b ON b.id=u.business_id WHERE u.id=?', Number(id));
+  if (!u || (u.role !== 'super' && u.bt !== req.btype)) fail(404, 'পাওয়া যায়নি', 'Not found');
+  return u;
+};
+const bizOr404 = (id, req) => { const b = get('SELECT * FROM businesses WHERE id=?', Number(id)); if (!b || (b.btype || 'agri') !== req.btype) fail(404, 'ব্যবসা পাওয়া যায়নি', 'Business not found'); return b; };
 const phoneTaken = (p, exceptId) => !!get('SELECT 1 x FROM users WHERE phone=? AND id<>?', normPhone(p), exceptId || 0);
 const fmtDateEn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const fmtDateBn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -22,29 +32,29 @@ const fmtDateBn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('bn-BD', 
 r.get('/state', (req, res) => {
   const lastSeen = Number(getSetting('gateway_last_seen', '0'));
   res.json({
-    businesses: all('SELECT * FROM businesses ORDER BY id').map(bizSummary),
-    plans: plans(), otp: otpEnabled(),
+    businesses: all("SELECT * FROM businesses WHERE COALESCE(btype,'agri')=? ORDER BY id", req.btype).map(bizSummary),
+    btype: req.btype, plans: plans(req.btype), otp: otpEnabled(),
     gateway: { lastSeen, pending: get("SELECT COUNT(*) n FROM sms WHERE status IN ('pending','sending')").n },
     superAcc: { id: req.user.id, name: req.user.name, phone: req.user.phone },
     today: today(),
   });
 });
 
-r.get('/users', (_req, res) => {
+r.get('/users', (req, res) => {
   res.json(all(`SELECT u.id,u.role,u.name,u.phone,u.seller_code,u.business_id,b.name bname FROM users u LEFT JOIN businesses b ON b.id=u.business_id
-    WHERE u.active=1 ORDER BY CASE u.role WHEN 'super' THEN 0 ELSE 1 END, u.business_id, CASE u.role WHEN 'admin' THEN 0 ELSE 1 END, u.seller_code`));
+    WHERE u.active=1 AND (u.role='super' OR COALESCE(b.btype,'agri')=?) ORDER BY CASE u.role WHEN 'super' THEN 0 ELSE 1 END, u.business_id, CASE u.role WHEN 'admin' THEN 0 ELSE 1 END, u.seller_code`, req.btype));
 });
 
 // The owner asked to be able to see passwords. Each view is written to the audit log.
 r.post('/users/:id/reveal', (req, res) => {
-  const u = get('SELECT * FROM users WHERE id=?', Number(req.params.id)) || fail(404, 'পাওয়া যায়নি', 'Not found');
+  const u = userOr404(req.params.id, req);
   audit(req.user.id, 'reveal-password', 'user ' + u.id);
   res.json({ password: decrypt(u.pass_enc) });
 });
 
 // Super admin sets a new password for anyone. OTP goes to the super admin's own phone.
 r.post('/users/:id/password', (req, res) => {
-  const u = get('SELECT * FROM users WHERE id=?', Number(req.params.id)) || fail(404, 'পাওয়া যায়নি', 'Not found');
+  const u = userOr404(req.params.id, req);
   const pw = String(req.body.password || '');
   if (!passOk(pw)) fail(400, ...PASS_MSG);
   otpGate(req, { purpose: 'pw-admin', key: 'user:' + u.id, phone: req.user.phone, label: 'password reset of ' + u.phone });
@@ -58,7 +68,7 @@ r.post('/businesses', (req, res) => {
   const b = req.body || {};
   const name = str(b.name, 80), owner = str(b.owner, 60);
   if (!name || !owner) fail(400, 'ব্যবসার নাম ও মালিকের নাম লিখুন', 'Enter the business and owner names');
-  const cats = (Array.isArray(b.cats) ? b.cats : []).filter((c) => CATS.includes(c));
+  const cats = (Array.isArray(b.cats) ? b.cats : []).filter((c) => TYPES[req.btype].cats.includes(c));
   if (!cats.length) fail(400, 'অন্তত একটি পণ্যের ধরন বাছাই করুন', 'Pick at least one product type');
   const slug = String(b.slug || '').trim().toLowerCase();
   if (!slugValid(slug)) fail(400, ...SLUG_MSG);
@@ -81,6 +91,7 @@ r.post('/businesses', (req, res) => {
   if (b.plan !== 'trial' && !METHODS.includes(b.payMethod)) b.payMethod = 'cash';
   otpGate(req, { purpose: 'biz-create', key: 'admin:' + admin.phone, phone: admin.phone, label: 'new shop account' });
   const bid = createBusiness({
+    btype: req.btype,
     name, owner, place: str(b.place, 80), phone: validPhone(b.phone) ? b.phone : admin.phone, licence: str(b.licence, 40),
     opening: b.opening ? money(b.opening, { name: 'opening' }) : 0, cats, modules, starter: b.starter !== false, admin, sellers,
     plan: b.plan, payMethod: b.payMethod, payRef: str(b.payRef, 40), slug,
@@ -94,7 +105,7 @@ r.post('/businesses', (req, res) => {
 
 // Opening a shop's panel from the mother panel needs the super admin password again.
 r.post('/unlock-shop', (req, res) => {
-  const b = bizOr404(req.body.bid);
+  const b = bizOr404(req.body.bid, req);
   if (!limit('unlock:' + req.user.id, 10, 15 * 60000)) fail(429, 'অনেকবার ভুল চেষ্টা। ১৫ মিনিট পরে চেষ্টা করুন।', 'Too many attempts. Try again in 15 minutes.');
   if (!verifyPassword(String(req.body.password || ''), req.user.pass_hash)) fail(400, 'পাসওয়ার্ড ভুল', 'Wrong password');
   unlockShop(req, b.id);
@@ -107,7 +118,7 @@ r.get('/slug-check', (req, res) => {
   res.json({ ok: slugValid(s) && slugFree(s, Number(req.query.except)), valid: slugValid(s) });
 });
 r.put('/businesses/:id/slug', (req, res) => {
-  const b = bizOr404(req.params.id);
+  const b = bizOr404(req.params.id, req);
   const s = String(req.body.slug || '').trim().toLowerCase();
   if (!slugValid(s)) fail(400, ...SLUG_MSG);
   if (!slugFree(s, b.id)) fail(409, 'এই ঠিকানা আগেই নেওয়া হয়েছে', 'This address is already taken');
@@ -119,7 +130,7 @@ r.put('/businesses/:id/slug', (req, res) => {
 
 // Special price for one shop. Send empty values to go back to the standard price.
 r.put('/businesses/:id/price', (req, res) => {
-  const b = bizOr404(req.params.id);
+  const b = bizOr404(req.params.id, req);
   const val = (v) => (v === '' || v === null || v === undefined ? null : money(v, { name: 'price' }));
   const m = val(req.body.monthly), y = val(req.body.yearly);
   run('UPDATE businesses SET price_monthly=?, price_yearly=? WHERE id=?', m, y, b.id);
@@ -128,7 +139,7 @@ r.put('/businesses/:id/price', (req, res) => {
 });
 
 r.post('/businesses/:id/payment', (req, res) => {
-  const b = bizOr404(req.params.id);
+  const b = bizOr404(req.params.id, req);
   const plan = req.body.plan === 'yearly' ? 'yearly' : 'monthly';
   const qty = Math.min(Math.max(parseInt(req.body.qty, 10) || 1, 1), 12);
   const P = plansFor(b);
@@ -148,7 +159,7 @@ r.post('/businesses/:id/payment', (req, res) => {
 });
 
 r.post('/businesses/:id/expiry', (req, res) => {
-  const b = bizOr404(req.params.id);
+  const b = bizOr404(req.params.id, req);
   const d = String(req.body.expiry || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d <= today()) fail(400, 'আজকের পরের কোনো তারিখ বাছাই করুন', 'Pick a date after today');
   run("UPDATE businesses SET expiry=?, status='on' WHERE id=?", d, b.id);
@@ -158,7 +169,7 @@ r.post('/businesses/:id/expiry', (req, res) => {
 });
 
 r.post('/businesses/:id/deactivate', (req, res) => {
-  const b = bizOr404(req.params.id);
+  const b = bizOr404(req.params.id, req);
   run("UPDATE businesses SET status='off' WHERE id=?", b.id);
   notify(b.id, 'আপনার কৃষিখাতা অ্যাকাউন্ট সাময়িকভাবে বন্ধ করা হয়েছে। বিস্তারিত জানতে যোগাযোগ করুন।', 'Your KrishiKhata account has been suspended. Please contact us for details.');
   audit(req.user.id, 'deactivate', String(b.id));
@@ -167,7 +178,7 @@ r.post('/businesses/:id/deactivate', (req, res) => {
 
 // Erase a shop's records (sales, purchases, expenses, customers, dues, stock). Keeps one backup. OTP to the super admin.
 r.post('/businesses/:id/reset', (req, res) => {
-  const b = bizOr404(req.params.id);
+  const b = bizOr404(req.params.id, req);
   otpGate(req, { purpose: 'reset', key: 'biz:' + b.id, phone: req.user.phone, label: 'reset all data of ' + b.name.slice(0, 30) });
   tx(() => {
     const data = {
@@ -190,7 +201,7 @@ r.post('/businesses/:id/reset', (req, res) => {
 });
 
 r.post('/businesses/:id/restore', (req, res) => {
-  const b = bizOr404(req.params.id);
+  const b = bizOr404(req.params.id, req);
   const bk = get('SELECT data FROM backups WHERE business_id=?', b.id) || fail(404, 'কোনো ব্যাকআপ নেই', 'No backup');
   const d = JSON.parse(bk.data);
   tx(() => {
@@ -207,11 +218,12 @@ r.post('/businesses/:id/restore', (req, res) => {
 
 r.put('/plans', (req, res) => {
   const m = money(req.body.monthly, { name: 'monthly' }), y = money(req.body.yearly, { name: 'yearly' }), t = Math.round(money(req.body.trialDays, { max: 365, name: 'trial' }));
-  setSetting('plan_monthly', m); setSetting('plan_yearly', y); setSetting('plan_trial_days', t);
+  const k = (x) => (req.btype === 'build' ? x + '_build' : x);
+  setSetting(k('plan_monthly'), m); setSetting(k('plan_yearly'), y); setSetting(k('plan_trial_days'), t);
   if (req.body.payTo !== undefined) setSetting('pay_to', str(req.body.payTo, 40));
   if (req.body.whatsapp !== undefined) setSetting('whatsapp', str(req.body.whatsapp, 20).replace(/\D/g, ''));
   audit(req.user.id, 'plans', `${m}/${y}/${t}`);
-  res.json(plans());
+  res.json(plans(req.btype));
 });
 
 // OTP on/off switch for the whole system.

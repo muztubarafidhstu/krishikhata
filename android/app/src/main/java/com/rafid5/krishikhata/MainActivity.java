@@ -207,6 +207,9 @@ public class MainActivity extends Activity {
         public String version() { return BuildConfig.VERSION_NAME; }
 
         @JavascriptInterface
+        public String brand() { return BuildConfig.BRAND; }
+
+        @JavascriptInterface
         public boolean openShop(String input) {
             String slug = input == null ? "" : input.trim().toLowerCase();
             if (slug.endsWith("." + DOMAIN)) slug = slug.substring(0, slug.length() - DOMAIN.length() - 1);

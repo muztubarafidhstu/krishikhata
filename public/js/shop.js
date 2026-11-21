@@ -29,7 +29,7 @@ const bizAct = async (btn, fn, msg) => act(btn, async () => { await fn(); await 
 VIEWS.login = () => `<div class="loginwrap">
   ${S.site?.missingShop ? `<div class="card" style="grid-column:1/-1;border-color:var(--berry)"><b style="color:var(--berry)">${L('এই ঠিকানায় কোনো দোকান নেই। ঠিকানা ঠিক আছে কিনা দেখুন।', 'There is no shop at this address. Check the address.')}</b></div>` : ''}
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div style="display:flex;gap:10px;align-items:center"><div class="logo" style="width:46px;height:46px">${I('leaf')}</div><div><h2 style="font-size:1.5rem">${S.site?.admin ? L('মাদার প্যানেল', 'Mother panel') : S.site?.shop ? esc(S.site.shop.name) : L('কৃষিখাতায় লগইন', 'Sign in to KrishiKhata')}</h2><span class="muted">${S.site?.admin ? L('শুধু সুপার অ্যাডমিনের জন্য', 'Super admin only') : S.site?.adminDomain ? L('দোকানের মালিক ও সেলাররা এখান থেকে ঢুকবেন', 'Shop owners and sellers sign in here') : L('মালিক, সেলার ও সুপার অ্যাডমিন — সবাই এখান থেকে ঢুকবেন', 'Owners, sellers and the super admin all sign in here')}</span></div></div>
+    <div style="display:flex;gap:10px;align-items:center"><div class="logo" style="width:46px;height:46px">${I(btype() === 'build' ? 'build' : 'leaf')}</div><div><h2 style="font-size:1.5rem">${S.site?.admin ? L('মাদার প্যানেল', 'Mother panel') : S.site?.shop ? esc(S.site.shop.name) : L(`${N(brand().name)}-য় লগইন`, `Sign in to ${N(brand().name)}`)}</h2><span class="muted">${S.site?.admin ? L('শুধু সুপার অ্যাডমিনের জন্য', 'Super admin only') : S.site?.adminDomain ? L('দোকানের মালিক ও সেলাররা এখান থেকে ঢুকবেন', 'Shop owners and sellers sign in here') : L('মালিক, সেলার ও সুপার অ্যাডমিন — সবাই এখান থেকে ঢুকবেন', 'Owners, sellers and the super admin all sign in here')}</span></div></div>
     <form id="loginform" style="display:flex;flex-direction:column;gap:12px">
       <label class="f">${L('মোবাইল নম্বর (আইডি)', 'Mobile number (ID)')}<input class="in num" id="lg-phone" type="tel" inputmode="tel" autocomplete="username" placeholder="01XXXXXXXXX" required></label>
       <label class="f">${L('পাসওয়ার্ড', 'Password')}<span style="display:flex;gap:6px"><input class="in" id="lg-pass" type="password" autocomplete="current-password" required><button type="button" class="eyebtn" style="width:42px;height:42px" data-lgeye aria-label="${L('পাসওয়ার্ড দেখুন', 'Show password')}">${I('eye')}</button></span></label>
@@ -40,14 +40,14 @@ VIEWS.login = () => `<div class="loginwrap">
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-forgot>${L('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}</button>${window.KKAndroid ? `<button class="btn ghost sm" data-changeshop>${I('build')} ${L('অন্য দোকানের ঠিকানা', 'Another shop address')}</button>` : ''}</div>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:10px">
-    <h3>${I('leaf')} ${L('বীজ, সার ও কীটনাশক ব্যবসার সহজ হিসাব', 'Simple accounts for seed, fertilizer and pesticide shops')}</h3>
+    <h3>${I('leaf')} ${N(brand().login)}</h3>
     <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
       <li>${L('বিক্রি, ক্যাশ মেমো ও বাকি এক জায়গায়', 'Sales, cash memos and dues in one place')}</li>
       <li>${L('স্টক নিজে থেকে কমে-বাড়ে, কম হলে সতর্কতা', 'Stock updates itself, with low-stock alerts')}</li>
       <li>${L('মাস শেষে লাভ-ক্ষতি ও ব্যালেন্স', 'Monthly profit, loss and balance')}</li>
       <li>${L('মালিক ও ৩ জন পর্যন্ত সেলারের আলাদা আইডি', 'Separate IDs for the owner and up to 3 sellers')}</li>
     </ul>
-    ${window.KKAndroid ? '' : `<a class="btn sun" href="/krishikhata.apk" style="align-self:flex-start">${I('down')} ${L('Android অ্যাপ ডাউনলোড', 'Download the Android app')}</a><p class="muted" style="margin:0">${L('ফোনে ব্রাউজারের মেনু থেকে "হোম স্ক্রিনে যোগ করুন" দিলে অ্যাপের মতো আইকন হবে।', 'On a phone, use “Add to Home screen” in the browser menu to get an app icon.')}</p>`}
+    ${window.KKAndroid ? '' : `<a class="btn sun" href="${brand().apk}" style="align-self:flex-start">${I('down')} ${L('Android অ্যাপ ডাউনলোড', 'Download the Android app')}</a><p class="muted" style="margin:0">${L('ফোনে ব্রাউজারের মেনু থেকে "হোম স্ক্রিনে যোগ করুন" দিলে অ্যাপের মতো আইকন হবে।', 'On a phone, use “Add to Home screen” in the browser menu to get an app icon.')}</p>`}
   </div></div>`;
 // Saved sign-in: the Android app keeps number + password encrypted on the phone; browsers keep only the number.
 function savedLogin() {
@@ -102,7 +102,7 @@ VIEWS.public = () => {
   if (!s) return `<div class="card empty">${L('লোড হচ্ছে…', 'Loading…')}</div>`;
   if (s.missing) return `<div class="card empty">${L('দোকানটি পাওয়া যায়নি।', 'Shop not found.')}</div>`;
   return `<section class="shop-h">${heroScene()}<div style="position:relative;z-index:1"><span class="pill" style="background:rgba(255,255,255,.2);color:#fff">${I('leaf')} ${esc(s.place)}</span>
-    <h2 style="font-size:2rem;margin-top:8px">${esc(s.name)}</h2><p style="max-width:44ch;opacity:.92">${L('ভালো বীজ, সঠিক সার, নিরাপদ বালাইনাশক — আপনার ফসলের বিশ্বস্ত সঙ্গী।', 'Good seed, the right fertilizer, safe crop protection.')}</p>
+    <h2 style="font-size:2rem;margin-top:8px">${esc(s.name)}</h2><p style="max-width:44ch;opacity:.92">${N(brand().hero)}</p>
     ${s.phone ? `<p style="margin:0;font-weight:700" class="num">${I('phone')} ${esc(dg(fmtPhone(s.phone)))}</p>` : ''}</div></section>
   ${s.cats.map((k) => { const list = s.products.filter((p) => p.cat === k); return list.length ? `<h3 style="margin-top:6px">${catPill(k)}</h3><div class="grid g-kpi">${list.map((p) => `<div class="card prod"><div class="img" style="background:${CAT[p.cat].bg};color:${CAT[p.cat].color}">${I(CAT[p.cat].icon)}</div>
     <b>${esc(p.name)}</b><div style="display:flex;justify-content:space-between;align-items:center"><span class="num" style="font-family:var(--display);font-size:1.2rem;font-weight:800;color:var(--leaf-d)">${tk(p.sell)}</span><span class="muted">/ ${U(p.unit)}</span></div>
@@ -239,7 +239,7 @@ VIEWS.sale = () => {
       </div>
       <div class="picker">
         <b style="display:flex;gap:6px;align-items:center">${I('search')} ${L('পণ্য খুঁজুন — নাম, আইডি বা বক্স নম্বর', 'Find a product — name, ID or box number')}</b>
-        <span class="searchbar" style="max-width:none">${I('search')}<input id="s-pq" type="search" value="${esc(draft.pq)}" placeholder="${L('যেমন: ইউরিয়া, ৫, B-05', 'e.g. urea, 5, B-05')}" autocomplete="off"></span>
+        <span class="searchbar" style="max-width:none">${I('search')}<input id="s-pq" type="search" value="${esc(draft.pq)}" placeholder="${N(brand().search)}" autocomplete="off"></span>
         <div class="chips" role="group" aria-label="${L('ক্যাটাগরি', 'Category')}">${[['all', null], ...b.cats.map((k) => [k, CAT[k]])].map(([k, c]) => `<button type="button" class="chip-btn ${draft.pcat === k ? 'on' : ''}" data-pcat="${k}" aria-pressed="${draft.pcat === k}">${c ? I(c.icon) + N(c.n) : L('সব', 'All')}</button>`).join('')}</div>
         <div class="pgrid" id="p-res">${prodResults()}</div>
       </div>
@@ -552,7 +552,7 @@ function showInvoice(memo) {
   const cu = custOf(b, s), ph = custPhone(b, s);
   $('#modal').innerHTML = `<div class="modal" data-close><div class="box" role="dialog" aria-label="${L('ইনভয়েস', 'Invoice')}">
     <div class="inv-paper" id="invcap">
-    <div class="inv-h"><div><h3>${esc(b.name)}</h3><div style="opacity:.9;font-size:.9rem">${esc(b.place)} · <span class="num">${esc(dg(fmtPhone(b.phone)))}</span></div><div style="opacity:.9;font-size:.85rem">${L('বীজ, সার ও কীটনাশক বিক্রেতা', 'Seed, fertilizer & pesticide dealer')}</div></div>
+    <div class="inv-h"><div><h3>${esc(b.name)}</h3><div style="opacity:.9;font-size:.9rem">${esc(b.place)} · <span class="num">${esc(dg(fmtPhone(b.phone)))}</span></div><div style="opacity:.9;font-size:.85rem">${N(brand().seller)}</div></div>
       <div style="text-align:right"><b style="font-size:1.1rem">${L('ক্যাশ মেমো', 'Cash memo')}</b><div class="num">#${dg(s.id)}</div><div class="num" style="font-size:.85rem">${fmtLong(s.date)}</div></div></div>
     <div class="inv-b">
       <div class="two"><div><span class="muted">${L('ক্রেতা', 'Customer')}</span><br><b>${esc(custName(b, s))}</b>${cu ? `<br><span class="muted">${esc(cu.village)}</span>` : ''}${ph ? `<br><span class="muted num">${L('মোবাইল', 'Mobile')}: ${esc(dg(fmtPhone(ph)))}</span>` : ''}</div>
@@ -563,7 +563,7 @@ function showInvoice(memo) {
       <div class="summary num"><div><span>${L('সর্বমোট', 'Grand total')}</span><span class="grand">${tk(s.total)}</span></div><div><span>${L('জমা', 'Paid')}</span><b>${tk(s.paid)}</b></div><div><span>${L('বাকি', 'Due')}</span><span class="due">${tk(s.total - s.paid)}</span></div></div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
         <span class="stamp ${s.total - s.paid > 0 ? '' : 'paid'}">${s.total - s.paid > 0 ? L('বাকি আছে', 'Balance due') : L('পরিশোধিত', 'Paid in full')}</span>
-        <span class="muted" style="font-size:.8rem">${L('কীটনাশক ব্যবহারের আগে লেবেলের নির্দেশনা পড়ুন। ধন্যবাদ।', 'Read the label before using any pesticide. Thank you.')}</span></div>
+        <span class="muted" style="font-size:.8rem">${N(brand().note)}</span></div>
     </div></div>
     <div class="inv-actions">
       <div class="grp"><button class="btn sun" data-dl="pdf">${I('down')} ${L('PDF ডাউনলোড', 'Download PDF')}</button><button class="btn ghost" data-dl="png">${I('image')} ${L('ছবি (PNG)', 'Image (PNG)')}</button><button class="btn ghost" data-print>${I('file')} ${L('প্রিন্ট', 'Print')}</button><button class="btn ghost" data-switchlang>${I('lang')} ${LANG === 'bn' ? 'English' : 'বাংলা'}</button></div>

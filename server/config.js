@@ -37,7 +37,8 @@ module.exports = {
   COOKIE_SECURE: process.env.COOKIE_SECURE === '1',
   GATEWAY_KEY: process.env.GATEWAY_KEY || '',
   DOMAIN: (process.env.DOMAIN || '').toLowerCase(),
-  ADMIN_DOMAIN: (process.env.ADMIN_DOMAIN || '').toLowerCase(), // separate address for the mother panel
+  ADMIN_DOMAIN: (process.env.ADMIN_DOMAIN || '').toLowerCase(), // mother panel for agricultural shops (KrishiKhata)
+  BUILD_ADMIN_DOMAIN: (process.env.BUILD_ADMIN_DOMAIN || '').toLowerCase(), // mother panel for building-material shops (NirmanKhata)
   SUPER_PHONE: process.env.SUPER_PHONE || '',
   SUPER_PASSWORD: process.env.SUPER_PASSWORD || '',
   SUPER_NAME: process.env.SUPER_NAME || 'Super Admin',

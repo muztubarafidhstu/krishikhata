@@ -323,3 +323,20 @@ a.btn{text-decoration:none}
   .modal{background:none!important}
 }
 @media (max-width:720px){.top{position:relative;top:auto}.brand b{font-size:1.15rem}}
+
+/* building-material category pills */
+.p-rod{background:var(--soil-l);color:var(--soil)}
+.p-cement{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+.p-sheet{background:var(--sky-l);color:var(--sky)}
+.p-angle{background:var(--pest-l);color:var(--pest)}
+.p-bar{background:var(--sun-l);color:var(--soil)}
+
+/* NirmanKhata (building materials): brick colour instead of leaf green */
+:root[data-brand="build"]{--leaf:#a8532b;--leaf-d:#7a3b1d;--leaf-l:#f6e3d8}
+@media (prefers-color-scheme: dark){:root[data-brand="build"]:not([data-theme="light"]){--leaf:#e3915f;--leaf-d:#f0b48a;--leaf-l:#3d2418}}
+:root[data-brand="build"][data-theme="dark"]{--leaf:#e3915f;--leaf-d:#f0b48a;--leaf-l:#3d2418}
+:root[data-brand="build"] .top{background:linear-gradient(100deg,#6b3318,#a8532b 55%,#d08a3a)}
+:root[data-brand="build"] body::before{background:#6b3318}
+:root[data-brand="build"] .hero,:root[data-brand="build"] .shop-h,:root[data-brand="build"] .inv-h{background:linear-gradient(120deg,#6b3318 0%,#a8532b 50%,#d08a3a 100%)}
+:root[data-brand="build"] .logo{color:#a8532b}
+:root[data-brand="build"] .btn{box-shadow:0 3px 0 var(--leaf-d)}

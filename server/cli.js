@@ -42,30 +42,31 @@ if (cmd === 'backup') {
   console.log(a2 === 'off' ? `${a1}: demo protection OFF` : `${a1}: demo protection ON (logins can't be changed by visitors)`);
 } else if (cmd === 'demo-shop') {
   // A ready-made demo shop to show customers:  npm run demo-shop -- demoshop 01XXXXXXXXX "Demo@123" [sellerPhone "Seller#1"]
-  const [slug, phone, pass, sPhone, sPass] = process.argv.slice(3);
+  const build = process.argv.includes('--build');
+  const [slug, phone, pass, sPhone, sPass] = process.argv.slice(3).filter((x) => x !== '--build');
   const { slugValid } = require('./host');
   if (!slugValid(String(slug || '')) || !validPhone(phone) || !passOk(pass || '') || (sPhone && (!validPhone(sPhone) || !passOk(sPass || '')))) {
     console.error('Usage: npm run demo-shop -- demoshop 01XXXXXXXXX "Demo@123" [01YYYYYYYYY "Seller#1"]\n(address: small English letters/numbers; passwords: 5+ chars with a letter, a number and a symbol)'); process.exit(1);
   }
   if (get('SELECT 1 x FROM businesses WHERE slug=?', slug)) { console.error('A shop with this address already exists.'); process.exit(1); }
   for (const p of [phone, sPhone].filter(Boolean)) if (get('SELECT 1 x FROM users WHERE phone=?', normPhone(p))) { console.error('This mobile number already has an ID: ' + p); process.exit(1); }
-  const bid = createBusiness({ name: 'ডেমো কৃষি ভাণ্ডার', slug, owner: 'ডেমো মালিক', place: 'বগুড়া সদর', cats: ['seed', 'fert', 'pest'],
+  const bid = createBusiness({ btype: build ? 'build' : 'agri', name: build ? 'ডেমো স্টিল অ্যান্ড সিমেন্ট' : 'ডেমো কৃষি ভাণ্ডার', slug, owner: 'ডেমো মালিক', place: 'বগুড়া সদর', cats: build ? ['rod', 'cement', 'sheet', 'angle', 'bar', 'other'] : ['seed', 'fert', 'pest'],
     modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop'], admin: { phone, password: pass },
     sellers: sPhone ? [{ name: 'ডেমো সেলার', phone: sPhone, password: sPass }] : [], opening: 150000, starter: true, plan: 'trial' });
   run("UPDATE businesses SET plan='yearly', expiry=?, demo=1 WHERE id=?", addMonths(today(), 60), bid);
-  fillSample(bid);
+  fillSample(bid, build);
   console.log(`Demo shop ready: https://${slug}.${process.env.DOMAIN || 'your-domain'}  login ${normPhone(phone)}` + (sPhone ? `, seller ${normPhone(sPhone)}` : ''));
 } else {
   console.log('Commands: seed-demo | demo-shop <address> <phone> <password> [sellerPhone sellerPassword] | reset-super <phone> <password> | backup');
 }
 
 // Sample stock, customers, vendors, a week of sales and some expenses for one shop.
-function fillSample(bid) {
-  run('UPDATE products SET stock=CASE cat WHEN \'fert\' THEN 60 ELSE 120 END WHERE business_id=?', bid);
+function fillSample(bid, build = false) {
+  run("UPDATE products SET stock=CASE WHEN cat IN ('rod','angle','bar') THEN 3000 WHEN cat='fert' THEN 60 ELSE 120 END WHERE business_id=?", bid);
   const custs = [['আব্দুল মালেক', 'শিবগঞ্জ', '01999000001'], ['হাসান আলী', 'মহাস্থান', '01999000002'], ['সুফিয়া বেগম', 'গাবতলী', '01999000003'], ['রফিকুল ইসলাম', 'নন্দীগ্রাম', '01999000004']]
     .map(([n, v, p]) => Number(run('INSERT INTO customers(business_id,name,village,phone,due) VALUES(?,?,?,?,0)', bid, n, v, p).lastInsertRowid));
-  const v1 = Number(run('INSERT INTO vendors(business_id,name,phone,due) VALUES(?,?,?,?)', bid, 'জেলা সার ডিলার', '01999000011', 48000).lastInsertRowid);
-  run('INSERT INTO vendors(business_id,name,phone,due) VALUES(?,?,?,?)', bid, 'উত্তরবঙ্গ সীড কোম্পানি', '01999000012', 12500);
+  const v1 = Number(run('INSERT INTO vendors(business_id,name,phone,due) VALUES(?,?,?,?)', bid, build ? 'জেলা রড ডিলার' : 'জেলা সার ডিলার', '01999000011', 48000).lastInsertRowid);
+  run('INSERT INTO vendors(business_id,name,phone,due) VALUES(?,?,?,?)', bid, build ? 'সিমেন্ট পরিবেশক' : 'উত্তরবঙ্গ সীড কোম্পানি', '01999000012', 12500);
   const prods = require('./db').all('SELECT * FROM products WHERE business_id=? ORDER BY id', bid);
   const sellers = require('./db').all("SELECT * FROM users WHERE business_id=? AND role='seller' ORDER BY seller_code", bid);
   const plan = [[6, 1, [[0, 10], [4, 2]], 1], [6, -1, [[8, 3]], 1], [5, 2, [[4, 5], [6, 2]], 0.6], [4, 1, [[5, 3], [9, 4]], 0.5], [3, -1, [[2, 6], [8, 5]], 1], [2, 2, [[0, 20]], 1], [1, 3, [[4, 4], [5, 2]], 0.4], [0, 2, [[4, 3], [8, 2]], 1], [0, 1, [[1, 2], [11, 1]], 0.5]];
@@ -82,5 +83,5 @@ function fillSample(bid) {
     if (cust && total > paid) run('UPDATE customers SET due=due+? WHERE id=?', total - paid, cust);
   });
   run('INSERT INTO purchases(business_id,date,vendor_id,product_id,qty,rate,total,paid) VALUES(?,?,?,?,?,?,?,?)', bid, addDays(today(), -9), v1, prods[4].id, 20, prods[4].buy, prods[4].buy * 20, 0);
-  [['tea', 300, ''], ['transport', 1200, 'ট্রাক ভাড়া — সার আনা'], ['power', 450, ''], ['salary', 1000, 'দৈনিক মজুরি']].forEach(([t, a, n], i) => run('INSERT INTO expenses(business_id,date,type,amount,note) VALUES(?,?,?,?,?)', bid, addDays(today(), -(6 - i)), t, a, n));
+  [['tea', 300, ''], ['transport', 1200, build ? 'ট্রাক ভাড়া — রড আনা' : 'ট্রাক ভাড়া — সার আনা'], ['power', 450, ''], ['salary', 1000, 'দৈনিক মজুরি']].forEach(([t, a, n], i) => run('INSERT INTO expenses(business_id,date,type,amount,note) VALUES(?,?,?,?,?)', bid, addDays(today(), -(6 - i)), t, a, n));
 }

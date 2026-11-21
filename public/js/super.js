@@ -256,7 +256,7 @@ VIEWS.settings = () => {
 };
 
 /* ----- New business wizard ----- */
-function newWiz() { return { step: 0, slug: '', name: '', owner: '', phone: '', place: '', licence: '', opening: '', cats: ['seed', 'fert', 'pest'], modules: MODULES.map((m) => m.k), starter: true, sellers: [{ name: '', phone: '', pass: '' }], adminUser: '', adminPass: '', plan: 'trial', payMethod: 'bkash', payRef: '' }; }
+function newWiz() { return { step: 0, slug: '', name: '', owner: '', phone: '', place: '', licence: '', opening: '', cats: [...TYPE_CATS[btype()]], modules: MODULES.map((m) => m.k), starter: true, sellers: [{ name: '', phone: '', pass: '' }], adminUser: '', adminPass: '', plan: 'trial', payMethod: 'bkash', payRef: '' }; }
 VIEWS.wizard = () => {
   if (!S.wiz) S.wiz = newWiz();
   const w = S.wiz;
@@ -275,7 +275,7 @@ VIEWS.wizard = () => {
     </div>`;
   if (w.step === 1) body = `
     <h3>${I('leaf')} ${L('এই দোকান কী কী বিক্রি করে?', 'What does this shop sell?')}</h3>
-    <div class="tiles">${Object.entries(CAT).map(([k, c]) => `
+    <div class="tiles">${Object.entries(CAT).filter(([k]) => TYPE_CATS[btype()].includes(k)).map(([k, c]) => `
       <label class="tile ${w.cats.includes(k) ? 'sel' : ''}"><input type="checkbox" data-wcat="${k}" ${w.cats.includes(k) ? 'checked' : ''}><span class="chk">${I('check')}</span>
         <span class="big" style="background:${c.bg};color:${c.color}">${I(c.icon)}</span><b>${N(c.n)}</b><small>${N(c.d)}</small></label>`).join('')}
     </div>

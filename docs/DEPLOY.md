@@ -98,6 +98,7 @@ cp .env.example .env && nano .env
 ```
 DOMAIN=example.com                 ← দোকানের ঠিকানা (https:// ছাড়া)
 ADMIN_DOMAIN=adminrafid.example.com ← মাদার প্যানেলের ঠিকানা
+BUILD_ADMIN_DOMAIN=adminnirman.example.com ← নির্মাণখাতা (রড-সিমেন্ট) মাদার প্যানেল
 SUPER_PHONE=017XXXXXXXX            ← আপনার মোবাইল (সুপার অ্যাডমিন আইডি)
 SUPER_PASSWORD=YourPass@1          ← কমপক্ষে ৫ অক্ষর, অক্ষর + সংখ্যা + চিহ্ন
 APP_SECRET=...                     ← প্রথম openssl কমান্ডের ৬৪ অক্ষরের মান

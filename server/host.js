@@ -1,21 +1,22 @@
 'use strict';
 // Which address a request came to: the mother panel, a shop's own sub-address, or the main domain.
 const { get } = require('./db');
-const { DOMAIN, ADMIN_DOMAIN } = require('./config');
+const { DOMAIN, ADMIN_DOMAIN, BUILD_ADMIN_DOMAIN } = require('./config');
 
 const RESERVED = new Set(['www', 'admin', 'api', 'app', 'mail', 'smtp', 'ftp', 'shop', 'static', 'cdn', 'ns1', 'ns2', 'test', 'demo', 'login', 'support']);
-if (ADMIN_DOMAIN && DOMAIN && ADMIN_DOMAIN.endsWith('.' + DOMAIN)) RESERVED.add(ADMIN_DOMAIN.slice(0, -DOMAIN.length - 1));
+for (const a of [ADMIN_DOMAIN, BUILD_ADMIN_DOMAIN]) if (a && DOMAIN && a.endsWith('.' + DOMAIN)) RESERVED.add(a.slice(0, -DOMAIN.length - 1));
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
 const slugValid = (s) => SLUG_RE.test(s) && !RESERVED.has(s) && !s.includes('--');
 
 function hostInfo(req) {
   const host = String(req.hostname || '').toLowerCase();
-  if (ADMIN_DOMAIN && host === ADMIN_DOMAIN) return { kind: 'admin', host };
+  if (ADMIN_DOMAIN && host === ADMIN_DOMAIN) return { kind: 'admin', host, btype: 'agri' };
+  if (BUILD_ADMIN_DOMAIN && host === BUILD_ADMIN_DOMAIN) return { kind: 'admin', host, btype: 'build' };
   if (DOMAIN && host.endsWith('.' + DOMAIN)) {
     const sub = host.slice(0, -DOMAIN.length - 1);
     if (sub && !sub.includes('.') && sub !== 'www') {
-      const b = get('SELECT id,name,slug FROM businesses WHERE slug=?', sub);
-      return { kind: 'shop', host, slug: sub, biz: b || null };
+      const b = get('SELECT id,name,slug,btype FROM businesses WHERE slug=?', sub);
+      return { kind: 'shop', host, slug: sub, biz: b || null, btype: b ? b.btype || 'agri' : 'agri' };
     }
   }
   return { kind: 'main', host };
