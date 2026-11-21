@@ -89,7 +89,8 @@ document.addEventListener('click', async (e) => {
   if (d.savesale !== undefined) return saveSale(t);
   if (d.inv) return showInvoice(d.inv);
   if (d.dl) return downloadInvoice(d.dl, t);
-  if (d.print !== undefined) return window.print();
+  if (d.print !== undefined) return window.KKAndroid ? window.KKAndroid.print() : window.print();
+  if (d.changeshop !== undefined) return window.KKAndroid && window.KKAndroid.changeShop();
   if (d.switchlang !== undefined) return switchLang();
   if (d.voidsale) {
     const s = S.cur.sales.find((x) => x.sid == d.voidsale);

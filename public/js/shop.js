@@ -35,7 +35,7 @@ VIEWS.login = () => `<div class="loginwrap">
       <label class="f">${L('পাসওয়ার্ড', 'Password')}<span style="display:flex;gap:6px"><input class="in" id="lg-pass" type="password" autocomplete="current-password" required><button type="button" class="eyebtn" style="width:42px;height:42px" data-lgeye aria-label="${L('পাসওয়ার্ড দেখুন', 'Show password')}">${I('eye')}</button></span></label>
       <button class="btn" type="submit" style="justify-content:center">${I('check')} ${L('লগইন', 'Sign in')}</button>
     </form>
-    <button class="btn ghost sm" data-forgot style="align-self:flex-start">${L('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-forgot>${L('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}</button>${window.KKAndroid ? `<button class="btn ghost sm" data-changeshop>${I('build')} ${L('অন্য দোকানের ঠিকানা', 'Another shop address')}</button>` : ''}</div>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:10px">
     <h3>${I('leaf')} ${L('বীজ, সার ও কীটনাশক ব্যবসার সহজ হিসাব', 'Simple accounts for seed, fertilizer and pesticide shops')}</h3>
@@ -45,7 +45,7 @@ VIEWS.login = () => `<div class="loginwrap">
       <li>${L('মাস শেষে লাভ-ক্ষতি ও ব্যালেন্স', 'Monthly profit, loss and balance')}</li>
       <li>${L('মালিক ও ৩ জন পর্যন্ত সেলারের আলাদা আইডি', 'Separate IDs for the owner and up to 3 sellers')}</li>
     </ul>
-    <p class="muted" style="margin:0">${L('ফোনে ব্রাউজারের মেনু থেকে "হোম স্ক্রিনে যোগ করুন" দিলে অ্যাপের মতো আইকন হবে।', 'On a phone, use “Add to Home screen” in the browser menu to get an app icon.')}</p>
+    ${window.KKAndroid ? '' : `<a class="btn sun" href="/krishikhata.apk" style="align-self:flex-start">${I('down')} ${L('Android অ্যাপ ডাউনলোড', 'Download the Android app')}</a><p class="muted" style="margin:0">${L('ফোনে ব্রাউজারের মেনু থেকে "হোম স্ক্রিনে যোগ করুন" দিলে অ্যাপের মতো আইকন হবে।', 'On a phone, use “Add to Home screen” in the browser menu to get an app icon.')}</p>`}
   </div></div>`;
 async function doLogin(btn) {
   const phone = pk($('#lg-phone').value), password = $('#lg-pass').value;
@@ -547,6 +547,12 @@ function showInvoice(memo) {
     </div></div></div>`;
 }
 function saveBlob(name, blob) {
+  // Inside the Android app, hand the file to the app (blob downloads don't work in a WebView).
+  if (window.KKAndroid) {
+    const r = new FileReader();
+    r.onload = () => window.KKAndroid.saveFile(name, String(r.result).split(',')[1], blob.type || 'application/octet-stream');
+    r.readAsDataURL(blob); return;
+  }
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 async function downloadInvoice(kind, btn) {

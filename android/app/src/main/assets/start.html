@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>কৃষিখাতা</title>
+<style>
+  :root{--g:#1f6b2a;--g2:#2f8f3a;--sun:#f2a516;--bg:#eef5e6;--fg:#1d2b17;--mu:#5d6e55;--line:#d5e3c8}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:"Noto Sans Bengali","Hind Siliguri",sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column}
+  header{background:linear-gradient(135deg,#1f6b2a,#2f8f3a 60%,#8db62c);color:#fff;padding:36px 22px 70px;text-align:center}
+  .logo{width:76px;height:76px;margin:0 auto 12px;border-radius:22px;background:#fff;display:grid;place-items:center;box-shadow:inset 0 -6px 0 var(--sun)}
+  .logo svg{width:46px;height:46px}
+  h1{margin:0;font-size:2rem}
+  header p{margin:6px 0 0;opacity:.9}
+  main{flex:1;padding:0 18px 24px;margin-top:-44px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 10px 30px -18px rgba(31,80,30,.5)}
+  label{display:block;font-weight:700;margin-bottom:8px}
+  .field{display:flex;align-items:center;border:2px solid var(--line);border-radius:14px;background:#f6faf1;overflow:hidden}
+  .field:focus-within{border-color:var(--g2)}
+  input{flex:1;min-width:0;border:0;background:transparent;font-size:1.2rem;padding:14px 12px;outline:none;color:var(--fg);font-family:inherit}
+  .field span{padding:0 12px;color:var(--mu);font-weight:600;white-space:nowrap}
+  button{width:100%;margin-top:16px;border:0;border-radius:14px;padding:15px;font-size:1.15rem;font-weight:700;background:var(--g2);color:#fff;box-shadow:0 4px 0 var(--g);font-family:inherit}
+  button:active{transform:translateY(2px);box-shadow:0 2px 0 var(--g)}
+  .err{color:#c8414f;font-weight:600;margin-top:10px;min-height:1.2em}
+  .help{color:var(--mu);font-size:.95rem;line-height:1.6;margin-top:18px}
+  .help b{color:var(--fg)}
+  .demo{margin-top:16px;background:#fff1d2;border-radius:14px;padding:12px 14px;font-size:.95rem;line-height:1.6}
+  .demo a{color:var(--g);font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#2f8f3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c.5-6 3-10 9-13"/><path d="M20 3c-9 0-15 4-15 11 0 2 1 4 1 4s9 1 12-7c1-3 2-8 2-8z" fill="#2f8f3a" fill-opacity=".2"/></svg></div>
+  <h1>কৃষিখাতা</h1>
+  <p>বীজ · সার · কীটনাশক ব্যবসার হিসাব</p>
+</header>
+<main>
+  <form class="card" id="f">
+    <label for="slug">আপনার দোকানের ঠিকানা</label>
+    <div class="field"><input id="slug" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="যেমন: karim" inputmode="url"><span id="dom">.rafid5.com</span></div>
+    <div class="err" id="err"></div>
+    <button type="submit">দোকান খুলুন →</button>
+    <p class="help">দোকানের ঠিকানা আপনার অ্যাকাউন্ট খোলার সময় দেওয়া হয়েছে — যেমন <b>karim</b>.rafid5.com হলে শুধু <b>karim</b> লিখুন। একবার লিখলে অ্যাপ মনে রাখবে।</p>
+    <div class="demo">ফ্রি ডেমো দেখতে চাইলে লিখুন <a href="#" id="demo">demoshop</a><br>মোবাইল: 01900000000 · পাসওয়ার্ড: Demo@123</div>
+  </form>
+</main>
+<script>
+  var A = window.KKAndroid;
+  var dom = A ? A.domain() : 'rafid5.com';
+  document.getElementById('dom').textContent = '.' + dom;
+  document.getElementById('demo').onclick = function (e) { e.preventDefault(); document.getElementById('slug').value = 'demoshop'; };
+  document.getElementById('f').onsubmit = function (e) {
+    e.preventDefault();
+    var v = document.getElementById('slug').value.trim().toLowerCase();
+    var ok = A ? A.openShop(v) : false;
+    document.getElementById('err').textContent = ok ? '' : 'শুধু ইংরেজি ছোট অক্ষর, সংখ্যা ও - দিন (যেমন karim)';
+  };
+</script>
+</body>
+</html>

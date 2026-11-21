@@ -6,3 +6,9 @@ data/
 *.db-shm
 esp32/sms_gateway/config.h
 .DS_Store
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.jks
+*.keystore
