@@ -1,0 +1,23 @@
+{
+  "name": "krishikhata",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KrishiKhata — multi-business manager for seed, fertilizer and pesticide shops",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
+    "seed-demo": "node --disable-warning=ExperimentalWarning server/cli.js seed-demo",
+    "reset-super": "node --disable-warning=ExperimentalWarning server/cli.js reset-super",
+    "backup": "node --disable-warning=ExperimentalWarning server/cli.js backup",
+    "test": "node --disable-warning=ExperimentalWarning test/smoke.js"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "html2canvas": "1.4.1",
+    "jspdf": "2.5.1"
+  }
+}

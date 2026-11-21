@@ -1,0 +1,107 @@
+'use strict';
+// Shared helpers: errors, money, SMS queue, notifications, OTP gate, subscription state, audit.
+const { get, all, run, getSetting, today, daysBetween } = require('./db');
+const { hmac, normPhone, maskPhone } = require('./security');
+
+class HttpError extends Error {
+  constructor(status, bn, en, extra = {}) { super(en || bn); this.status = status; this.bn = bn; this.en = en || bn; this.extra = extra; }
+}
+const fail = (status, bn, en, extra) => { throw new HttpError(status, bn, en, extra); };
+
+// Accepts numbers or numeric strings (Bangla digits allowed). Returns a finite number rounded to 2 decimals.
+function money(v, { min = 0, max = 1e10, name = 'amount' } = {}) {
+  const n = typeof v === 'number' ? v : Number(String(v ?? '').replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d)).replace(/[,\s৳]/g, ''));
+  if (!Number.isFinite(n) || n < min || n > max) fail(400, `সঠিক সংখ্যা দিন (${name})`, `Enter a valid number (${name})`);
+  return Math.round(n * 100) / 100;
+}
+const str = (v, max = 120) => String(v ?? '').trim().slice(0, max);
+
+/* ---------- SMS queue (sent by the ESP32 gateway) ---------- */
+function queueSms(phone, text, kind = 'info') {
+  const p = normPhone(phone);
+  if (!/^01\d{9}$/.test(p)) return;
+  run('INSERT INTO sms(phone,text,kind,status,created_at) VALUES(?,?,?,?,?)', p, String(text).slice(0, 160), kind, 'pending', Date.now());
+}
+
+/* ---------- Owner notifications (in-app + SMS) ---------- */
+function notify(bid, bn, en, smsText) {
+  run('INSERT INTO notifications(business_id,date,text_bn,text_en) VALUES(?,?,?,?)', bid, today(), bn, en);
+  const admin = get("SELECT phone FROM users WHERE business_id=? AND role='admin'", bid);
+  if (admin && smsText !== false) queueSms(admin.phone, smsText || en);
+}
+
+/* ---------- Subscription ---------- */
+function subState(b) {
+  if (b.status === 'off') return 'off';
+  const dl = daysBetween(today(), b.expiry);
+  if (dl < 0) return 'expired';
+  if (dl <= 7) return 'soon';
+  return 'active';
+}
+const isLocked = (b) => ['off', 'expired'].includes(subState(b));
+const plans = () => ({
+  monthly: Number(getSetting('plan_monthly', '500')),
+  yearly: Number(getSetting('plan_yearly', '5000')),
+  trialDays: Number(getSetting('plan_trial_days', '14')),
+  payTo: getSetting('pay_to', ''),
+});
+
+/* ---------- OTP gate ----------
+   When OTP is switched on (super admin setting), a protected request first gets HTTP 428 with an otpId.
+   The browser shows the OTP box and repeats the same request with otpId + otpCode. */
+const otpEnabled = () => getSetting('otp_enabled', '0') === '1';
+function otpGate(req, { purpose, key, phone, label }) {
+  if (!otpEnabled()) return;
+  const { otpId, otpCode } = req.body || {};
+  if (otpId) {
+    const row = get('SELECT * FROM otps WHERE id=?', Number(otpId));
+    if (!row || row.used || row.purpose !== purpose || row.key !== key) fail(400, 'OTP মেলেনি। আবার শুরু করুন।', 'OTP does not match this request. Start again.');
+    if (Date.now() > row.expires_at) fail(400, 'OTP-র মেয়াদ শেষ। আবার পাঠান।', 'The OTP expired. Send a new one.', { otpRetry: true, expired: true });
+    if (row.tries >= 3) fail(400, '৩ বার ভুল কোড। আবার শুরু করুন।', 'Wrong code 3 times. Start again.');
+    const code = String(otpCode ?? '').replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d)).trim();
+    if (hmac(row.id + ':' + code) !== row.code_hash) {
+      run('UPDATE otps SET tries=tries+1 WHERE id=?', row.id);
+      const left = 2 - row.tries;
+      if (left <= 0) fail(400, '৩ বার ভুল কোড। আবার শুরু করুন।', 'Wrong code 3 times. Start again.');
+      fail(400, `ভুল কোড। আর ${left} বার চেষ্টা করা যাবে।`, `Wrong code. ${left} tries left.`, { otpRetry: true });
+    }
+    run('UPDATE otps SET used=1 WHERE id=?', row.id);
+    return;
+  }
+  const p = normPhone(phone);
+  const recent = get('SELECT COUNT(*) n FROM otps WHERE phone=? AND created_at>?', p, Date.now() - 3600000).n;
+  if (recent >= 6) fail(429, 'এক ঘণ্টায় অনেকবার OTP চাওয়া হয়েছে। পরে চেষ্টা করুন।', 'Too many OTP requests this hour. Try later.');
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const r = run('INSERT INTO otps(purpose,key,phone,code_hash,expires_at,created_at) VALUES(?,?,?,?,?,?)', purpose, key, p, 'x', Date.now() + 5 * 60000, Date.now());
+  const id = Number(r.lastInsertRowid);
+  run('UPDATE otps SET code_hash=? WHERE id=?', hmac(id + ':' + code), id);
+  queueSms(p, `KrishiKhata OTP: ${code} for ${label || purpose}. Valid 5 minutes. Never share this code.`, 'otp');
+  throw new HttpError(428, 'OTP পাঠানো হয়েছে', 'OTP sent', { otpRequired: true, otpId: id, to: maskPhone(p), label });
+}
+
+function audit(userId, action, detail = '') { run('INSERT INTO audit(user_id,action,detail) VALUES(?,?,?)', userId || null, action, String(detail).slice(0, 500)); }
+
+const CATS = ['seed', 'fert', 'pest'];
+const MODULE_KEYS = ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop', 'app'];
+const UNITS = ['kg', 'bag', 'bottle', 'packet', 'liter'];
+const EXP_TYPES = ['rent', 'salary', 'transport', 'power', 'tea', 'other'];
+const METHODS = ['bkash', 'nagad', 'rocket', 'cash', 'bank'];
+
+// Starter product list for a new shop (stock 0 — the owner edits prices and adds stock through Purchases).
+const STARTER = [
+  { cat: 'seed', name: 'হাইব্রিড ধান বীজ (ব্রি-২৮)', unit: 'kg', buy: 95, sell: 120, min: 50 },
+  { cat: 'seed', name: 'হাইব্রিড ভুট্টা বীজ', unit: 'kg', buy: 480, sell: 560, min: 30 },
+  { cat: 'seed', name: 'টমেটো বীজ', unit: 'packet', buy: 70, sell: 100, min: 25 },
+  { cat: 'seed', name: 'পাট বীজ (তোষা)', unit: 'kg', buy: 160, sell: 200, min: 20 },
+  { cat: 'fert', name: 'ইউরিয়া সার (৫০ কেজি)', unit: 'bag', buy: 1250, sell: 1350, min: 20 },
+  { cat: 'fert', name: 'টিএসপি সার (৫০ কেজি)', unit: 'bag', buy: 1300, sell: 1420, min: 20 },
+  { cat: 'fert', name: 'এমওপি / পটাশ (৫০ কেজি)', unit: 'bag', buy: 1000, sell: 1100, min: 15 },
+  { cat: 'fert', name: 'জিপসাম সার', unit: 'kg', buy: 14, sell: 18, min: 100 },
+  { cat: 'pest', name: 'সাইপারমেথ্রিন ১০ইসি (১০০ মিলি)', unit: 'bottle', buy: 120, sell: 160, min: 30 },
+  { cat: 'pest', name: 'ম্যানকোজেব ছত্রাকনাশক (৫০০ গ্রা)', unit: 'packet', buy: 210, sell: 260, min: 25 },
+  { cat: 'pest', name: 'কার্বোফুরান ৫জি দানাদার', unit: 'kg', buy: 150, sell: 190, min: 40 },
+  { cat: 'pest', name: 'গ্লাইফোসেট আগাছানাশক (১ লি)', unit: 'bottle', buy: 420, sell: 500, min: 10 },
+];
+
+module.exports = { HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, otpEnabled, otpGate, audit,
+  CATS, MODULE_KEYS, UNITS, EXP_TYPES, METHODS, STARTER, all };

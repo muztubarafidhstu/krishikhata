@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>কৃষিখাতা — KrishiKhata</title>
+<meta name="description" content="বীজ, সার ও কীটনাশক ব্যবসার হিসাব — KrishiKhata business manager">
+<meta name="theme-color" content="#1f6b2a">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&text=%E0%A7%A6%E0%A7%A7%E0%A7%A8%E0%A7%A9%E0%A7%AA%E0%A7%AB%E0%A7%AC%E0%A7%AD%E0%A7%AE%E0%A7%AF%E0%A7%B3&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c.5-6 3-10 9-13"/><path d="M20 3c-9 0-15 4-15 11 0 2 1 4 1 4s9 1 12-7c1-3 2-8 2-8z" fill="currentColor" fill-opacity=".2"/></svg></div>
+      <div><b id="brandname">কৃষিখাতা</b><small id="brandsub"></small></div>
+    </div>
+    <div class="bizname" id="bizname" hidden></div>
+    <div class="spacer"></div>
+    <div class="rolebar" id="userbar" hidden></div>
+    <button class="themebtn" id="bellbtn" type="button" hidden></button>
+    <button class="langbtn" id="langbtn" type="button"></button>
+    <button class="themebtn" id="themebtn" type="button"></button>
+  </header>
+  <div class="shell" id="shell">
+    <aside class="side" id="side"><h4 id="sidehead"></h4><nav class="nav" id="nav"></nav></aside>
+    <main id="main"><div class="empty">লোড হচ্ছে… / Loading…</div></main>
+  </div>
+</div>
+<div id="modal"></div>
+<div id="otpm"></div>
+<div id="toast" hidden></div>
+<noscript><p style="padding:20px">এই ওয়েবসাইট চালাতে JavaScript চালু রাখুন। / Please enable JavaScript.</p></noscript>
+<script src="/vendor/html2canvas.min.js" defer></script>
+<script src="/vendor/jspdf.umd.min.js" defer></script>
+<script src="/js/core.js" defer></script>
+<script src="/js/super.js" defer></script>
+<script src="/js/shop.js" defer></script>
+<script src="/js/main.js" defer></script>
+</body>
+</html>

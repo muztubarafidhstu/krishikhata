@@ -1,0 +1,9 @@
+{
+  "name": "কৃষিখাতা — KrishiKhata",
+  "short_name": "কৃষিখাতা",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef5e6",
+  "theme_color": "#1f6b2a",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

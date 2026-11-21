@@ -1,0 +1,8 @@
+node_modules/
+data/
+.env
+*.db
+*.db-wal
+*.db-shm
+esp32/sms_gateway/config.h
+.DS_Store
