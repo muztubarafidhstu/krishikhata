@@ -10,7 +10,12 @@ async function boot() {
     const r = await api('GET', '/api/public/shop/' + encodeURIComponent(pubSlug));
     S.pub = r.ok ? r.data : { missing: true }; render(); return;
   }
-  if (!S.me) { const r = await api('GET', '/api/me'); if (r.ok) { S.me = r.data.me; S.otp = r.data.otp; } }
+  if (!S.me) {
+    const r = await api('GET', '/api/me');
+    // Mother panel: every page load (refresh, new tab) asks for the password again.
+    if (r.ok && r.data.me.role === 'super') await api('POST', '/api/logout');
+    else if (r.ok) { S.me = r.data.me; S.otp = r.data.otp; }
+  }
   if (!S.me) { render(); return; }
   try {
     if (S.me.role === 'super') { await loadSuper(); S.otp = S.sup.otp; S.view = 'home'; }
@@ -176,4 +181,15 @@ function themeIcon() { const dark = document.documentElement.dataset.theme === '
 $('#themebtn').addEventListener('click', () => { const dark = themeIcon(); document.documentElement.dataset.theme = dark ? 'light' : 'dark'; try { localStorage.setItem('kk-theme', document.documentElement.dataset.theme); } catch (e) {} themeIcon(); });
 try { const th = localStorage.getItem('kk-theme'); if (th) document.documentElement.dataset.theme = th; } catch (e) {}
 themeIcon();
+// Mother panel: lock after 5 minutes without use.
+let lastActive = Date.now();
+['click', 'keydown', 'touchstart', 'scroll'].forEach((ev) => document.addEventListener(ev, () => { lastActive = Date.now(); }, { passive: true }));
+setInterval(async () => {
+  if (S.me && S.me.role === 'super' && Date.now() - lastActive > 5 * 60 * 1000) {
+    await api('POST', '/api/logout');
+    Object.assign(S, { me: null, cur: null, sup: null, bid: null, users: null, sms: null, revealed: {}, wiz: null, q: '', sq: '', dq: '' });
+    closeModal(); closeOtp(); go('login');
+    toast(L('৫ মিনিট ব্যবহার না হওয়ায় নিরাপত্তার জন্য লগআউট হয়েছে', 'Signed out for safety after 5 minutes without use'), 'err');
+  }
+}, 15000);
 boot();

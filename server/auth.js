@@ -8,8 +8,8 @@ const COOKIE = 'kk_sid';
 const SESSION_DAYS = 14;
 const IDLE_MS = 12 * 3600 * 1000; // sign out after 12 hours without activity
 const REMEMBER_MS = 30 * 86400 * 1000; // "Remember me": stay signed in for 30 days
-const SUPER_IDLE_MS = 30 * 60 * 1000; // mother panel: signed out after 30 minutes without activity
-const UNLOCK_MS = 30 * 60 * 1000; // super admin's access to one shop panel after re-entering the password
+const SUPER_IDLE_MS = 5 * 60 * 1000; // mother panel: signed out after 5 minutes without activity
+const UNLOCK_MS = 5 * 60 * 1000; // super admin's access to one shop panel after re-entering the password
 
 function parseCookies(h = '') {
   const out = {};
