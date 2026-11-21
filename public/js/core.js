@@ -128,7 +128,7 @@ const BRAND = {
   build: { name: { bn: 'নির্মাণখাতা', en: 'NirmanKhata' }, sub: { bn: 'রড · সিমেন্ট · টিন · অ্যাঙ্গেল · বার ব্যবসা ব্যবস্থাপনা', en: 'Rod · Cement · Sheet · Angle · Bar business manager' },
     seller: { bn: 'রড, সিমেন্ট, টিন ও নির্মাণ সামগ্রী বিক্রেতা', en: 'Rod, cement, sheet & building materials' }, note: { bn: 'মাল বুঝে নিয়ে মেমোটি সংরক্ষণ করুন। ধন্যবাদ।', en: 'Please check the goods and keep this memo. Thank you.' },
     search: { bn: 'যেমন: রড ১২, সিমেন্ট, B-05', en: 'e.g. rod 12, cement, B-05' }, hero: { bn: 'ভালো মানের রড, সিমেন্ট ও টিন — আপনার নির্মাণের বিশ্বস্ত সঙ্গী।', en: 'Quality rod, cement and sheet for your building.' },
-    login: { bn: 'রড, সিমেন্ট ও নির্মাণ সামগ্রী ব্যবসার সহজ হিসাব', en: 'Simple accounts for rod, cement and building-material shops' }, apk: '/nirmankhata.apk', page: '/nirmankhata.apk' },
+    login: { bn: 'রড, সিমেন্ট ও নির্মাণ সামগ্রী ব্যবসার সহজ হিসাব', en: 'Simple accounts for rod, cement and building-material shops' }, apk: '/nirmankhata.apk', page: '/nirman' },
 };
 const btype = () => (S.cur && S.cur.btype) || (S.sup && S.sup.btype) || (S.pub && S.pub.btype) || (S.site && ((S.site.shop && S.site.shop.btype) || S.site.btype)) || 'agri';
 const brand = () => BRAND[btype()] || BRAND.agri;

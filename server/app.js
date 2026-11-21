@@ -43,14 +43,20 @@ function createApp() {
   app.use(express.static(path.join(__dirname, '..', 'public'), { index: false, maxAge: '1h' }));
   // Shareable app page: /app (download, short ad, demo logins, how-to)
   const fs = require('node:fs');
-  const tpl = fs.readFileSync(path.join(__dirname, 'views', 'download.html'), 'utf8');
+  const TPL = {
+    agri: fs.readFileSync(path.join(__dirname, 'views', 'download.html'), 'utf8'),
+    build: fs.readFileSync(path.join(__dirname, 'views', 'download-build.html'), 'utf8'),
+  };
   const { DOMAIN } = require('./config');
   const { getSetting } = require('./db');
   const WA_ICON = '<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6a10.6 10.6 0 0 1-5.4-1.5l-.4-.2-3.9 1 1-3.8-.2-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.4 14.4 0 0 0 5.5 4.9c2 .9 2.8.9 3.8.8a3.3 3.3 0 0 0 2.2-1.5 2.7 2.7 0 0 0 .2-1.5c-.1-.2-.3-.3-.6-.4z"/></svg>';
-  app.get(['/app', '/download'], (req, res) => {
+  // /app = KrishiKhata sales page, /nirman = NirmanKhata sales page
+  app.get(['/app', '/download', '/nirman'], (req, res) => {
+    const type = req.path === '/nirman' ? 'build' : 'agri';
+    const bname = type === 'build' ? 'নির্মাণখাতা' : 'কৃষিখাতা';
     const host = DOMAIN || req.hostname;
     const { plans } = require('./core');
-    const P = plans();
+    const P = plans(type);
     const wa = (getSetting('whatsapp', '') || getSetting('pay_to', '')).replace(/\D/g, '').slice(-11);
     const waOk = /^01\d{9}$/.test(wa);
     const waLink = (msg) => (waOk ? `https://wa.me/88${wa}?text=${encodeURIComponent(msg)}` : '#price');
@@ -61,12 +67,12 @@ function createApp() {
       '{{PRICE_M}}': bnNum(P.monthly), '{{PRICE_Y}}': bnNum(P.yearly), '{{TRIAL}}': bnNum(P.trialDays), '{{PER_DAY}}': bnNum(Math.max(1, P.monthly / 30)),
       '{{SAVE_LINE}}': save > 0 ? `<div class="save">মাসিকের চেয়ে ৳${bnNum(save)} সাশ্রয়</div>` : '',
       '{{WA_ICON}}': WA_ICON, '{{WA_LOCAL}}': wa, '{{WA_SHOW}}': waOk ? `${wa.slice(0, 5)}-${wa.slice(5)}` : '',
-      '{{WA_LINK_TRIAL}}': waLink(`আসসালামু আলাইকুম। আমি কৃষিখাতা ${P.trialDays} দিন ফ্রি ট্রায়াল শুরু করতে চাই।\nদোকানের নাম: \nমালিকের নাম: \nএলাকা: `),
-      '{{WA_LINK_M}}': waLink(`আসসালামু আলাইকুম। আমি কৃষিখাতার মাসিক প্ল্যান (৳${P.monthly}) নিতে চাই।\nদোকানের নাম: \nএলাকা: `),
-      '{{WA_LINK_Y}}': waLink(`আসসালামু আলাইকুম। আমি কৃষিখাতার বার্ষিক প্ল্যান (৳${P.yearly}) নিতে চাই।\nদোকানের নাম: \nএলাকা: `),
-      '{{WA_LINK_Q}}': waLink('আসসালামু আলাইকুম। কৃষিখাতা নিয়ে আমার একটা প্রশ্ন আছে: '),
+      '{{WA_LINK_TRIAL}}': waLink(`আসসালামু আলাইকুম। আমি ${bname} ${P.trialDays} দিন ফ্রি ট্রায়াল শুরু করতে চাই।\nদোকানের নাম: \nমালিকের নাম: \nএলাকা: `),
+      '{{WA_LINK_M}}': waLink(`আসসালামু আলাইকুম। আমি ${bname}র মাসিক প্ল্যান (৳${P.monthly}) নিতে চাই।\nদোকানের নাম: \nএলাকা: `),
+      '{{WA_LINK_Y}}': waLink(`আসসালামু আলাইকুম। আমি ${bname}র বার্ষিক প্ল্যান (৳${P.yearly}) নিতে চাই।\nদোকানের নাম: \nএলাকা: `),
+      '{{WA_LINK_Q}}': waLink(`আসসালামু আলাইকুম। ${bname} নিয়ে আমার একটা প্রশ্ন আছে: `),
     };
-    let html = tpl;
+    let html = TPL[type];
     for (const [k, v] of Object.entries(vals)) html = html.replaceAll(k, v);
     res.setHeader('Cache-Control', 'no-cache');
     res.type('html').send(html);
