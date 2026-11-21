@@ -33,7 +33,8 @@ VIEWS.home = () => {
     <div class="card bizcard">
       <div class="top2"><div class="av" style="background:${colors[i % colors.length]}">${esc(b.name[0])}</div>
         <div style="min-width:0"><h3>${esc(b.name)}</h3><div class="muted" style="font-size:.88rem">${esc(b.owner)} · ${esc(b.place)}</div>
-        <div class="muted num" style="font-size:.8rem">${esc(dg(fmtPhone(b.admin.phone)))}</div></div></div>
+        <div class="muted num" style="font-size:.8rem">${esc(dg(fmtPhone(b.admin.phone)))}</div>
+        <div style="font-size:.82rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><a href="${esc(shopUrl(b.slug))}" target="_blank" rel="noopener" class="num">${esc(shopUrl(b.slug).replace('https://', ''))}</a><button class="linkbtn muted" data-slugedit="${b.id}" aria-label="${L('ঠিকানা বদলান', 'Change address')}">${I('edit')}</button></div></div></div>
       <div class="meta">${b.cats.map(catPill).join('')}<span class="pill p-ok">${I('users')}${bn(b.sellers.length)} ${L('সেলার', 'sellers')}</span></div>
       <div class="summary num" style="font-size:.9rem">
         <div><span class="muted">${L('মোট বিক্রি', 'Total sales')}</span><b>${tk(b.stats.sales)}</b></div>
@@ -252,7 +253,7 @@ VIEWS.settings = () => {
 };
 
 /* ----- New business wizard ----- */
-function newWiz() { return { step: 0, name: '', owner: '', phone: '', place: '', licence: '', opening: '', cats: ['seed', 'fert', 'pest'], modules: MODULES.map((m) => m.k), starter: true, sellers: [{ name: '', phone: '', pass: '' }], adminUser: '', adminPass: '', plan: 'trial', payMethod: 'bkash', payRef: '' }; }
+function newWiz() { return { step: 0, slug: '', name: '', owner: '', phone: '', place: '', licence: '', opening: '', cats: ['seed', 'fert', 'pest'], modules: MODULES.map((m) => m.k), starter: true, sellers: [{ name: '', phone: '', pass: '' }], adminUser: '', adminPass: '', plan: 'trial', payMethod: 'bkash', payRef: '' }; }
 VIEWS.wizard = () => {
   if (!S.wiz) S.wiz = newWiz();
   const w = S.wiz;
@@ -263,6 +264,7 @@ VIEWS.wizard = () => {
     <div class="form-g">
       <label class="f">${L('ব্যবসার নাম', 'Business name')}<input class="in" id="w-name" maxlength="80" value="${esc(w.name)}"></label>
       <label class="f">${L('মালিকের নাম', 'Owner name')}<input class="in" id="w-owner" maxlength="60" value="${esc(w.owner)}"></label>
+      <label class="f">${L('দোকানের ওয়েব ঠিকানা (ইংরেজি ছোট অক্ষর)', 'Shop web address (small English letters)')}<span style="display:flex;align-items:center;gap:6px"><input class="in" id="w-slug" maxlength="30" value="${esc(w.slug)}" placeholder="karim" autocapitalize="off" spellcheck="false" style="text-transform:lowercase"><b class="muted" style="white-space:nowrap">.${esc(S.site?.domain || 'example.com')}</b></span></label>
       <label class="f">${L('দোকানের মোবাইল নম্বর', 'Shop mobile number')}<input class="in num" id="w-phone" type="tel" value="${esc(w.phone)}" placeholder="01XXXXXXXXX"></label>
       <label class="f">${L('ঠিকানা / উপজেলা', 'Address / upazila')}<input class="in" id="w-place" maxlength="80" value="${esc(w.place)}"></label>
       <label class="f">${L('শুরুর নগদ ব্যালেন্স (৳)', 'Opening cash balance (৳)')}<input class="in num" id="w-open" type="text" inputmode="decimal" data-amt value="${esc(w.opening)}" placeholder="0"></label>
@@ -312,6 +314,7 @@ VIEWS.wizard = () => {
     <div class="grid g2" style="margin-top:12px">
       <div class="summary">
         <div><span class="muted">${L('ব্যবসা', 'Business')}</span><b>${esc(w.name)}</b></div>
+        <div><span class="muted">${L('ওয়েব ঠিকানা', 'Web address')}</span><b>${esc(w.slug)}.${esc(S.site?.domain || '')}</b></div>
         <div><span class="muted">${L('মালিক', 'Owner')}</span><b>${esc(w.owner)}</b></div>
         <div><span class="muted">${L('অ্যাডমিন আইডি', 'Admin ID')}</span><b class="num">${esc(dg(fmtPhone(w.adminUser)))}</b></div>
         <div><span class="muted">${L('পণ্যের ধরন', 'Product types')}</span><span>${w.cats.map(catPill).join(' ')}</span></div>
@@ -336,7 +339,7 @@ VIEWS.wizard = () => {
 function saveWizInputs() {
   const w = S.wiz; if (!w) return;
   const v = (id) => document.getElementById(id)?.value;
-  if (w.step === 0) { w.name = v('w-name') ?? w.name; w.owner = v('w-owner') ?? w.owner; w.phone = v('w-phone') ?? w.phone; w.place = v('w-place') ?? w.place; w.opening = v('w-open') ?? w.opening; w.licence = v('w-lic') ?? w.licence; }
+  if (w.step === 0) { w.slug = (v('w-slug') ?? w.slug).trim().toLowerCase(); w.name = v('w-name') ?? w.name; w.owner = v('w-owner') ?? w.owner; w.phone = v('w-phone') ?? w.phone; w.place = v('w-place') ?? w.place; w.opening = v('w-open') ?? w.opening; w.licence = v('w-lic') ?? w.licence; }
   if (w.step === 3) {
     w.adminUser = v('w-admin') ?? w.adminUser; w.adminPass = v('w-apass') ?? w.adminPass;
     document.querySelectorAll('[data-sname]').forEach((e) => (w.sellers[+e.dataset.sname].name = e.value));
@@ -346,7 +349,7 @@ function saveWizInputs() {
   if (w.step === 4) { w.payMethod = v('w-pm') ?? w.payMethod; w.payRef = v('w-pref') ?? w.payRef; }
 }
 function wizCheck(w) {
-  if (w.step === 0) { if (!w.name.trim() || !w.owner.trim()) return L('ব্যবসা ও মালিকের নাম লিখুন', 'Enter the business and owner names'); if (w.phone && !validPhone(w.phone)) return L('সঠিক মোবাইল নম্বর দিন', 'Enter a valid mobile number'); }
+  if (w.step === 0) { if (!w.name.trim() || !w.owner.trim()) return L('ব্যবসা ও মালিকের নাম লিখুন', 'Enter the business and owner names'); if (!/^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/.test(w.slug)) return L('ওয়েব ঠিকানায় শুধু ইংরেজি ছোট অক্ষর, সংখ্যা ও - দিন (৩–৩০ অক্ষর), যেমন karim', 'Web address: small English letters, numbers and - only (3–30), e.g. karim'); if (w.phone && !validPhone(w.phone)) return L('সঠিক মোবাইল নম্বর দিন', 'Enter a valid mobile number'); }
   if (w.step === 1 && !w.cats.length) return L('অন্তত একটি পণ্যের ধরন বাছাই করুন', 'Pick at least one product type');
   if (w.step === 3) {
     if (!validPhone(w.adminUser)) return L('অ্যাডমিনের সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন', 'Enter a valid 11-digit admin mobile number');
@@ -367,7 +370,7 @@ async function runSetup(btn) {
   const w = S.wiz;
   await act(btn, async () => {
     const r = await call('POST', '/api/super/businesses', {
-      name: w.name, owner: w.owner, phone: w.phone ? pk(w.phone) : '', place: w.place, licence: w.licence, opening: toNum(w.opening), cats: w.cats, modules: w.modules, starter: w.starter,
+      slug: w.slug, name: w.name, owner: w.owner, phone: w.phone ? pk(w.phone) : '', place: w.place, licence: w.licence, opening: toNum(w.opening), cats: w.cats, modules: w.modules, starter: w.starter,
       admin: { phone: pk(w.adminUser), password: w.adminPass }, sellers: w.sellers.map((s) => ({ name: s.name, phone: pk(s.phone), password: s.pass })),
       plan: w.plan, payMethod: w.payMethod, payRef: w.payRef,
     });
@@ -377,8 +380,18 @@ async function runSetup(btn) {
     $('#setupbox').innerHTML = `<div class="progress"><i id="pbar"></i></div><div class="setup-log" id="slog"></div>`;
     for (let i = 0; i < tasks.length; i++) { $('#slog').insertAdjacentHTML('beforeend', `<div><span class="dot">${I('check')}</span>${esc(tasks[i])}</div>`); $('#pbar').style.width = ((i + 1) / tasks.length) * 100 + '%'; await new Promise((ok) => setTimeout(ok, 220)); }
     S.wiz = null; await loadSuper();
-    toast(L('সেটআপ সম্পন্ন!', 'Setup complete!'));
+    toast(L('সেটআপ সম্পন্ন! ঠিকানা: ', 'Setup complete! Address: ') + r.url);
     openBiz(r.id);
   });
 }
 async function openBiz(id) { S.bid = Number(id); S.dq = ''; S.sq = ''; draft = null; await act(null, async () => { await loadBiz(); go('dash'); }); }
+
+/* Change a shop's web address */
+function editSlug(id) {
+  const b = supBiz(id);
+  modal(`<h3>${I('globe')} ${L('দোকানের ওয়েব ঠিকানা', 'Shop web address')}</h3><div style="opacity:.9">${esc(b.name)}</div>`, `
+    <label class="f">${L('নতুন ঠিকানা', 'New address')}<span style="display:flex;align-items:center;gap:6px"><input class="in" id="sl-in" maxlength="30" value="${esc(b.slug)}" autocapitalize="off" spellcheck="false"><b class="muted">.${esc(S.site?.domain || '')}</b></span></label>
+    <p class="muted" style="margin:0;font-size:.85rem">${L('ঠিকানা বদলালে পুরোনো ঠিকানা আর কাজ করবে না। মালিককে নতুন ঠিকানা জানানো হবে।', 'The old address stops working. The owner is told the new address.')}</p>
+    <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" id="sl-save">${I('check')} ${L('সেভ করুন', 'Save')}</button></div>`, { width: 480 });
+  $('#sl-save').onclick = (e) => act(e.currentTarget, async () => { const r = await call('PUT', `/api/super/businesses/${id}/slug`, { slug: $('#sl-in').value.trim().toLowerCase() }); closeModal(); await loadSuper(); render(); toast(L('নতুন ঠিকানা: ', 'New address: ') + r.url); });
+}

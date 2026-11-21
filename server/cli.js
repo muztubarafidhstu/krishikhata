@@ -22,11 +22,11 @@ if (cmd === 'backup') {
   if (get("SELECT 1 x FROM businesses WHERE slug='sabuj'")) { console.log('Demo data already exists.'); process.exit(0); }
   const mk = (d) => createBusiness({ ...d, starter: true, plan: 'monthly', payMethod: 'bkash' });
   const shops = [
-    mk({ name: 'সবুজ কৃষি ভাণ্ডার', slugHint: 'sabuj', owner: 'মোঃ রহিম উদ্দিন', place: 'বগুড়া সদর', cats: ['seed', 'fert', 'pest'], modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop'],
+    mk({ name: 'সবুজ কৃষি ভাণ্ডার', slug: 'sabuj', owner: 'মোঃ রহিম উদ্দিন', place: 'বগুড়া সদর', cats: ['seed', 'fert', 'pest'], modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop'],
       admin: { phone: '01711100001', password: 'Rahim@12' }, sellers: [{ name: 'জামাল', phone: '01811200001', password: 'Jamal#1' }, { name: 'সাকিব', phone: '01811200002', password: 'Sakib#2' }, { name: 'রুবেল', phone: '01811200003', password: 'Rubel#3' }], opening: 150000 }),
-    mk({ name: 'মাটির বন্ধু ট্রেডার্স', slugHint: 'matirbondhu', owner: 'করিম শেখ', place: 'পীরগাছা, রংপুর', cats: ['fert', 'pest'], modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'shop'],
+    mk({ name: 'মাটির বন্ধু ট্রেডার্স', slug: 'matirbondhu', owner: 'করিম শেখ', place: 'পীরগাছা, রংপুর', cats: ['fert', 'pest'], modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'shop'],
       admin: { phone: '01722100002', password: 'Karim@22' }, sellers: [{ name: 'নয়ন', phone: '01822200004', password: 'Nayan#4' }], opening: 90000 }),
-    mk({ name: 'শস্য বীজ ঘর', slugHint: 'shasya', owner: 'নাসরিন আক্তার', place: 'দিনাজপুর', cats: ['seed'], modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep'],
+    mk({ name: 'শস্য বীজ ঘর', slug: 'shasya', owner: 'নাসরিন আক্তার', place: 'দিনাজপুর', cats: ['seed'], modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep'],
       admin: { phone: '01733100003', password: 'Nasrin@3' }, sellers: [{ name: 'মিতু', phone: '01833200006', password: 'Mitu#66' }], opening: 60000 }),
   ];
   run('UPDATE businesses SET expiry=? WHERE id=?', addDays(today(), 4), shops[1]);

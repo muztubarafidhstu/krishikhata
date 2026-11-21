@@ -105,6 +105,8 @@ const METHOD = { bkash: { bn: 'বিকাশ', en: 'bKash' }, nagad: { bn: '�
 /* ---------- App state ---------- */
 const S = { me: null, otp: false, view: '', sup: null, cur: null, bid: null, wiz: null, q: '', sq: '', dq: '', users: null, revealed: {}, sms: null, pub: null };
 const role = () => (S.pubSlug ? 'public' : !S.me ? 'guest' : S.me.role === 'super' && S.bid ? 'admin' : S.me.role);
+const shopUrl = (slug) => (S.site && S.site.domain ? `https://${slug}.${S.site.domain}` : `${location.origin}/shop/${slug}`);
+const publicUrl = (slug) => (S.site && S.site.domain ? `https://${slug}.${S.site.domain}/shop` : `${location.origin}/shop/${slug}`);
 const hasBox = (b) => (b.modules || []).includes('box');
 
 /* ---------- API ---------- */

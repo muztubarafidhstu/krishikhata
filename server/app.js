@@ -41,7 +41,7 @@ function createApp() {
   app.use('/vendor/html2canvas.min.js', (_req, res) => res.sendFile(require.resolve('html2canvas/dist/html2canvas.min.js')));
   app.use('/vendor/jspdf.umd.min.js', (_req, res) => res.sendFile(require.resolve('jspdf/dist/jspdf.umd.min.js')));
   app.use(express.static(path.join(__dirname, '..', 'public'), { index: false, maxAge: '1h' }));
-  app.get(['/', '/shop/:slug', '/app', '/login'], (_req, res) => {
+  app.get(['/', '/shop', '/shop/:slug', '/app', '/login'], (_req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
   });

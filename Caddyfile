@@ -1,3 +1,11 @@
+{
+	# HTTPS certificates for shop addresses (karim.example.com) are created on the first visit,
+	# only after the app confirms that the shop exists.
+	on_demand_tls {
+		ask http://app:3000/api/tls-check
+	}
+}
+
 (app) {
 	encode gzip
 	reverse_proxy app:3000
@@ -10,12 +18,19 @@
 	}
 }
 
-# Shops, sellers and the public product pages
-{$DOMAIN} {
+# Main address and the mother panel
+{$DOMAIN}, {$ADMIN_DOMAIN} {
 	import app
 }
 
-# Mother panel (super admin)
-{$ADMIN_DOMAIN} {
+# Every shop's own address
+https:// {
+	tls {
+		on_demand
+	}
 	import app
+}
+
+http:// {
+	redir https://{host}{uri} 308
 }

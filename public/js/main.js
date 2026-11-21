@@ -2,13 +2,14 @@
 /* Event wiring and start-up. */
 
 async function boot() {
+  { const r = await api('GET', '/api/site'); if (r.ok) S.site = r.data; }
   const m = location.pathname.match(/^\/shop\/([a-z0-9-]+)\/?$/i);
-  if (m) {
-    S.pubSlug = m[1]; render();
-    const r = await api('GET', '/api/public/shop/' + encodeURIComponent(m[1]));
+  const pubSlug = m ? m[1] : /^\/shop\/?$/.test(location.pathname) && S.site?.shop ? S.site.shop.slug : null;
+  if (pubSlug) {
+    S.pubSlug = pubSlug; render();
+    const r = await api('GET', '/api/public/shop/' + encodeURIComponent(pubSlug));
     S.pub = r.ok ? r.data : { missing: true }; render(); return;
   }
-  { const r = await api('GET', '/api/site'); if (r.ok) S.site = r.data; }
   if (!S.me) { const r = await api('GET', '/api/me'); if (r.ok) { S.me = r.data.me; S.otp = r.data.otp; } }
   if (!S.me) { render(); return; }
   try {
@@ -48,6 +49,7 @@ document.addEventListener('click', async (e) => {
 
   /* super */
   if (d.openbiz) return openBiz(d.openbiz);
+  if (d.slugedit) return editSlug(d.slugedit);
   if (d.pay) return showPay(d.pay);
   if (d.savepay !== undefined) return savePay(t);
   if (d.react) return showReact(d.react);
@@ -66,7 +68,11 @@ document.addEventListener('click', async (e) => {
     return act(t, async () => { const r = await call('PUT', '/api/super/settings', { otp: on }); S.otp = r.otp; S.sup.otp = r.otp; render(); toast(r.otp ? L('OTP চালু হয়েছে', 'OTP switched on') : L('OTP বন্ধ হয়েছে', 'OTP switched off')); });
   }
   if (d.saveplans !== undefined) return act(t, async () => { S.sup.plans = await call('PUT', '/api/super/plans', { monthly: toNum($('#pl-m').value), yearly: toNum($('#pl-y').value), trialDays: toNum($('#pl-t').value), payTo: pk($('#pl-to').value) }); render(); toast(L('সেভ হয়েছে', 'Saved')); });
-  if (d.wnext !== undefined) { saveWizInputs(); const err = wizCheck(S.wiz); if (err) return toast(err, 'err'); S.wiz.step++; return render(); }
+  if (d.wnext !== undefined) {
+    saveWizInputs(); const err = wizCheck(S.wiz); if (err) return toast(err, 'err');
+    if (S.wiz.step === 0) { const ok = await act(t, async () => (await call('GET', '/api/super/slug-check?slug=' + encodeURIComponent(S.wiz.slug))).ok); if (!ok) return toast(L('এই ওয়েব ঠিকানা আগেই নেওয়া হয়েছে বা ব্যবহার করা যাবে না', 'This web address is taken or not allowed'), 'err'); }
+    S.wiz.step++; return render();
+  }
   if (d.wback !== undefined) { saveWizInputs(); S.wiz.step--; return render(); }
   if (d.wrun !== undefined) return runSetup(t);
   if (d.sadd !== undefined) { saveWizInputs(); if (S.wiz.sellers.length < 3) S.wiz.sellers.push({ name: '', phone: '', pass: '' }); return render(); }

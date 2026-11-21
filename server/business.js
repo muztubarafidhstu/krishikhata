@@ -28,7 +28,7 @@ function createBusiness(data) {
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, data.name, data.owner, data.place || '', normPhone(data.phone || data.admin.phone), data.licence || '',
       'tmp-' + Date.now() + Math.random(), JSON.stringify(data.cats), JSON.stringify(data.modules), data.opening || 0, plan, 'on', t, expiry);
     const bid = Number(r.lastInsertRowid);
-    run('UPDATE businesses SET slug=? WHERE id=?', slugify(data.slugHint || data.name, bid), bid);
+    run('UPDATE businesses SET slug=? WHERE id=?', data.slug || slugify(data.slugHint || data.name, bid), bid);
     addUser({ bid, role: 'admin', name: data.owner, phone: data.admin.phone, password: data.admin.password });
     data.sellers.forEach((s, i) => addUser({ bid, role: 'seller', name: s.name, phone: s.phone, password: s.password, code: 'S-0' + (i + 1) }));
     if (data.starter !== false) {

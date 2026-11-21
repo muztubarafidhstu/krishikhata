@@ -7,6 +7,9 @@ const { fail, money, str, notify, otpGate, otpEnabled, plans, audit, isLocked, C
 const { bizSummary } = require('../state');
 const { createBusiness } = require('../business');
 const { PASS_MSG } = require('./auth');
+const { slugValid, shopUrl } = require('../host');
+const SLUG_MSG = ['ঠিকানায় শুধু ইংরেজি ছোট অক্ষর, সংখ্যা ও - চলবে (৩–৩০ অক্ষর)', 'Use only small English letters, numbers and - (3–30 characters)'];
+const slugFree = (s, except) => !get('SELECT 1 x FROM businesses WHERE slug=? AND id<>?', s, except || 0);
 
 const r = express.Router();
 r.use(requireSuper);
@@ -57,6 +60,9 @@ r.post('/businesses', (req, res) => {
   if (!name || !owner) fail(400, 'ব্যবসার নাম ও মালিকের নাম লিখুন', 'Enter the business and owner names');
   const cats = (Array.isArray(b.cats) ? b.cats : []).filter((c) => CATS.includes(c));
   if (!cats.length) fail(400, 'অন্তত একটি পণ্যের ধরন বাছাই করুন', 'Pick at least one product type');
+  const slug = String(b.slug || '').trim().toLowerCase();
+  if (!slugValid(slug)) fail(400, ...SLUG_MSG);
+  if (!slugFree(slug)) fail(409, 'এই ঠিকানা আগেই নেওয়া হয়েছে', 'This address is already taken');
   const modules = [...new Set(['inv', 'cat', 'sale', ...(Array.isArray(b.modules) ? b.modules : [])])].filter((m) => MODULE_KEYS.includes(m));
   const admin = { phone: normPhone(b.admin?.phone), password: String(b.admin?.password || '') };
   if (!validPhone(admin.phone)) fail(400, 'অ্যাডমিনের সঠিক মোবাইল নম্বর দিন', 'Enter a valid admin mobile number');
@@ -77,12 +83,27 @@ r.post('/businesses', (req, res) => {
   const bid = createBusiness({
     name, owner, place: str(b.place, 80), phone: validPhone(b.phone) ? b.phone : admin.phone, licence: str(b.licence, 40),
     opening: b.opening ? money(b.opening, { name: 'opening' }) : 0, cats, modules, starter: b.starter !== false, admin, sellers,
-    plan: b.plan, payMethod: b.payMethod, payRef: str(b.payRef, 40),
+    plan: b.plan, payMethod: b.payMethod, payRef: str(b.payRef, 40), slug,
   });
   audit(req.user.id, 'business-create', bid + ' ' + name);
-  notify(bid, `কৃষিখাতায় স্বাগতম! আপনার আইডি: ${admin.phone}`, `Welcome to KrishiKhata! Your login ID is ${admin.phone}.`);
+  notify(bid, `কৃষিখাতায় স্বাগতম! আপনার আইডি: ${admin.phone}`, `Welcome to KrishiKhata! Your login ID is ${admin.phone}.`, `Welcome to KrishiKhata! Sign in at ${shopUrl(slug)} with ID ${admin.phone}.`);
   sellers.forEach((s) => require('../core').queueSms(s.phone, `KrishiKhata: your seller ID ${s.phone} at ${name} is active. Get your password from the owner.`));
-  res.json({ id: bid });
+  res.json({ id: bid, slug, url: shopUrl(slug) });
+});
+
+r.get('/slug-check', (req, res) => {
+  const s = String(req.query.slug || '').toLowerCase();
+  res.json({ ok: slugValid(s) && slugFree(s, Number(req.query.except)), valid: slugValid(s) });
+});
+r.put('/businesses/:id/slug', (req, res) => {
+  const b = bizOr404(req.params.id);
+  const s = String(req.body.slug || '').trim().toLowerCase();
+  if (!slugValid(s)) fail(400, ...SLUG_MSG);
+  if (!slugFree(s, b.id)) fail(409, 'এই ঠিকানা আগেই নেওয়া হয়েছে', 'This address is already taken');
+  run('UPDATE businesses SET slug=? WHERE id=?', s, b.id);
+  notify(b.id, `আপনার দোকানের নতুন ঠিকানা: ${shopUrl(s)}`, `Your shop’s new address: ${shopUrl(s)}`);
+  audit(req.user.id, 'slug', `${b.id} ${s}`);
+  res.json({ ok: true, url: shopUrl(s) });
 });
 
 r.post('/businesses/:id/payment', (req, res) => {

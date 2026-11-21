@@ -39,7 +39,7 @@ const lastOtp = () => {
     r = await anon('POST', '/api/login', { phone: '01700000000', password: 'Super@1' }, { 'X-KK': '' }); assert.equal(r.status, 403, 'CSRF header required');
 
     // Weak password refused
-    const shop = { name: 'Test Shop', owner: 'Owner', cats: ['seed', 'fert'], modules: ['pur', 'due', 'exp', 'rep', 'box', 'shop'], admin: { phone: '01711000001', password: 'weak' }, sellers: [], plan: 'trial' };
+    const shop = { slug: 'test-shop', name: 'Test Shop', owner: 'Owner', cats: ['seed', 'fert'], modules: ['pur', 'due', 'exp', 'rep', 'box', 'shop'], admin: { phone: '01711000001', password: 'weak' }, sellers: [], plan: 'trial' };
     r = await sup('POST', '/api/super/businesses', shop); assert.equal(r.status, 400);
     shop.admin.password = 'Owner@1'; shop.sellers = [{ name: 'Seller', phone: '01811000001', password: 'Sell#1' }];
     r = await sup('POST', '/api/super/businesses', shop); assert.equal(r.status, 200); const bid = r.data.id;

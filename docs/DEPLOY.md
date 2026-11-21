@@ -24,7 +24,7 @@
 | Type | Name | Value |
 |---|---|---|
 | A | `@` | আপনার সার্ভারের IP |
-| A | `admin` | আপনার সার্ভারের IP (মাদার প্যানেলের আলাদা ঠিকানা) |
+| A | `*` | আপনার সার্ভারের IP (সব দোকানের নিজস্ব ঠিকানা ও মাদার প্যানেল, যেমন `karim.example.com`) |
 
 Cloudflare ব্যবহার করলে প্রথমে মেঘের চিহ্ন **ধূসর (DNS only)** রাখুন, যাতে HTTPS সার্টিফিকেট নিজে থেকে তৈরি হতে পারে।
 DNS ছড়াতে ৫ মিনিট থেকে কয়েক ঘণ্টা লাগতে পারে। যাচাই: কম্পিউটারে `ping example.com` দিলে আপনার সার্ভারের IP দেখাবে।
@@ -97,7 +97,7 @@ cp .env.example .env && nano .env
 
 ```
 DOMAIN=example.com                 ← দোকানের ঠিকানা (https:// ছাড়া)
-ADMIN_DOMAIN=admin.example.com     ← মাদার প্যানেলের ঠিকানা
+ADMIN_DOMAIN=adminrafid.example.com ← মাদার প্যানেলের ঠিকানা
 SUPER_PHONE=017XXXXXXXX            ← আপনার মোবাইল (সুপার অ্যাডমিন আইডি)
 SUPER_PASSWORD=YourPass@1          ← কমপক্ষে ৫ অক্ষর, অক্ষর + সংখ্যা + চিহ্ন
 APP_SECRET=...                     ← প্রথম openssl কমান্ডের ৬৪ অক্ষরের মান
@@ -126,8 +126,8 @@ docker compose logs --tail=30 app
 docker compose logs --tail=30 caddy
 ```
 
-এখন ব্রাউজারে **https://admin.example.com** খুলুন → আপনার `SUPER_PHONE` ও `SUPER_PASSWORD` দিয়ে লগইন করুন। 🎉
-দোকানের মালিক ও সেলাররা লগইন করবেন **https://example.com**-এ। সুপার অ্যাডমিন শুধু admin ঠিকানায় ঢুকতে পারেন।
+এখন ব্রাউজারে **https://adminrafid.example.com** খুলুন → আপনার `SUPER_PHONE` ও `SUPER_PASSWORD` দিয়ে লগইন করুন। 🎉
+প্রতিটি দোকান সেটআপের সময় নিজের ঠিকানা পায় (যেমন **https://karim.example.com**); সেই দোকানের মালিক ও সেলাররা সেখানে লগইন করবেন। কৃষকদের জন্য পণ্যের পেজ: **https://karim.example.com/shop**। নতুন দোকানের ঠিকানায় প্রথমবার ঢুকলে HTTPS সার্টিফিকেট তৈরি হতে ১০–৩০ সেকেন্ড লাগতে পারে।
 
 ## ধাপ ৮ — প্রথম কাজগুলো
 

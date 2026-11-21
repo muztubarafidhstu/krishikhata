@@ -27,8 +27,9 @@ const bizAct = async (btn, fn, msg) => act(btn, async () => { await fn(); await 
 
 /* ---------- Login ---------- */
 VIEWS.login = () => `<div class="loginwrap">
+  ${S.site?.missingShop ? `<div class="card" style="grid-column:1/-1;border-color:var(--berry)"><b style="color:var(--berry)">${L('এই ঠিকানায় কোনো দোকান নেই। ঠিকানা ঠিক আছে কিনা দেখুন।', 'There is no shop at this address. Check the address.')}</b></div>` : ''}
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div style="display:flex;gap:10px;align-items:center"><div class="logo" style="width:46px;height:46px">${I('leaf')}</div><div><h2 style="font-size:1.5rem">${S.site?.admin ? L('মাদার প্যানেল', 'Mother panel') : L('কৃষিখাতায় লগইন', 'Sign in to KrishiKhata')}</h2><span class="muted">${S.site?.admin ? L('শুধু সুপার অ্যাডমিনের জন্য', 'Super admin only') : S.site?.adminDomain ? L('দোকানের মালিক ও সেলাররা এখান থেকে ঢুকবেন', 'Shop owners and sellers sign in here') : L('মালিক, সেলার ও সুপার অ্যাডমিন — সবাই এখান থেকে ঢুকবেন', 'Owners, sellers and the super admin all sign in here')}</span></div></div>
+    <div style="display:flex;gap:10px;align-items:center"><div class="logo" style="width:46px;height:46px">${I('leaf')}</div><div><h2 style="font-size:1.5rem">${S.site?.admin ? L('মাদার প্যানেল', 'Mother panel') : S.site?.shop ? esc(S.site.shop.name) : L('কৃষিখাতায় লগইন', 'Sign in to KrishiKhata')}</h2><span class="muted">${S.site?.admin ? L('শুধু সুপার অ্যাডমিনের জন্য', 'Super admin only') : S.site?.adminDomain ? L('দোকানের মালিক ও সেলাররা এখান থেকে ঢুকবেন', 'Shop owners and sellers sign in here') : L('মালিক, সেলার ও সুপার অ্যাডমিন — সবাই এখান থেকে ঢুকবেন', 'Owners, sellers and the super admin all sign in here')}</span></div></div>
     <form id="loginform" style="display:flex;flex-direction:column;gap:12px">
       <label class="f">${L('মোবাইল নম্বর (আইডি)', 'Mobile number (ID)')}<input class="in num" id="lg-phone" type="tel" inputmode="tel" autocomplete="username" placeholder="01XXXXXXXXX" required></label>
       <label class="f">${L('পাসওয়ার্ড', 'Password')}<span style="display:flex;gap:6px"><input class="in" id="lg-pass" type="password" autocomplete="current-password" required><button type="button" class="eyebtn" style="width:42px;height:42px" data-lgeye aria-label="${L('পাসওয়ার্ড দেখুন', 'Show password')}">${I('eye')}</button></span></label>
@@ -49,7 +50,11 @@ VIEWS.login = () => `<div class="loginwrap">
 async function doLogin(btn) {
   const phone = pk($('#lg-phone').value), password = $('#lg-pass').value;
   if (!validPhone(phone)) return toast(L('সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন', 'Enter a valid 11-digit mobile number'), 'err');
-  await act(btn, async () => { const r = await call('POST', '/api/login', { phone, password }); S.me = r.me; S.otp = r.otp; await boot(); });
+  await act(btn, async () => {
+    const res = await api('POST', '/api/login', { phone, password });
+    if (!res.ok) { toast(errText(res.data), 'err'); if (res.data.redirect) setTimeout(() => { location.href = res.data.redirect; }, 2500); return; }
+    S.me = res.data.me; S.otp = res.data.otp; await boot();
+  });
 }
 function showForgot() {
   modal(`<h3>${I('shield')} ${L('পাসওয়ার্ড ভুলে গেছেন', 'Forgot password')}</h3><div style="opacity:.9">${L('আপনার মোবাইলে OTP যাবে', 'An OTP goes to your mobile')}</div>`, `
@@ -466,7 +471,7 @@ function addSeller() {
 
 /* ---------- Customer website preview ---------- */
 VIEWS.shop = () => {
-  const b = S.cur, url = `${location.origin}/shop/${b.slug}`;
+  const b = S.cur, url = publicUrl(b.slug);
   return `<div class="pagehead"><div><h2>${L('কাস্টমার ওয়েবসাইট', 'Customer website')}</h2><p>${L('কৃষকরা এই ঠিকানায় আপনার পণ্য ও দাম দেখতে পাবেন (ক্রয় মূল্য বা স্টকের পরিমাণ দেখাবে না)।', 'Farmers can see your products and prices at this address (no cost prices or stock quantities).')}</p></div></div>
   <div class="card"><div class="urlbox">${esc(url)}</div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn" href="${esc(url)}" target="_blank" rel="noopener">${I('globe')} ${L('খুলুন', 'Open')}</a><button class="btn ghost" data-copy="${esc(url)}">${L('লিংক কপি', 'Copy link')}</button></div></div>`;
 };
