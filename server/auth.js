@@ -74,6 +74,10 @@ function limit(key, max, windowMs) {
   arr.push(now); hits.set(key, arr);
   return arr.length <= max;
 }
+// Wrong-password counters: only failures count, and a correct password clears them.
+function tooMany(key, max, windowMs) { const now = Date.now(); const arr = (hits.get(key) || []).filter((t) => now - t < windowMs); hits.set(key, arr); return arr.length >= max; }
+function addFail(key) { const arr = hits.get(key) || []; arr.push(Date.now()); hits.set(key, arr); }
+const clearFails = (key) => hits.delete(key);
 setInterval(() => { const now = Date.now(); for (const [k, v] of hits) if (!v.some((t) => now - t < 3600000)) hits.delete(k); }, 600000).unref();
 
-module.exports = { createSession, unlockShop, shopUnlocked, destroySession, loadUser, requireLogin, requireSuper, csrf, limit };
+module.exports = { createSession, unlockShop, shopUnlocked, destroySession, loadUser, requireLogin, requireSuper, csrf, limit, tooMany, addFail, clearFails };

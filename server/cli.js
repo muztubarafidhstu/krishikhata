@@ -85,7 +85,7 @@ function fillSample(bid, build = false) {
   run("UPDATE products SET stock=CASE WHEN unit IN ('kg') AND cat IN ('rod','angle','bar','sheet') THEN 3000 WHEN cat='fert' THEN 60 ELSE 120 END WHERE business_id=?", bid);
   const custs = [['আব্দুল মালেক', 'শিবগঞ্জ', '01999000001'], ['হাসান আলী', 'মহাস্থান', '01999000002'], ['সুফিয়া বেগম', 'গাবতলী', '01999000003'], ['রফিকুল ইসলাম', 'নন্দীগ্রাম', '01999000004']]
     .map(([n, v, p]) => Number(run('INSERT INTO customers(business_id,name,village,phone,due) VALUES(?,?,?,?,0)', bid, n, v, p).lastInsertRowid));
-  const v1 = Number(run('INSERT INTO vendors(business_id,name,phone,due) VALUES(?,?,?,?)', bid, build ? 'জেলা রড ডিলার' : 'জেলা সার ডিলার', '01999000011', 48000).lastInsertRowid);
+  const v1 = Number(run('INSERT INTO vendors(business_id,name,phone,due) VALUES(?,?,?,?)', bid, build ? 'জেলা রড ডিলার' : 'জেলা সার ডিলার', '01999000011', 0).lastInsertRowid);
   run('INSERT INTO vendors(business_id,name,phone,due) VALUES(?,?,?,?)', bid, build ? 'সিমেন্ট পরিবেশক' : 'উত্তরবঙ্গ সীড কোম্পানি', '01999000012', 12500);
   const prods = require('./db').all('SELECT * FROM products WHERE business_id=? ORDER BY id', bid);
   const sellers = require('./db').all("SELECT * FROM users WHERE business_id=? AND role='seller' ORDER BY seller_code", bid);
@@ -102,6 +102,9 @@ function fillSample(bid, build = false) {
     its.forEach((x) => { run('INSERT INTO sale_items(sale_id,product_id,qty,price,cost) VALUES(?,?,?,?,?)', sid, x.p.id, x.q, x.p.sell, x.p.buy); run('UPDATE products SET stock=stock-? WHERE id=?', x.q, x.p.id); });
     if (cust && total > paid) run('UPDATE customers SET due=due+? WHERE id=?', total - paid, cust);
   });
-  run('INSERT INTO purchases(business_id,date,vendor_id,product_id,qty,rate,total,paid) VALUES(?,?,?,?,?,?,?,?)', bid, addDays(today(), -9), v1, prods[4].id, 20, prods[4].buy, prods[4].buy * 20, 0);
+  // One purchase bill, half paid; the vendor's due matches it.
+  const ptot = prods[4].buy * 20, ppaid = Math.round(ptot / 2);
+  run('INSERT INTO purchases(business_id,date,vendor_id,product_id,qty,rate,total,paid) VALUES(?,?,?,?,?,?,?,?)', bid, addDays(today(), -9), v1, prods[4].id, 20, prods[4].buy, ptot, ppaid);
+  run('UPDATE vendors SET due=? WHERE id=?', ptot - ppaid, v1);
   [['tea', 300, ''], ['transport', 1200, build ? 'ট্রাক ভাড়া — রড আনা' : 'ট্রাক ভাড়া — সার আনা'], ['power', 450, ''], ['salary', 1000, 'দৈনিক মজুরি']].forEach(([t, a, n], i) => run('INSERT INTO expenses(business_id,date,type,amount,note) VALUES(?,?,?,?,?)', bid, addDays(today(), -(6 - i)), t, a, n));
 }

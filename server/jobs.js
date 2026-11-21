@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { db, all, run, today, daysBetween } = require('./db');
 const { DATA_DIR, BACKUP_KEEP_DAYS } = require('./config');
-const { notify } = require('./core');
+const { notify, brandOf } = require('./core');
 
 const fmtBn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const fmtEn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -19,9 +19,9 @@ function reminders() {
     const r = run('INSERT OR IGNORE INTO reminders(business_id,key) VALUES(?,?)', b.id, key);
     if (!r.changes) continue;
     if (k === 'x') notify(b.id, `আপনার সাবস্ক্রিপশনের মেয়াদ ${fmtBn(b.expiry)} শেষ হয়েছে। অ্যাকাউন্ট বন্ধ আছে, নবায়ন করুন।`,
-      `Your subscription ended on ${fmtEn(b.expiry)}. The account is locked - please renew.`, `KrishiKhata: your subscription ended on ${fmtEn(b.expiry)}. Please renew to unlock your account.`);
+      `Your subscription ended on ${fmtEn(b.expiry)}. The account is locked - please renew.`, `${brandOf(b.btype).brand}: your subscription ended on ${fmtEn(b.expiry)}. Please renew to unlock your account.`);
     else notify(b.id, `আপনার সাবস্ক্রিপশন ${dl.toLocaleString('bn-BD')} দিন পর (${fmtBn(b.expiry)}) শেষ হবে। সময়মতো নবায়ন করুন।`,
-      `Your subscription ends in ${dl} days (${fmtEn(b.expiry)}). Please renew in time.`, `KrishiKhata: your subscription ends in ${dl} day(s) on ${fmtEn(b.expiry)}. Please renew.`);
+      `Your subscription ends in ${dl} days (${fmtEn(b.expiry)}). Please renew in time.`, `${brandOf(b.btype).brand}: your subscription ends in ${dl} day(s) on ${fmtEn(b.expiry)}. Please renew.`);
   }
 }
 

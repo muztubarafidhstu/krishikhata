@@ -125,6 +125,28 @@ const lastOtp = () => {
     r = await bown('POST', '/api/biz/products', { cat: 'angle', catName: 'Angle', size: 'MS', unit: 'kg', buy: 90, sell: 100 }); assert.equal(r.status, 400, 'angle not in this shop');
     r = await bown('POST', '/api/biz/products', { cat: 'sheet', catName: 'Sheet', size: 'SS', unit: 'ton', buy: 300000, sell: 330000 }); assert.equal(r.status, 200);
 
+    // Correct logins are never blocked; only wrong passwords count
+    { const c = client(); for (let i = 0; i < 12; i++) { r = await c('POST', '/api/login', { phone: '01711000009', password: 'Owner@9' }); assert.equal(r.status, 200, 'login ' + i); } }
+    r = await bown('POST', '/api/login', { phone: '01711000009', password: ' Owner@9 ' }); assert.equal(r.status, 200, 'spaces around the password are ignored');
+
+    // Purchase can be cancelled (stock and vendor due go back); expense can be deleted
+    r = await bown('POST', '/api/biz/vendors', { name: 'Steel Dealer' }); const bv = r.data.id;
+    r = await bown('GET', '/api/biz/state'); const sp = r.data.products.find((p) => p.cat === 'rod'); const stock0 = sp.stock;
+    r = await bown('POST', '/api/biz/purchases', { vendor: bv, pid: sp.id, qty: 100, rate: 90, paid: 1000 }); assert.equal(r.status, 200);
+    r = await bown('GET', '/api/biz/state'); const pu = r.data.purchases.at(-1); assert.equal(r.data.vendors.find((v) => v.id === bv).due, 8000);
+    r = await bown('POST', `/api/biz/purchases/${pu.id}/void`); assert.equal(r.status, 200);
+    r = await bown('GET', '/api/biz/state'); assert.equal(r.data.products.find((p) => p.id === sp.id).stock, stock0); assert.equal(r.data.vendors.find((v) => v.id === bv).due, 0); assert.equal(r.data.purchases.length, 0);
+    r = await bown('POST', '/api/biz/expenses', { type: 'tea', amount: 40 }); r = await bown('GET', '/api/biz/state'); const ex = r.data.expenses.at(-1);
+    r = await bown('POST', `/api/biz/expenses/${ex.id}/remove`); assert.equal(r.status, 200);
+    r = await bown('GET', '/api/biz/state'); assert.equal(r.data.expenses.length, 0);
+
+    // A removed seller's number can be added again
+    r = await bown('POST', '/api/biz/sellers', { name: 'Rafiq', phone: '01811000077', password: 'Sell#7' }); assert.equal(r.status, 200);
+    r = await bown('GET', '/api/biz/state'); const rs = r.data.sellers.find((x) => x.phone === '01811000077');
+    r = await bown('POST', `/api/biz/sellers/${rs.uid}/remove`); assert.equal(r.status, 200);
+    r = await bown('POST', '/api/biz/sellers', { name: 'Rafiq', phone: '01811000077', password: 'Sell#8' }); assert.equal(r.status, 200, 're-add removed seller');
+    r = await client()('POST', '/api/login', { phone: '01811000077', password: 'Sell#8' }); assert.equal(r.status, 200);
+
     // Public shop page
     r = await anon('GET', '/api/public/shop/test-shop'); assert.equal(r.status, 200); assert.equal(r.data.products[0].buy, undefined);
 

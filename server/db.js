@@ -88,6 +88,8 @@ CREATE INDEX IF NOT EXISTS ix_notif_b ON notifications(business_id);
   // Building materials: brand, thickness/size, weight per piece or bag (kg), pieces per bundle
   for (const [c, t] of [['brand', "TEXT DEFAULT ''"], ['size', "TEXT DEFAULT ''"], ['dims', "TEXT DEFAULT ''"], ['weight', 'REAL'], ['per_pack', 'REAL']])
     if (!pcols.includes(c)) db.exec(`ALTER TABLE products ADD COLUMN ${c} ${t}`);
+  const pucols = db.prepare('PRAGMA table_info(purchases)').all().map((c) => c.name);
+  if (!pucols.includes('void')) db.exec('ALTER TABLE purchases ADD COLUMN void INTEGER DEFAULT 0');
   const icols = db.prepare('PRAGMA table_info(sale_items)').all().map((c) => c.name);
   if (!icols.includes('pcs')) db.exec('ALTER TABLE sale_items ADD COLUMN pcs REAL');
   for (const [c, t] of [['price_monthly', 'REAL'], ['price_yearly', 'REAL'], ['demo', 'INTEGER DEFAULT 0'], ['btype', "TEXT DEFAULT 'agri'"]])

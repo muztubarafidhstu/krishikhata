@@ -3,8 +3,8 @@ const express = require('express');
 const { get, run } = require('../db');
 const { verifyPassword, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
 const { ADMIN_DOMAIN, BUILD_ADMIN_DOMAIN, DOMAIN } = require('../config');
-const { createSession, destroySession, requireLogin, limit } = require('../auth');
-const { fail, otpGate, otpEnabled, audit, queueSms } = require('../core');
+const { createSession, destroySession, requireLogin, limit, tooMany, addFail, clearFails } = require('../auth');
+const { fail, otpGate, otpEnabled, audit, queueSms, brandForReq } = require('../core');
 
 const r = express.Router();
 const PASS_MSG = ['পাসওয়ার্ডে কমপক্ষে ৫ অক্ষর, একটি ইংরেজি অক্ষর, একটি সংখ্যা ও একটি চিহ্ন লাগবে', 'The password needs 5+ characters with a letter, a number and a symbol'];
@@ -28,23 +28,30 @@ const meOf = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone, bus
 
 r.post('/login', (req, res) => {
   const phone = normPhone(req.body.phone);
-  const ip = req.ip;
-  if (!limit('login:' + ip, 30, 15 * 60000) || !limit('login:' + phone, 8, 15 * 60000))
-    fail(429, 'অনেকবার ভুল চেষ্টা হয়েছে। ১৫ মিনিট পরে আবার চেষ্টা করুন।', 'Too many attempts. Try again in 15 minutes.');
+  const kIp = 'login:' + req.ip, kPhone = 'login:' + phone;
+  if (tooMany(kIp, 30, 15 * 60000) || tooMany(kPhone, 8, 15 * 60000))
+    fail(429, 'অনেকবার ভুল পাসওয়ার্ড দেওয়া হয়েছে। ১৫ মিনিট পরে আবার চেষ্টা করুন।', 'Too many wrong passwords. Try again in 15 minutes.');
   const u = get('SELECT * FROM users WHERE phone=? AND active=1', phone);
-  if (!u || !verifyPassword(String(req.body.password || ''), u.pass_hash)) fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true });
-  // With ADMIN_DOMAIN set, the super admin signs in only on that address and shop users only on the main one.
+  // A space typed by mistake before or after the password is ignored.
+  const pw = String(req.body.password || '');
+  const ok = u && (verifyPassword(pw, u.pass_hash) || (pw.trim() !== pw && verifyPassword(pw.trim(), u.pass_hash)));
+  if (!ok) { addFail(kIp); addFail(kPhone); fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true }); }
+  // With ADMIN_DOMAIN set, the super admin signs in only on that address and shop users only on their shop address.
   if (ADMIN_DOMAIN || BUILD_ADMIN_DOMAIN) {
     const onAdmin = isAdminHost(req);
     if (u.role === 'super' && !onAdmin) fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true });
-    if (u.role !== 'super' && onAdmin) fail(403, 'এটি মাদার প্যানেল। আপনার দোকানের নিজের ঠিকানায় লগইন করুন।', 'This is the mother panel. Sign in at your shop’s own address.', { login: true });
+    if (u.role !== 'super' && onAdmin) {
+      const own = get('SELECT slug FROM businesses WHERE id=?', u.business_id);
+      fail(403, 'এটি মাদার প্যানেল (শুধু সুপার অ্যাডমিনের জন্য)। আপনার পাসওয়ার্ড ঠিক আছে — নিজের দোকানের ঠিকানায় লগইন করুন।', 'This is the mother panel (super admin only). Your password is correct — sign in at your shop’s own address.', { login: true, redirect: own ? shopUrl(own.slug) : '', phone });
+    }
   }
   // On a shop's own address (karim.rafid5.com) only that shop's owner and sellers can sign in.
   const h = hostInfo(req);
   if (h.kind === 'shop' && u.role !== 'super' && (!h.biz || h.biz.id !== u.business_id)) {
     const own = get('SELECT slug FROM businesses WHERE id=?', u.business_id);
-    fail(403, `এই আইডি অন্য দোকানের। আপনার ঠিকানা: ${own ? shopUrl(own.slug) : ''}`, `This ID belongs to another shop. Your address: ${own ? shopUrl(own.slug) : ''}`, { login: true, redirect: own ? shopUrl(own.slug) : '' });
+    fail(403, 'এই আইডি অন্য দোকানের। আপনার পাসওয়ার্ড ঠিক আছে — নিজের দোকানের ঠিকানায় লগইন করুন।', 'This ID belongs to another shop. Your password is correct — sign in at your own shop’s address.', { login: true, redirect: own ? shopUrl(own.slug) : '', phone });
   }
+  clearFails(kPhone);
   createSession(res, req, u, !!req.body.remember);
   audit(u.id, 'login');
   res.json({ me: meOf(u), otp: otpEnabled() });
@@ -58,12 +65,12 @@ module.exports.hostInfo = hostInfo;
 // Change own password. OTP goes to the user's own phone (when OTP is on).
 r.post('/password', requireLogin, (req, res) => {
   if (isDemoUser(req.user)) fail(403, 'ডেমো অ্যাকাউন্টে পাসওয়ার্ড বদলানো যায় না', 'Passwords cannot be changed on a demo account');
-  const pw = String(req.body.password || '');
+  const pw = String(req.body.password || '').trim();
   if (!passOk(pw)) fail(400, ...PASS_MSG);
   if (!verifyPassword(String(req.body.current || ''), req.user.pass_hash)) fail(400, 'বর্তমান পাসওয়ার্ড ভুল', 'Current password is wrong');
   otpGate(req, { purpose: 'pw', key: 'self:' + req.user.id, phone: req.user.phone, label: 'password change' });
   run('UPDATE users SET pass_hash=?, pass_enc=? WHERE id=?', hashPassword(pw), encrypt(pw), req.user.id);
-  queueSms(req.user.phone, 'Your KrishiKhata password was changed. If this was not you, contact us now.');
+  queueSms(req.user.phone, `Your ${brandForReq(req).brand} password was changed. If this was not you, contact us now.`);
   audit(req.user.id, 'password-self');
   res.json({ ok: true });
 });
@@ -77,7 +84,7 @@ r.post('/forgot', (req, res) => {
   const u = get('SELECT * FROM users WHERE phone=? AND active=1', phone);
   if (!u) fail(404, 'এই নম্বরে কোনো অ্যাকাউন্ট নেই', 'No account uses this number');
   if (isDemoUser(u)) fail(403, 'ডেমো অ্যাকাউন্টে পাসওয়ার্ড বদলানো যায় না', 'Passwords cannot be changed on a demo account');
-  const pw = String(req.body.password || '');
+  const pw = String(req.body.password || '').trim();
   if (!passOk(pw)) fail(400, ...PASS_MSG);
   otpGate(req, { purpose: 'forgot', key: 'forgot:' + u.id, phone, label: 'password reset' });
   run('UPDATE users SET pass_hash=?, pass_enc=? WHERE id=?', hashPassword(pw), encrypt(pw), u.id);

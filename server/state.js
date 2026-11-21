@@ -43,9 +43,9 @@ function bizState(bid, viewer) {
   return {
     ...base, notes, products, customers, sales, sellers, opening: b.opening,
     vendors: all('SELECT id,name,phone,due FROM vendors WHERE business_id=? ORDER BY name', bid),
-    purchases: all('SELECT id,date,vendor_id vendor,product_id pid,qty,rate,total,paid FROM purchases WHERE business_id=? ORDER BY id', bid)
+    purchases: all('SELECT id,date,vendor_id vendor,product_id pid,qty,rate,total,paid FROM purchases WHERE business_id=? AND void=0 ORDER BY id', bid)
       .map((p) => ({ id: p.id, date: p.date, vendor: p.vendor, items: [{ pid: p.pid, qty: p.qty, price: p.rate }], total: p.total, paid: p.paid })),
-    expenses: all('SELECT date,type,amount,note FROM expenses WHERE business_id=? ORDER BY id', bid),
+    expenses: all('SELECT id,date,type,amount,note FROM expenses WHERE business_id=? ORDER BY id', bid),
     collections: all('SELECT date,customer_id cust,amount FROM collections WHERE business_id=? ORDER BY id', bid),
     vpay: all('SELECT date,vendor_id vendor,amount FROM vendor_payments WHERE business_id=? ORDER BY id', bid),
   };

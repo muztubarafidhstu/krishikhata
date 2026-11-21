@@ -80,16 +80,24 @@ function otpGate(req, { purpose, key, phone, label }) {
   const r = run('INSERT INTO otps(purpose,key,phone,code_hash,expires_at,created_at) VALUES(?,?,?,?,?,?)', purpose, key, p, 'x', Date.now() + 5 * 60000, Date.now());
   const id = Number(r.lastInsertRowid);
   run('UPDATE otps SET code_hash=? WHERE id=?', hmac(id + ':' + code), id);
-  queueSms(p, `KrishiKhata OTP: ${code} for ${label || purpose}. Valid 5 minutes. Never share this code.`, 'otp');
+  queueSms(p, `${brandForReq(req).brand} OTP: ${code} for ${label || purpose}. Valid 5 minutes. Never share this code.`, 'otp');
   throw new HttpError(428, 'OTP পাঠানো হয়েছে', 'OTP sent', { otpRequired: true, otpId: id, to: maskPhone(p), label });
 }
 
+// Product name for messages: KrishiKhata or NirmanKhata, from a shop row or a request.
+const brandOf = (t) => TYPES[t === 'build' ? 'build' : 'agri'];
+function brandForReq(req) {
+  if (req.biz) return brandOf(req.biz.btype);
+  if (req.btype) return brandOf(req.btype);
+  const u = req.user && req.user.business_id ? get('SELECT btype FROM businesses WHERE id=?', req.user.business_id) : null;
+  return brandOf(u ? u.btype : 'agri');
+}
 function audit(userId, action, detail = '') { run('INSERT INTO audit(user_id,action,detail) VALUES(?,?,?)', userId || null, action, String(detail).slice(0, 500)); }
 
 // Business types: agricultural inputs (KrishiKhata) and building materials (NirmanKhata).
 const TYPES = {
-  agri: { cats: ['seed', 'fert', 'pest'], brand: 'KrishiKhata' },
-  build: { cats: ['rod', 'cement', 'tin', 'sheet', 'angle', 'bar', 'other'], brand: 'NirmanKhata' },
+  agri: { cats: ['seed', 'fert', 'pest'], brand: 'KrishiKhata', bn: 'কৃষিখাতা' },
+  build: { cats: ['rod', 'cement', 'tin', 'sheet', 'angle', 'bar', 'other'], brand: 'NirmanKhata', bn: 'নির্মাণখাতা' },
 };
 const btypeOk = (t) => (TYPES[t] ? t : 'agri');
 const CATS = [...TYPES.agri.cats, ...TYPES.build.cats];
@@ -128,5 +136,5 @@ const STARTER = [
   { cat: 'bar', name: 'MS Square Bar', size: 'MS', unit: 'kg', buy: 100, sell: 110, min: 100 },
 ];
 
-module.exports = { HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, plansFor, otpEnabled, otpGate, audit,
+module.exports = { brandOf, brandForReq, HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, plansFor, otpEnabled, otpGate, audit,
   TYPES, btypeOk, CATS, MODULE_KEYS, UNITS, EXP_TYPES, METHODS, STARTER, all };

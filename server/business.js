@@ -11,7 +11,11 @@ function slugify(name, id) {
   return slug;
 }
 
+// A removed seller's number can be used again: the old (inactive) ID keeps its history under an archived number.
+const freePhone = (phone) => run("UPDATE users SET phone='old' || id || '-' || phone WHERE phone=? AND active=0", normPhone(phone));
+
 function addUser({ bid, role, name, phone, password, code }) {
+  freePhone(phone);
   return Number(run('INSERT INTO users(business_id,role,name,phone,pass_hash,pass_enc,seller_code) VALUES(?,?,?,?,?,?,?)',
     bid ?? null, role, name, normPhone(phone), hashPassword(password), encrypt(password), code ?? null).lastInsertRowid);
 }
@@ -43,4 +47,4 @@ function createBusiness(data) {
   });
 }
 
-module.exports = { createBusiness, addUser, slugify };
+module.exports = { createBusiness, addUser, slugify, freePhone };

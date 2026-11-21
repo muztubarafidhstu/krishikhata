@@ -79,7 +79,7 @@ function createApp() {
   });
   // The app page. NirmanKhata hosts get their own title, icon and colours (also the home-screen icon).
   const INDEX = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
-  const INDEX_BUILD = INDEX.replace(/<title>[^<]*<\/title>/, '<title>নির্মাণখাতা — NirmanKhata</title>')
+  const INDEX_BUILD = INDEX.replace('<html lang="bn">', '<html lang="bn" data-brand="build">').replace(/<title>[^<]*<\/title>/, '<title>নির্মাণখাতা — NirmanKhata</title>')
     .replace(/<meta name="description" content="[^"]*">/, '<meta name="description" content="রড, সিমেন্ট, টিন ও নির্মাণ সামগ্রী ব্যবসার হিসাব — NirmanKhata business manager">')
     .replace('content="#1f6b2a"', 'content="#7a3b1d"').replaceAll('/icon.svg', '/icon-build.svg').replace('/manifest.webmanifest', '/manifest-build.webmanifest');
   const { hostInfo } = require('./host');

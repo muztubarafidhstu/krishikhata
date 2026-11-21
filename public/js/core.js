@@ -271,7 +271,10 @@ function subPill(sub) {
   return `<span class="pill ${m[0]}">● ${m[1]}</span>`;
 }
 const searchBar = (id, val, ph) => `<div class="searchbar">${I('search')}<input id="${id}" type="search" value="${esc(val)}" placeholder="${esc(ph)}" aria-label="${esc(ph)}" autocomplete="off">${val ? `<button class="btn ghost sm" data-clearq="${id}" aria-label="${L('মুছুন', 'Clear')}">✕</button>` : ''}</div>`;
+// Brand mark used in headings: leaf (KrishiKhata) or building (NirmanKhata).
+const BI = () => I(btype() === 'build' ? 'build' : 'leaf');
 function heroScene() {
+  if (btype() === 'build') return buildScene();
   return `<svg class="scene" viewBox="0 0 420 200" preserveAspectRatio="xMaxYMax meet" aria-hidden="true">
     <circle cx="350" cy="50" r="26" fill="#ffd34d" opacity=".9"/><path d="M0 200 Q120 150 240 175 T420 160 V200Z" fill="#1a5a24" opacity=".6"/>
     <g fill="#bfe37a" opacity=".85">${[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => `<path d="M${150 + i * 28} 195 q-6 -30 0 -48 q6 18 0 48z"/><path d="M${150 + i * 28} 175 q-16 -10 -18 -26 q14 6 18 26z"/><path d="M${150 + i * 28} 168 q14 -12 18 -26 q-14 6 -18 26z"/>`).join('')}</g>
@@ -296,13 +299,27 @@ function navList() {
     seller: [['sale', 'cart', L('নতুন বিক্রি', 'New sale')], ['mysales', 'receipt', L('আমার বিক্রি', 'My sales')], ['account', 'user', L('আমার অ্যাকাউন্ট', 'My account')]],
   };
 }
+// NirmanKhata hero: a small skyline with a building going up and a tower crane.
+function buildScene() {
+  const win = (x, y, cols, rows) => Array.from({ length: cols * rows }, (_, i) => `<rect x="${x + (i % cols) * 12}" y="${y + Math.floor(i / cols) * 14}" width="6" height="8" rx="1"/>`).join('');
+  return `<svg class="scene" viewBox="0 0 420 200" preserveAspectRatio="xMaxYMax meet" aria-hidden="true">
+    <circle cx="300" cy="46" r="24" fill="#ffd34d" opacity=".9"/>
+    <rect x="150" y="118" width="46" height="82" rx="2" fill="#f6d7bf" opacity=".9"/><rect x="202" y="84" width="58" height="116" rx="2" fill="#fde9d7"/><rect x="266" y="132" width="40" height="68" rx="2" fill="#efbf9a" opacity=".95"/>
+    <g fill="#a8532b" opacity=".45">${win(158, 128, 3, 5)}${win(212, 96, 4, 7)}${win(274, 142, 2, 4)}</g>
+    <g fill="none" stroke="#fff" stroke-width="2.4" opacity=".9"><path d="M318 200V128h52v72M318 150h52M318 172h52M335 128v72M352 128v72"/></g>
+    <g fill="none" stroke="#ffd34d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M392 200V30M384 200l8-12 8 12M392 30h-110M392 30h22M392 30l-30 14M392 30l18 10M300 30v34"/></g>
+    <rect x="292" y="64" width="16" height="10" rx="2" fill="#ffd34d"/><rect x="408" y="28" width="12" height="12" fill="#ffd34d"/>
+    <path d="M0 200h420v-6H0z" fill="#5c2a12" opacity=".5"/></svg>`;
+}
 function renderChrome() {
   const r = role();
   document.documentElement.lang = LANG === 'bn' ? 'bn' : 'en';
   document.title = N(brand().name);
-  if (document.documentElement.dataset.brand !== btype()) {
+  const logo = document.querySelector('.brand .logo');
+  if (logo.dataset.b !== btype()) {
     document.documentElement.dataset.brand = btype();
-    document.querySelector('.brand .logo').innerHTML = btype() === 'build'
+    logo.dataset.b = btype();
+    logo.innerHTML = btype() === 'build'
       ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9 21v-5h6v5M9 12h6"/></svg>'
       : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c.5-6 3-10 9-13"/><path d="M20 3c-9 0-15 4-15 11 0 2 1 4 1 4s9 1 12-7c1-3 2-8 2-8z" fill="currentColor" fill-opacity=".2"/></svg>';
   }
@@ -318,7 +335,8 @@ function renderChrome() {
   const bell = $('#bellbtn');
   if (r === 'admin' && S.cur) { const n = (S.cur.notes || []).filter((x) => !x.read).length; bell.hidden = false; bell.innerHTML = I('bell') + (n ? `<span class="badge">${bn(n)}</span>` : ''); bell.setAttribute('aria-label', L(`নোটিফিকেশন (${bn(n)} নতুন)`, `Notifications (${n} new)`)); }
   else bell.hidden = true;
-  $('#langbtn').innerHTML = `${I('lang')} ${LANG === 'bn' ? 'English' : 'বাংলা'}`;
+  $('#langbtn').innerHTML = `${I('lang')} <span class="lfull">${LANG === 'bn' ? 'English' : 'বাংলা'}</span><span class="lshort">${LANG === 'bn' ? 'EN' : 'বাং'}</span>`;
+  $('#langbtn').setAttribute('aria-label', LANG === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন');
   $('#themebtn').setAttribute('aria-label', L('লাইট / ডার্ক থিম', 'Light / dark theme'));
   const showSide = r !== 'guest' && r !== 'public';
   $('#side').hidden = !showSide;

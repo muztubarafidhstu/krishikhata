@@ -109,6 +109,17 @@ document.addEventListener('click', async (e) => {
     if (!(await ask(L(`মেমো #${dg(s.id)} বাতিল করবেন? স্টক ও বাকি আগের অবস্থায় ফিরে যাবে।`, `Cancel memo #${s.id}? Stock and due go back.`), L('বাতিল করুন', 'Cancel memo'), true))) return;
     return bizAct(null, () => call('POST', bizUrl(`/sales/${d.voidsale}/void`)), L('মেমো বাতিল হয়েছে', 'Memo cancelled'));
   }
+  if (d.rper) { S.rper = d.rper; return render(); }
+  if (d.gobill !== undefined) { const bc = $('#billcard'); if (bc) bc.scrollIntoView({ behavior: 'smooth', block: 'start' }); const pi = $('#s-paid'); if (pi) setTimeout(() => pi.focus({ preventScroll: true }), 400); return; }
+  if (d.voidpur) {
+    const p = S.cur.purchases.find((x) => x.id == d.voidpur), pr = p && S.cur.products.find((x) => x.id === p.items[0].pid);
+    if (!(await ask(L(`এই ক্রয় বিল বাতিল করবেন? <b>${esc(pr?.name || '')} × ${bn(p.items[0].qty)}</b> স্টক থেকে বাদ যাবে, ভেন্ডরের দেনা ${tk(p.total - p.paid)} কমবে।`, `Cancel this purchase bill? <b>${esc(pr?.name || '')} × ${bn(p.items[0].qty)}</b> comes off stock and the vendor’s due goes down by ${tk(p.total - p.paid)}.`), L('বাতিল করুন', 'Cancel bill'), true))) return;
+    return bizAct(t, () => call('POST', bizUrl(`/purchases/${d.voidpur}/void`)), L('ক্রয় বিল বাতিল হয়েছে', 'Purchase bill cancelled'));
+  }
+  if (d.delexp) {
+    if (!(await ask(L('এই খরচটি মুছে ফেলবেন?', 'Delete this expense?'), L('মুছে ফেলুন', 'Delete'), true))) return;
+    return bizAct(t, () => call('POST', bizUrl(`/expenses/${d.delexp}/remove`)), L('খরচ মুছে ফেলা হয়েছে', 'Expense deleted'));
+  }
   if (d.addprod !== undefined) return bizAct(t, () => call('POST', bizUrl('/products'), productBody()), L('নতুন পণ্য যোগ হয়েছে — ক্রয় থেকে স্টক যোগ করুন', 'Product added — add stock from Purchases'));
   if (d.editprod) return editProduct(d.editprod);
   if (d.saveprod) return bizAct(t, async () => { await call('PUT', bizUrl('/products/' + d.saveprod), productBody('pe')); closeModal(); }, L('পণ্য আপডেট হয়েছে', 'Product updated'));

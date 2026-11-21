@@ -2,8 +2,9 @@
 const express = require('express');
 const { get, all, run, tx, today } = require('../db');
 const { hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
+const { freePhone } = require('../business');
 const { requireLogin, shopUnlocked } = require('../auth');
-const { fail, money, str, otpGate, audit, queueSms, isLocked, CATS, UNITS, EXP_TYPES } = require('../core');
+const { fail, money, str, otpGate, audit, queueSms, isLocked, CATS, UNITS, EXP_TYPES, brandOf } = require('../core');
 const { bizState } = require('../state');
 const { PASS_MSG } = require('./auth');
 
@@ -143,6 +144,20 @@ r.post('/purchases', adminOnly, (req, res) => {
   res.json({ ok: true });
 });
 
+// Cancel a purchase entered by mistake: stock goes back down and the unpaid part comes off the vendor's due.
+r.post('/purchases/:id/void', adminOnly, (req, res) => {
+  tx(() => {
+    const pu = get('SELECT * FROM purchases WHERE id=? AND business_id=? AND void=0', Number(req.params.id), bid(req)) || fail(404, 'ক্রয় বিল পাওয়া যায়নি', 'Purchase bill not found');
+    const p = get('SELECT * FROM products WHERE id=?', pu.product_id);
+    if (p && p.stock + 1e-9 < pu.qty) fail(409, `এই মালের কিছু বিক্রি হয়ে গেছে — স্টকে আছে মাত্র ${p.stock}`, `Some of these goods are already sold — only ${p.stock} left in stock`);
+    if (p) run('UPDATE products SET stock=stock-? WHERE id=?', pu.qty, p.id);
+    if (pu.total > pu.paid) run('UPDATE vendors SET due=MAX(0,due-?) WHERE id=?', pu.total - pu.paid, pu.vendor_id);
+    run('UPDATE purchases SET void=1 WHERE id=?', pu.id);
+    audit(req.user.id, 'purchase-void', `${bid(req)} ${pu.id}`);
+  });
+  res.json({ ok: true });
+});
+
 /* ---------- Dues ---------- */
 r.post('/customers/:id/collect', adminOnly, (req, res) => {
   tx(() => {
@@ -178,6 +193,13 @@ r.post('/expenses', adminOnly, (req, res) => {
   res.json({ ok: true });
 });
 
+r.post('/expenses/:id/remove', adminOnly, (req, res) => {
+  const c = run('DELETE FROM expenses WHERE id=? AND business_id=?', Number(req.params.id), bid(req));
+  if (!c.changes) fail(404, 'খরচ পাওয়া যায়নি', 'Expense not found');
+  audit(req.user.id, 'expense-remove', `${bid(req)} ${req.params.id}`);
+  res.json({ ok: true });
+});
+
 /* ---------- Opening cash ---------- */
 r.put('/opening', adminOnly, (req, res) => {
   run('UPDATE businesses SET opening=? WHERE id=?', money(req.body.opening, { min: -1e10, name: 'opening' }), bid(req));
@@ -186,18 +208,18 @@ r.put('/opening', adminOnly, (req, res) => {
 
 /* ---------- Sellers (max 3) ---------- */
 r.post('/sellers', adminOnly, noDemo, (req, res) => {
-  const name = str(req.body.name, 60), phone = normPhone(req.body.phone), pw = String(req.body.password || '');
+  const name = str(req.body.name, 60), phone = normPhone(req.body.phone), pw = String(req.body.password || '').trim();
   if (!name) fail(400, 'সেলারের নাম লিখুন', 'Enter the seller’s name');
   if (!validPhone(phone)) fail(400, 'সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন (01XXXXXXXXX)', 'Enter a valid 11-digit mobile number (01XXXXXXXXX)');
-  if (get('SELECT 1 x FROM users WHERE phone=?', phone)) fail(409, 'এই নম্বরে আগে থেকেই একটি আইডি আছে', 'This number already has an ID');
+  if (get('SELECT 1 x FROM users WHERE phone=? AND active=1', phone)) fail(409, 'এই নম্বরে আগে থেকেই একটি আইডি আছে', 'This number already has an ID');
   if (!passOk(pw)) fail(400, ...PASS_MSG);
   const used = all("SELECT seller_code c FROM users WHERE business_id=? AND role='seller' AND active=1", bid(req)).map((x) => x.c);
   const code = ['S-01', 'S-02', 'S-03'].find((c) => !used.includes(c));
   if (!code) fail(400, 'সর্বোচ্চ ৩ জন সেলার রাখা যায়', 'A shop can have at most 3 sellers');
   otpGate(req, { purpose: 'seller-add', key: `${bid(req)}:${phone}`, phone, label: 'new seller ID' });
-  run("DELETE FROM users WHERE phone=? AND active=0", phone);
+  freePhone(phone);
   run('INSERT INTO users(business_id,role,name,phone,pass_hash,pass_enc,seller_code) VALUES(?,?,?,?,?,?,?)', bid(req), 'seller', name, phone, hashPassword(pw), encrypt(pw), code);
-  queueSms(phone, `KrishiKhata: your seller ID ${phone} at ${req.biz.name.slice(0, 40)} is active.`);
+  queueSms(phone, `${brandOf(req.biz.btype).brand}: your seller ID ${phone} at ${req.biz.name.slice(0, 40)} is active.`);
   audit(req.user.id, 'seller-add', `${bid(req)} ${phone}`);
   res.json({ ok: true, code });
 });
@@ -211,7 +233,7 @@ r.post('/sellers/:uid/remove', adminOnly, noDemo, (req, res) => {
 // Owner sets a seller's password. OTP goes to the seller's phone.
 r.post('/sellers/:uid/password', adminOnly, noDemo, (req, res) => {
   const u = get("SELECT * FROM users WHERE id=? AND business_id=? AND role='seller' AND active=1", Number(req.params.uid), bid(req)) || fail(404, 'সেলার পাওয়া যায়নি', 'Seller not found');
-  const pw = String(req.body.password || '');
+  const pw = String(req.body.password || '').trim();
   if (!passOk(pw)) fail(400, ...PASS_MSG);
   otpGate(req, { purpose: 'pw', key: 'seller:' + u.id, phone: u.phone, label: 'password change' });
   run('UPDATE users SET pass_hash=?, pass_enc=? WHERE id=?', hashPassword(pw), encrypt(pw), u.id);

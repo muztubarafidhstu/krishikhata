@@ -2,8 +2,8 @@
 const express = require('express');
 const { get, all, run, tx, getSetting, setSetting, today, addMonths } = require('../db');
 const { decrypt, verifyPassword, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
-const { requireSuper, unlockShop, limit } = require('../auth');
-const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, audit, isLocked, CATS, TYPES, btypeOk, MODULE_KEYS, METHODS } = require('../core');
+const { requireSuper, unlockShop, tooMany, addFail, clearFails } = require('../auth');
+const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, audit, isLocked, CATS, TYPES, btypeOk, MODULE_KEYS, METHODS, brandOf } = require('../core');
 const { bizSummary } = require('../state');
 const { createBusiness } = require('../business');
 const { PASS_MSG } = require('./auth');
@@ -25,7 +25,7 @@ const userOr404 = (id, req) => {
   return u;
 };
 const bizOr404 = (id, req) => { const b = get('SELECT * FROM businesses WHERE id=?', Number(id)); if (!b || (b.btype || 'agri') !== req.btype) fail(404, 'ব্যবসা পাওয়া যায়নি', 'Business not found'); return b; };
-const phoneTaken = (p, exceptId) => !!get('SELECT 1 x FROM users WHERE phone=? AND id<>?', normPhone(p), exceptId || 0);
+const phoneTaken = (p, exceptId) => !!get('SELECT 1 x FROM users WHERE phone=? AND active=1 AND id<>?', normPhone(p), exceptId || 0);
 const fmtDateEn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const fmtDateBn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
@@ -55,7 +55,7 @@ r.post('/users/:id/reveal', (req, res) => {
 // Super admin sets a new password for anyone. OTP goes to the super admin's own phone.
 r.post('/users/:id/password', (req, res) => {
   const u = userOr404(req.params.id, req);
-  const pw = String(req.body.password || '');
+  const pw = String(req.body.password || '').trim();
   if (!passOk(pw)) fail(400, ...PASS_MSG);
   otpGate(req, { purpose: 'pw-admin', key: 'user:' + u.id, phone: req.user.phone, label: 'password reset of ' + u.phone });
   run('UPDATE users SET pass_hash=?, pass_enc=? WHERE id=?', hashPassword(pw), encrypt(pw), u.id);
@@ -74,11 +74,11 @@ r.post('/businesses', (req, res) => {
   if (!slugValid(slug)) fail(400, ...SLUG_MSG);
   if (!slugFree(slug)) fail(409, 'এই ঠিকানা আগেই নেওয়া হয়েছে', 'This address is already taken');
   const modules = [...new Set(['inv', 'cat', 'sale', ...(Array.isArray(b.modules) ? b.modules : [])])].filter((m) => MODULE_KEYS.includes(m));
-  const admin = { phone: normPhone(b.admin?.phone), password: String(b.admin?.password || '') };
+  const admin = { phone: normPhone(b.admin?.phone), password: String(b.admin?.password || '').trim() };
   if (!validPhone(admin.phone)) fail(400, 'অ্যাডমিনের সঠিক মোবাইল নম্বর দিন', 'Enter a valid admin mobile number');
   if (phoneTaken(admin.phone)) fail(409, 'এই অ্যাডমিন নম্বরে আগে থেকেই একটি আইডি আছে', 'This admin number already has an ID');
   if (!passOk(admin.password)) fail(400, 'অ্যাডমিন: ' + PASS_MSG[0], 'Admin: ' + PASS_MSG[1]);
-  const sellers = (Array.isArray(b.sellers) ? b.sellers : []).slice(0, 3).map((s) => ({ name: str(s.name, 60), phone: normPhone(s.phone), password: String(s.password || '') }));
+  const sellers = (Array.isArray(b.sellers) ? b.sellers : []).slice(0, 3).map((s) => ({ name: str(s.name, 60), phone: normPhone(s.phone), password: String(s.password || '').trim() }));
   const seen = new Set([admin.phone]);
   sellers.forEach((s, i) => {
     const t = [`সেলার ${i + 1}: `, `Seller ${i + 1}: `];
@@ -97,8 +97,8 @@ r.post('/businesses', (req, res) => {
     plan: b.plan, payMethod: b.payMethod, payRef: str(b.payRef, 40), slug,
   });
   audit(req.user.id, 'business-create', bid + ' ' + name);
-  notify(bid, `কৃষিখাতায় স্বাগতম! আপনার আইডি: ${admin.phone}`, `Welcome to KrishiKhata! Your login ID is ${admin.phone}.`, `Welcome to KrishiKhata! Sign in at ${shopUrl(slug)} with ID ${admin.phone}.`);
-  sellers.forEach((s) => require('../core').queueSms(s.phone, `KrishiKhata: your seller ID ${s.phone} at ${name} is active. Get your password from the owner.`));
+  notify(bid, `${brandOf(req.btype).bn}-য় স্বাগতম! আপনার আইডি: ${admin.phone}`, `Welcome to ${brandOf(req.btype).brand}! Your login ID is ${admin.phone}.`, `Welcome to ${brandOf(req.btype).brand}! Sign in at ${shopUrl(slug)} with ID ${admin.phone}.`);
+  sellers.forEach((s) => require('../core').queueSms(s.phone, `${brandOf(req.btype).brand}: your seller ID ${s.phone} at ${name} is active. Get your password from the owner.`));
   unlockShop(req, bid);
   res.json({ id: bid, slug, url: shopUrl(slug) });
 });
@@ -106,8 +106,10 @@ r.post('/businesses', (req, res) => {
 // Opening a shop's panel from the mother panel needs the super admin password again.
 r.post('/unlock-shop', (req, res) => {
   const b = bizOr404(req.body.bid, req);
-  if (!limit('unlock:' + req.user.id, 10, 15 * 60000)) fail(429, 'অনেকবার ভুল চেষ্টা। ১৫ মিনিট পরে চেষ্টা করুন।', 'Too many attempts. Try again in 15 minutes.');
-  if (!verifyPassword(String(req.body.password || ''), req.user.pass_hash)) fail(400, 'পাসওয়ার্ড ভুল', 'Wrong password');
+  const key = 'unlock:' + req.user.id;
+  if (tooMany(key, 10, 15 * 60000)) fail(429, 'অনেকবার ভুল পাসওয়ার্ড। ১৫ মিনিট পরে চেষ্টা করুন।', 'Too many wrong passwords. Try again in 15 minutes.');
+  if (!verifyPassword(String(req.body.password || '').trim(), req.user.pass_hash) && !verifyPassword(String(req.body.password || ''), req.user.pass_hash)) { addFail(key); fail(400, 'পাসওয়ার্ড ভুল', 'Wrong password'); }
+  clearFails(key);
   unlockShop(req, b.id);
   audit(req.user.id, 'open-shop', String(b.id));
   res.json({ ok: true });
@@ -163,7 +165,7 @@ r.post('/businesses/:id/expiry', (req, res) => {
   const d = String(req.body.expiry || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d <= today()) fail(400, 'আজকের পরের কোনো তারিখ বাছাই করুন', 'Pick a date after today');
   run("UPDATE businesses SET expiry=?, status='on' WHERE id=?", d, b.id);
-  notify(b.id, `আপনার কৃষিখাতা অ্যাকাউন্ট চালু আছে। মেয়াদ: ${fmtDateBn(d)} পর্যন্ত।`, `Your KrishiKhata account is active until ${fmtDateEn(d)}.`);
+  notify(b.id, `আপনার ${brandOf(b.btype).bn} অ্যাকাউন্ট চালু আছে। মেয়াদ: ${fmtDateBn(d)} পর্যন্ত।`, `Your ${brandOf(b.btype).brand} account is active until ${fmtDateEn(d)}.`);
   audit(req.user.id, 'sub-expiry', `${b.id} ${d}`);
   res.json({ ok: true });
 });
@@ -171,7 +173,7 @@ r.post('/businesses/:id/expiry', (req, res) => {
 r.post('/businesses/:id/deactivate', (req, res) => {
   const b = bizOr404(req.params.id, req);
   run("UPDATE businesses SET status='off' WHERE id=?", b.id);
-  notify(b.id, 'আপনার কৃষিখাতা অ্যাকাউন্ট সাময়িকভাবে বন্ধ করা হয়েছে। বিস্তারিত জানতে যোগাযোগ করুন।', 'Your KrishiKhata account has been suspended. Please contact us for details.');
+  notify(b.id, `আপনার ${brandOf(b.btype).bn} অ্যাকাউন্ট সাময়িকভাবে বন্ধ করা হয়েছে। বিস্তারিত জানতে যোগাযোগ করুন।`, `Your ${brandOf(b.btype).brand} account has been suspended. Please contact us for details.`);
   audit(req.user.id, 'deactivate', String(b.id));
   res.json({ ok: true });
 });
@@ -243,7 +245,7 @@ r.get('/sms', (_req, res) => {
 r.post('/sms/test', (req, res) => {
   const p = normPhone(req.body.phone || req.user.phone);
   if (!validPhone(p)) fail(400, 'সঠিক মোবাইল নম্বর দিন', 'Enter a valid mobile number');
-  require('../core').queueSms(p, 'KrishiKhata test SMS: your SMS gateway is working.');
+  require('../core').queueSms(p, `${brandOf(req.btype).brand} test SMS: your SMS gateway is working.`);
   res.json({ ok: true });
 });
 

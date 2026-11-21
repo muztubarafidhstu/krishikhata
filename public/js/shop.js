@@ -32,7 +32,7 @@ VIEWS.login = () => `<div class="loginwrap">
     <div style="display:flex;gap:10px;align-items:center"><div class="logo" style="width:46px;height:46px">${I(btype() === 'build' ? 'build' : 'leaf')}</div><div><h2 style="font-size:1.5rem">${S.site?.admin ? L('মাদার প্যানেল', 'Mother panel') : S.site?.shop ? esc(S.site.shop.name) : L(`${N(brand().name)}-য় লগইন`, `Sign in to ${N(brand().name)}`)}</h2><span class="muted">${S.site?.admin ? L('শুধু সুপার অ্যাডমিনের জন্য', 'Super admin only') : S.site?.adminDomain ? L('দোকানের মালিক ও সেলাররা এখান থেকে ঢুকবেন', 'Shop owners and sellers sign in here') : L('মালিক, সেলার ও সুপার অ্যাডমিন — সবাই এখান থেকে ঢুকবেন', 'Owners, sellers and the super admin all sign in here')}</span></div></div>
     <form id="loginform" style="display:flex;flex-direction:column;gap:12px">
       <label class="f">${L('মোবাইল নম্বর (আইডি)', 'Mobile number (ID)')}<input class="in num" id="lg-phone" type="tel" inputmode="tel" autocomplete="username" placeholder="01XXXXXXXXX" required></label>
-      <label class="f">${L('পাসওয়ার্ড', 'Password')}<span style="display:flex;gap:6px"><input class="in" id="lg-pass" type="password" autocomplete="current-password" required><button type="button" class="eyebtn" style="width:42px;height:42px" data-lgeye aria-label="${L('পাসওয়ার্ড দেখুন', 'Show password')}">${I('eye')}</button></span></label>
+      <label class="f">${L('পাসওয়ার্ড', 'Password')}<span style="display:flex;gap:6px"><input class="in" id="lg-pass" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="current-password" required><button type="button" class="eyebtn" style="width:42px;height:42px" data-lgeye aria-label="${L('পাসওয়ার্ড দেখুন', 'Show password')}">${I('eye')}</button></span></label>
       ${S.site?.admin ? `<p class="muted" style="margin:0;font-size:.85rem">${I('shield')} ${L('নিরাপত্তার জন্য মাদার প্যানেলে প্রতিবার পাসওয়ার্ড লাগে। পেজ রিফ্রেশ করলে বা ৫ মিনিট কিছু না করলে লগআউট হবে।', 'For safety the mother panel always needs the password. Refreshing the page or 5 minutes without use signs you out.')}</p>` : `<label style="display:flex;gap:10px;align-items:center;font-weight:600;cursor:pointer"><input type="checkbox" id="lg-remember" style="width:20px;height:20px;accent-color:var(--leaf)" checked> ${window.KKAndroid ? L('মোবাইল নম্বর ও পাসওয়ার্ড মনে রাখুন (১ বছর)', 'Remember my number and password (1 year)') : L('মনে রাখুন (৩০ দিন লগইন থাকবে)', 'Remember me (stay signed in 30 days)')}</label>`}
       <button class="btn" type="submit" style="justify-content:center">${I('check')} ${L('লগইন', 'Sign in')}</button>
       ${window.KKAndroid && !S.site?.admin ? `<p class="muted" style="margin:0;font-size:.82rem">${L('অ্যাপ বন্ধ করলে নিজে থেকে লক হয়ে যায়; খুললে নম্বর ও পাসওয়ার্ড বসানো থাকবে, শুধু লগইন চাপুন। পাসওয়ার্ড শুধু এই ফোনে এনক্রিপ্ট করে রাখা হয় — অন্যের ফোনে টিক দেবেন না।', 'The app locks when you close it; when you open it, your number and password are filled in — just tap Sign in. The password is stored encrypted on this phone only — untick on someone else’s phone.')}</p>` : ''}
@@ -40,7 +40,7 @@ VIEWS.login = () => `<div class="loginwrap">
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-forgot>${L('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}</button>${window.KKAndroid ? `<button class="btn ghost sm" data-changeshop>${I('build')} ${L('অন্য দোকানের ঠিকানা', 'Another shop address')}</button>` : ''}</div>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:10px">
-    <h3>${I('leaf')} ${N(brand().login)}</h3>
+    <h3>${BI()} ${N(brand().login)}</h3>
     <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
       <li>${L('বিক্রি, ক্যাশ মেমো ও বাকি এক জায়গায়', 'Sales, cash memos and dues in one place')}</li>
       <li>${L('স্টক নিজে থেকে কমে-বাড়ে, কম হলে সতর্কতা', 'Stock updates itself, with low-stock alerts')}</li>
@@ -64,6 +64,9 @@ function rememberLogin(on, phone, pass) {
 }
 after.login = () => {
   if (S.site?.admin) { rememberLogin(false); return; }
+  // Sent here from the wrong address: the mobile number is filled in (…/#id=01XXXXXXXXX).
+  const m = location.hash.match(/^#id=(01\d{9})$/);
+  if (m && $('#lg-phone')) { $('#lg-phone').value = fmtPhone(m[1]); history.replaceState(null, '', location.pathname); $('#lg-pass')?.focus(); return; }
   const s = savedLogin(); if (!s) return;
   if (s.phone && $('#lg-phone')) $('#lg-phone').value = fmtPhone(s.phone);
   if (s.pass && $('#lg-pass')) $('#lg-pass').value = s.pass;
@@ -74,17 +77,28 @@ async function doLogin(btn) {
   await act(btn, async () => {
     // In the app the session ends when the app closes, so ask the server for a normal (short) session there.
     const res = await api('POST', '/api/login', { phone, password, remember: remember && !window.KKAndroid });
-    if (!res.ok) { toast(errText(res.data), 'err'); if (res.data.redirect) setTimeout(() => { location.href = res.data.redirect; }, 2500); return; }
+    if (!res.ok) {
+      // Right password, wrong address: show the owner's own shop address with a button.
+      if (res.data.redirect) return wrongAddress(res.data);
+      return toast(errText(res.data), 'err');
+    }
     rememberLogin(remember, phone, password);
     S.me = res.data.me; S.otp = res.data.otp; await boot();
   });
 }
+function wrongAddress(d) {
+  const url = d.redirect + '/#id=' + encodeURIComponent(d.phone || '');
+  modal(`<h3>${I('globe')} ${L('ভুল ঠিকানা', 'Wrong address')}</h3><div style="opacity:.9">${esc(errText(d))}</div>`, `
+    <p style="margin:0">${L('আপনার দোকানের ঠিকানা:', 'Your shop’s address:')}</p><div class="urlbox" style="font-size:1.05rem">${esc(d.redirect.replace(/^https?:\/\//, ''))}</div>
+    <p class="muted" style="margin:0;font-size:.88rem">${L('এই ঠিকানাটি ব্রাউজারে সেভ (বুকমার্ক) করে রাখুন। অ্যাপে শুধু দোকানের নাম অংশটি লিখুন।', 'Save (bookmark) this address. In the app, type only the shop name part.')}</p>
+    <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-close>${L('বন্ধ করুন', 'Close')}</button><a class="btn" href="${esc(url)}">${I('globe')} ${L('আমার দোকান খুলুন', 'Open my shop')}</a></div>`, { width: 480 });
+}
 function showForgot() {
   modal(`<h3>${I('shield')} ${L('পাসওয়ার্ড ভুলে গেছেন', 'Forgot password')}</h3><div style="opacity:.9">${L('আপনার মোবাইলে OTP যাবে', 'An OTP goes to your mobile')}</div>`, `
     <label class="f">${L('মোবাইল নম্বর (আইডি)', 'Mobile number (ID)')}<input class="in num" id="fg-phone" type="tel" value="${esc($('#lg-phone')?.value || '')}" placeholder="01XXXXXXXXX"></label>
-    <label class="f">${L('নতুন পাসওয়ার্ড', 'New password')}<input class="in" id="fg-1" type="password" autocomplete="new-password"></label>
+    <label class="f">${L('নতুন পাসওয়ার্ড', 'New password')}<input class="in" id="fg-1" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="new-password"></label>
     <div data-rulesfor="fg-1">${rulesHTML('')}</div>
-    <label class="f">${L('আবার লিখুন', 'Type it again')}<input class="in" id="fg-2" type="password" autocomplete="new-password"></label>
+    <label class="f">${L('আবার লিখুন', 'Type it again')}<input class="in" id="fg-2" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="new-password"></label>
     <p class="muted" style="margin:0;font-size:.85rem">${L('OTP সিস্টেম বন্ধ থাকলে দোকানের মালিক বা সুপার অ্যাডমিন আপনার পাসওয়ার্ড বদলে দেবেন।', 'If OTP is switched off, ask the shop owner or super admin to reset your password.')}</p>
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" id="fg-save">${I('check')} ${L('OTP পাঠান', 'Send OTP')}</button></div>`, { width: 480 });
   $('#fg-save').onclick = async (e) => {
@@ -101,11 +115,11 @@ VIEWS.public = () => {
   const s = S.pub;
   if (!s) return `<div class="card empty">${L('লোড হচ্ছে…', 'Loading…')}</div>`;
   if (s.missing) return `<div class="card empty">${L('দোকানটি পাওয়া যায়নি।', 'Shop not found.')}</div>`;
-  return `<section class="shop-h">${heroScene()}<div style="position:relative;z-index:1"><span class="pill" style="background:rgba(255,255,255,.2);color:#fff">${I('leaf')} ${esc(s.place)}</span>
+  return `<section class="shop-h">${heroScene()}<div style="position:relative;z-index:1"><span class="pill" style="background:rgba(255,255,255,.2);color:#fff">${BI()} ${esc(s.place)}</span>
     <h2 style="font-size:2rem;margin-top:8px">${esc(s.name)}</h2><p style="max-width:44ch;opacity:.92">${N(brand().hero)}</p>
     ${s.phone ? `<p style="margin:0;font-weight:700" class="num">${I('phone')} ${esc(dg(fmtPhone(s.phone)))}</p>` : ''}</div></section>
   ${s.cats.map((k) => { const list = s.products.filter((p) => p.cat === k); return list.length ? `<h3 style="margin-top:6px">${catPill(k)}</h3><div class="grid g-kpi">${list.map((p) => `<div class="card prod"><div class="img" style="background:${CAT[p.cat].bg};color:${CAT[p.cat].color}">${I(CAT[p.cat].icon)}</div>
-    <b>${esc(p.name)}</b>${p.brand || p.size ? `<span class="muted" style="font-size:.85rem">${esc([p.brand, p.size].filter(Boolean).join(' · '))}</span>` : ''}<div style="display:flex;justify-content:space-between;align-items:center"><span class="num" style="font-family:var(--display);font-size:1.2rem;font-weight:800;color:var(--leaf-d)">${tk(p.sell)}</span><span class="muted">/ ${U(p.unit)}</span></div>
+    <b>${esc(p.name)}</b>${pspec(p) ? `<span class="muted" style="font-size:.85rem">${esc(pspec(p))}</span>` : ''}<div style="display:flex;justify-content:space-between;align-items:center"><span class="num" style="font-family:var(--display);font-size:1.2rem;font-weight:800;color:var(--leaf-d)">${tk(p.sell)}</span><span class="muted">/ ${U(p.unit)}</span></div>
     <span class="pill ${p.inStock ? 'p-ok' : 'p-out'}" style="align-self:flex-start">${p.inStock ? L('স্টকে আছে', 'In stock') : L('স্টকে নেই', 'Out of stock')}</span></div>`).join('')}</div>` : ''; }).join('')}`;
 };
 
@@ -125,7 +139,7 @@ VIEWS.dash = () => {
     <div style="position:relative;z-index:1">
       <h2>${L('আসসালামু আলাইকুম', 'Welcome')}, ${esc(b.owner)}</h2>
       <p>${new Date(todayStr() + 'T00:00:00Z').toLocaleDateString(LANG === 'bn' ? 'bn-BD' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })} — ${L('আপনার দোকানের সব হিসাব এক নজরে।', 'your whole shop at a glance.')}</p>
-      <div class="row"><span class="chip num">${L('আজকের বিক্রি', 'Today’s sales')} ${tk(c.todaySales)}</span><span class="chip">${L(`${bn(c.low.length)} পণ্যের স্টক কম`, `${bn(c.low.length)} products low on stock`)}</span>
+      <div class="row"><span class="chip num">${L('আজকের বিক্রি', 'Today’s sales')} ${tk(c.todaySales)}</span>${c.low.length ? `<button class="chip chip-warn" data-nav="stock">${I('alert')} ${L(`${bn(c.low.length)} পণ্যের স্টক কম`, `${bn(c.low.length)} low on stock`)}</button>` : `<span class="chip">✓ ${L('সব পণ্যের স্টক ঠিক আছে', 'Stock is fine')}</span>`}
       <button class="btn sm" data-nav="sale">${I('plus')} ${L('নতুন বিক্রি', 'New sale')}</button>${b.modules.includes('pur') ? `<button class="btn sm" data-nav="purchase">${I('truck')} ${L('মাল কিনুন', 'Buy stock')}</button>` : ''}</div>
     </div>
   </section>
@@ -144,7 +158,7 @@ VIEWS.dash = () => {
     <div class="card"><div class="card-h"><h3>${I('trend')} ${L('গত ৭ দিনের বিক্রি', 'Sales, last 7 days')}</h3><span class="pill p-low">${L('আজ', 'Today')}</span></div>
       <div class="bars">${days.map((x) => `<div class="bar"><span class="v num">${x.v ? bn(Math.round(x.v / 1000)) + 'k' : ''}</span><div class="b ${x.d === 0 ? 'today' : ''}" style="height:${Math.max((x.v / max) * 85, 2)}%" title="${tk(x.v)}"></div></div>`).join('')}</div>
       <div class="bar-x">${days.map((x) => `<span>${fmtDate(x.date)}</span>`).join('')}</div></div>
-    <div class="card"><div class="card-h"><h3>${I('leaf')} ${L('ক্যাটাগরি অনুযায়ী বিক্রি', 'Sales by category')}</h3></div>
+    <div class="card"><div class="card-h"><h3>${BI()} ${L('ক্যাটাগরি অনুযায়ী বিক্রি', 'Sales by category')}</h3></div>
       <div class="split">${byCat.map((x) => `<div class="row">${catPill(x.k)}<div class="track"><i style="width:${(x.v / catMax) * 100}%;background:${CAT[x.k].color}"></i></div><b class="num" style="text-align:right">${tk(x.v)}</b></div>`).join('')}</div>
       <div class="summary num" style="margin-top:16px">
         <div><span class="muted">${L('বিক্রি', 'Sales')}</span><span>${tk(c.sales)}</span></div>
@@ -246,14 +260,15 @@ VIEWS.sale = () => {
       <h3 style="font-size:1rem;margin-bottom:8px">${I('cart')} ${L('এই মেমোর পণ্য', 'Items on this memo')}</h3>
       <div class="lines" id="lines">${linesHTML()}</div>
     </div>
-    <div class="card" style="display:flex;flex-direction:column;gap:12px;align-self:start">
+    <div class="card" id="billcard" style="display:flex;flex-direction:column;gap:12px;align-self:start">
       <h3>${I('receipt')} ${L('হিসাব', 'Bill')}</h3>
       <div class="summary num" id="sumbox"></div>
       <label class="f">${L('ক্রেতা কত টাকা দিলেন (৳)', 'Amount paid now (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="s-paid" value="${esc(draft.paid)}" placeholder="${L('পুরো টাকা হলে খালি রাখুন', 'Leave empty if fully paid')}"></label>
       <button class="btn sun" data-savesale style="justify-content:center">${I('check')} ${L('বিক্রি সেভ ও ইনভয়েস তৈরি', 'Save sale & make invoice')}</button>
       <span class="demo-note">${I('alert')} ${L('নগদ ক্রেতার ক্ষেত্রে বাকি রাখা যাবে না।', 'Walk-in customers must pay in full.')}</span>
     </div>
-  </div>`;
+  </div>
+  <div class="cartbar" id="cartbar" hidden></div>`;
 };
 after.sale = () => updSum();
 function prodResults() {
@@ -305,6 +320,12 @@ function updSum() {
     <div><span class="muted">${L('মোট', 'Total')}</span><span class="grand">${tk(total)}</span></div>
     <div><span class="muted">${L('জমা', 'Paid')}</span><span>${tk(Math.min(paid, total))}</span></div>
     <div><span class="muted">${L('বাকি', 'Due')}</span><span class="due">${tk(Math.max(total - paid, 0))}</span></div>`;
+  // Phone: a bar at the bottom shows the memo so far, with a button to jump to the bill.
+  const bar = $('#cartbar');
+  if (bar) {
+    bar.hidden = !draft.lines.length;
+    bar.innerHTML = `<span>${I('cart')} <b>${bn(draft.lines.length)}</b> ${L('টি পণ্য', 'items')} · <b class="num">${tk(total)}</b></span><button class="btn sun sm" data-gobill>${L('হিসাব ও সেভ', 'Bill & save')} ↓</button>`;
+  }
 }
 async function saveSale(btn) {
   if (!draft.lines.length) return toast(L('অন্তত একটি পণ্য যোগ করুন', 'Add at least one product'), 'err');
@@ -459,12 +480,11 @@ VIEWS.purchase = () => {
   </div>
   <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-savepur>${I('check')} ${L('বিল সেভ করুন', 'Save bill')}</button><span class="muted num" id="p-total"></span></div></div>`
   : `<div class="card empty">${L('আগে একজন ভেন্ডর (কোম্পানি/ডিলার) যোগ করুন।', 'Add a vendor (company/dealer) first.')}</div>`}
-  <div class="grid g2">
   <div class="card"><h3 style="margin-bottom:8px">${I('users')} ${L('ভেন্ডর', 'Vendors')}</h3><div class="tablewrap"><table><thead><tr><th>${L('নাম', 'Name')}</th><th>${L('মোবাইল', 'Mobile')}</th><th class="r">${L('দেনা', 'Owed')}</th></tr></thead><tbody>
     ${b.vendors.map((v) => `<tr><td><b>${esc(v.name)}</b></td><td class="num muted">${esc(dg(fmtPhone(v.phone)))}</td><td class="r num">${v.due ? `<span class="pill p-due">${tk(v.due)}</span>` : `<span class="pill p-ok">${L('নেই', 'None')}</span>`}</td></tr>`).join('')}</tbody></table></div></div>
-  <div class="card"><h3 style="margin-bottom:8px">${I('file')} ${L('ক্রয় বিলের তালিকা', 'Purchase bills')}</h3><div class="tablewrap"><table><thead><tr><th>${L('তারিখ', 'Date')}</th><th>${L('ভেন্ডর', 'Vendor')}</th><th>${L('পণ্য', 'Product')}</th><th class="r">${L('মোট', 'Total')}</th><th class="r">${L('পরিশোধ', 'Paid')}</th></tr></thead><tbody>
-    ${b.purchases.slice().reverse().map((p) => { const pr = b.products.find((x) => x.id === p.items[0].pid); return `<tr><td class="num">${fmtDate(p.date)}</td><td>${esc(b.vendors.find((v) => v.id === p.vendor)?.name || '—')}</td><td>${esc(pr?.name || '—')} × ${bn(p.items[0].qty)}</td><td class="r num">${tk(p.total)}</td><td class="r num">${tk(p.paid)}</td></tr>`; }).join('')}</tbody></table></div></div>
-  </div>`;
+  <div class="card"><h3 style="margin-bottom:8px">${I('file')} ${L('ক্রয় বিলের তালিকা', 'Purchase bills')}</h3>${b.purchases.length ? `<div class="tablewrap"><table><thead><tr><th>${L('তারিখ', 'Date')}</th><th>${L('ভেন্ডর', 'Vendor')}</th><th>${L('পণ্য', 'Product')}</th><th class="r">${L('পরিমাণ', 'Qty')}</th><th class="r">${L('মোট', 'Total')}</th><th class="r">${L('পরিশোধ', 'Paid')}</th><th></th></tr></thead><tbody>
+    ${b.purchases.slice().reverse().map((p) => { const pr = b.products.find((x) => x.id === p.items[0].pid); return `<tr><td class="num">${fmtDate(p.date)}</td><td>${esc(b.vendors.find((v) => v.id === p.vendor)?.name || '—')}</td><td>${esc(pr?.name || '—')}</td><td class="r num">${bn(p.items[0].qty)} ${pr ? U(pr.unit) : ''}</td><td class="r num">${tk(p.total)}</td><td class="r num">${p.paid >= p.total ? `<span class="pill p-ok">${tk(p.paid)}</span>` : tk(p.paid)}</td>
+      <td class="r"><button class="btn ghost sm" data-voidpur="${p.id}" title="${L('ভুল বিল বাতিল করুন', 'Cancel a wrong bill')}">${I('x')} ${L('বাতিল', 'Cancel')}</button></td></tr>`; }).join('')}</tbody></table></div>` : `<div class="empty">${L('এখনো কোনো ক্রয় বিল নেই।', 'No purchase bills yet.')}</div>`}</div>`;
 };
 after.purchase = () => {
   if (!$('#p-qty')) return;
@@ -508,23 +528,37 @@ VIEWS.expense = () => {
     <label class="f">${L('টাকা (৳)', 'Amount (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="e-amt"></label>
     <label class="f">${L('নোট', 'Note')}<input class="in" id="e-note" maxlength="120" placeholder="${L('ঐচ্ছিক', 'Optional')}"></label>
   </div><div style="margin-top:12px"><button class="btn" data-addexp>${I('plus')} ${L('খরচ যোগ করুন', 'Add expense')}</button></div></div>
-  <div class="card"><div class="tablewrap"><table><thead><tr><th>${L('তারিখ', 'Date')}</th><th>${L('ধরন', 'Type')}</th><th>${L('নোট', 'Note')}</th><th class="r">${L('টাকা', 'Amount')}</th></tr></thead><tbody>
-  ${b.expenses.slice().reverse().map((e) => `<tr><td class="num">${fmtDate(e.date)}</td><td><b>${esc(N(EXP[e.type] || e.type))}</b></td><td class="muted">${esc(e.note)}</td><td class="r num">${tk(e.amount)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  <div class="card"><div class="tablewrap"><table><thead><tr><th>${L('তারিখ', 'Date')}</th><th>${L('ধরন', 'Type')}</th><th>${L('নোট', 'Note')}</th><th class="r">${L('টাকা', 'Amount')}</th><th></th></tr></thead><tbody>
+  ${b.expenses.slice().reverse().map((e) => `<tr><td class="num">${fmtDate(e.date)}</td><td><b>${esc(N(EXP[e.type] || e.type))}</b></td><td class="muted">${esc(e.note)}</td><td class="r num">${tk(e.amount)}</td><td class="r"><button class="iconbtn" data-delexp="${e.id}" title="${L('মুছে ফেলুন', 'Delete')}" aria-label="${L('খরচ মুছে ফেলুন', 'Delete expense')}">${I('trash')}</button></td></tr>`).join('') || `<tr><td colspan="5" class="muted" style="text-align:center;padding:18px">${L('এখনো কোনো খরচ নেই।', 'No expenses yet.')}</td></tr>`}</tbody><tfoot><tr><td colspan="3"><b>${L('মোট খরচ', 'Total expenses')}</b></td><td class="r num"><b>${tk(tot)}</b></td><td></td></tr></tfoot></table></div></div>`;
 };
 
 /* ---------- Report ---------- */
+// Report period: this month, last month, this year or everything.
+const PERIODS = { month: { bn: 'এই মাস', en: 'This month' }, last: { bn: 'গত মাস', en: 'Last month' }, year: { bn: 'এই বছর', en: 'This year' }, all: { bn: 'শুরু থেকে', en: 'All time' } };
+function periodRange(k) {
+  const t = todayStr(), y = +t.slice(0, 4), m = +t.slice(5, 7);
+  if (k === 'month') return [t.slice(0, 7) + '-01', t];
+  if (k === 'last') { const ly = m === 1 ? y - 1 : y, lm = m === 1 ? 12 : m - 1, mm = String(lm).padStart(2, '0'); return [`${ly}-${mm}-01`, `${ly}-${mm}-${new Date(Date.UTC(ly, lm, 0)).getUTCDate()}`]; }
+  if (k === 'year') return [`${y}-01-01`, t];
+  return ['0000-00-00', '9999-12-31'];
+}
 VIEWS.report = () => {
-  const b = S.cur, c = calc(b);
-  const rows = b.products.map((p) => { let q = 0, rev = 0, cost = 0; b.sales.forEach((s) => s.items.filter((i) => i.pid == p.id).forEach((i) => { q += i.qty; rev += i.qty * i.price; cost += i.qty * (i.cost || 0); })); return { p, q, rev, prof: rev - cost }; }).filter((r) => r.q).sort((a, z) => z.prof - a.prof);
-  return `<div class="pagehead"><div><h2>${L('লাভ-ক্ষতি ও ব্যালেন্স', 'Profit, loss & balance')}</h2><p>${L('শুরু থেকে আজ পর্যন্ত।', 'From the start until today.')}</p></div></div>
+  const b = S.cur, c = calc(b), per = S.rper || 'month', [from, to] = periodRange(per);
+  const inP = (d) => d >= from && d <= to;
+  const sales = b.sales.filter((s) => inP(s.date)), exps = b.expenses.filter((e) => inP(e.date));
+  const ps = sales.reduce((a, s) => a + s.total, 0), pc = sales.reduce((a, s) => a + s.items.reduce((x, it) => x + (it.cost ?? 0) * it.qty, 0), 0), pe = exps.reduce((a, e) => a + e.amount, 0);
+  const rows = b.products.map((p) => { let q = 0, rev = 0, cost = 0; sales.forEach((s) => s.items.filter((i) => i.pid == p.id).forEach((i) => { q += i.qty; rev += i.qty * i.price; cost += i.qty * (i.cost || 0); })); return { p, q, rev, prof: rev - cost }; }).filter((r) => r.q).sort((a, z) => z.prof - a.prof);
+  const net = ps - pc - pe;
+  return `<div class="pagehead"><div><h2>${L('লাভ-ক্ষতি ও ব্যালেন্স', 'Profit, loss & balance')}</h2><p>${per === 'all' ? L('শুরু থেকে আজ পর্যন্ত।', 'From the start until today.') : `${fmtLong(from)} – ${fmtLong(to > todayStr() ? todayStr() : to)}`}</p></div>
+    <div class="seg seg-sm" role="group" aria-label="${L('সময়কাল', 'Period')}">${Object.keys(PERIODS).map((k) => `<button type="button" class="${per === k ? 'on' : ''}" data-rper="${k}" aria-pressed="${per === k}">${N(PERIODS[k])}</button>`).join('')}</div></div>
   <div class="grid g2">
-    <div class="card"><h3 style="margin-bottom:10px">${I('trend')} ${L('লাভ-ক্ষতি বিবরণী', 'Profit & loss')}</h3><div class="summary num">
-      <div><span>${L('মোট বিক্রি', 'Total sales')}</span><b>${tk(c.sales)}</b></div>
-      <div><span class="muted">(−) ${L('বিক্রিত পণ্যের ক্রয় মূল্য', 'Cost of goods sold')}</span><span>${tk(c.cogs)}</span></div>
-      <div><b>${L('মোট লাভ', 'Gross profit')}</b><b>${tk(c.gross)}</b></div>
-      <div><span class="muted">(−) ${L('পরিচালন খরচ', 'Operating expenses')}</span><span>${tk(c.exp)}</span></div>
-      <div><span class="grand">${L('নিট লাভ', 'Net profit')}</span><span class="grand">${tk(c.net)}</span></div></div></div>
-    <div class="card"><h3 style="margin-bottom:10px">${I('money')} ${L('ব্যালেন্স শিট', 'Balance sheet')}</h3><div class="summary num">
+    <div class="card"><h3 style="margin-bottom:10px">${I('trend')} ${L('লাভ-ক্ষতি বিবরণী', 'Profit & loss')} <span class="pill p-low" style="font-size:.75rem">${N(PERIODS[per])}</span></h3><div class="summary num">
+      <div><span>${L('মোট বিক্রি', 'Total sales')} <small class="muted">(${bn(sales.length)} ${L('টি মেমো', 'memos')})</small></span><b>${tk(ps)}</b></div>
+      <div><span class="muted">(−) ${L('বিক্রিত পণ্যের ক্রয় মূল্য', 'Cost of goods sold')}</span><span>${tk(pc)}</span></div>
+      <div><b>${L('মোট লাভ', 'Gross profit')}</b><b>${tk(ps - pc)}</b></div>
+      <div><span class="muted">(−) ${L('পরিচালন খরচ', 'Operating expenses')}</span><span>${tk(pe)}</span></div>
+      <div><span class="grand">${net < 0 ? L('নিট ক্ষতি', 'Net loss') : L('নিট লাভ', 'Net profit')}</span><span class="grand" ${net < 0 ? 'style="color:var(--berry)"' : ''}>${tk(Math.abs(net))}</span></div></div></div>
+    <div class="card"><h3 style="margin-bottom:10px">${I('money')} ${L('ব্যালেন্স শিট (আজ)', 'Balance sheet (today)')}</h3><div class="summary num">
       <div><span>${L('হাতে নগদ', 'Cash in hand')}</span><b>${tk(c.cash)}</b></div>
       <div><span>${L('স্টকের মূল্য', 'Stock value')}</span><b>${tk(c.stockVal)}</b></div>
       <div><span>${L('কাস্টমারের কাছে পাওনা', 'Receivable from customers')}</span><b>${tk(c.recv)}</b></div>
@@ -532,8 +566,8 @@ VIEWS.report = () => {
       <div><span class="grand">${L('ব্যবসার মোট মূলধন', 'Business net worth')}</span><span class="grand">${tk(c.cash + c.stockVal + c.recv - c.pay)}</span></div></div>
       <button class="btn ghost sm" style="margin-top:10px" data-opening>${I('edit')} ${L('শুরুর নগদ ব্যালেন্স', 'Opening cash')}: ${tk(b.opening)}</button></div>
   </div>
-  <div class="card"><h3 style="margin-bottom:8px">${I('leaf')} ${L('কোন পণ্যে কত লাভ', 'Profit by product')}</h3><div class="tablewrap"><table><thead><tr><th>${L('পণ্য', 'Product')}</th><th class="r">${L('বিক্রি পরিমাণ', 'Qty sold')}</th><th class="r">${L('বিক্রি', 'Sales')}</th><th class="r">${L('লাভ', 'Profit')}</th></tr></thead><tbody>
-  ${rows.map((r) => `<tr><td>${catPill(r.p.cat)} ${esc(r.p.name)}</td><td class="r num">${bn(r.q)} ${U(r.p.unit)}</td><td class="r num">${tk(r.rev)}</td><td class="r num" style="color:var(--leaf-d);font-weight:700">${tk(r.prof)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  <div class="card"><h3 style="margin-bottom:8px">${BI()} ${L('কোন পণ্যে কত লাভ', 'Profit by product')}</h3>${rows.length ? `<div class="tablewrap"><table><thead><tr><th>${L('পণ্য', 'Product')}</th><th class="r">${L('বিক্রি পরিমাণ', 'Qty sold')}</th><th class="r">${L('বিক্রি', 'Sales')}</th><th class="r">${L('লাভ', 'Profit')}</th></tr></thead><tbody>
+  ${rows.map((r) => `<tr><td><div class="pname">${esc(r.p.name)}</div>${catPill(r.p.cat)}</td><td class="r num">${bn(r.q)} ${U(r.p.unit)}</td><td class="r num">${tk(r.rev)}</td><td class="r num" style="color:${r.prof < 0 ? 'var(--berry)' : 'var(--leaf-d)'};font-weight:700">${tk(r.prof)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">${L('এই সময়ে কোনো বিক্রি নেই।', 'No sales in this period.')}</div>`}</div>`;
 };
 
 /* ---------- Sellers & access ---------- */
@@ -559,7 +593,7 @@ function addSeller() {
   modal(`<h3>${I('user')} ${L('নতুন সেলার আইডি', 'New seller ID')}</h3><div style="opacity:.9">${esc(S.cur.name)}</div>`, `
     <label class="f">${L('সেলারের নাম', 'Seller name')}<input class="in" id="as-name" maxlength="60"></label>
     <label class="f">${L('মোবাইল নম্বর (এটাই আইডি)', 'Mobile number (login ID)')}<input class="in num" id="as-phone" type="tel" placeholder="01XXXXXXXXX"></label>
-    <label class="f">${L('পাসওয়ার্ড', 'Password')}<input class="in" id="as-pass" type="text" autocomplete="new-password"></label>
+    <label class="f">${L('পাসওয়ার্ড', 'Password')}<input class="in" id="as-pass" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="new-password"></label>
     <div data-rulesfor="as-pass">${rulesHTML('')}</div>
     ${S.otp ? `<p class="muted" style="margin:0;font-size:.85rem">${L('সেলারের মোবাইলে OTP যাবে। সেলার কোডটি বললে আইডি চালু হবে।', 'An OTP goes to the seller’s mobile. The ID opens once they tell you the code.')}</p>` : ''}
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" data-assave>${I('check')} ${L('সেভ করুন', 'Save')}</button></div>`, { width: 520 });

@@ -15,7 +15,7 @@ const subIncomeMonth = () => { const m = todayStr().slice(0, 7); return S.sup.bu
 VIEWS.home = () => {
   const B = S.sup.businesses;
   const tot = B.reduce((a, b) => ({ s: a.s + b.stats.sales, r: a.r + b.stats.recv }), { s: 0, r: 0 });
-  const colors = ['#2f8f3a', '#d98a00', '#2a8bbf', '#8a4fc1', '#c8414f'];
+  const colors = btype() === 'build' ? ['#a8532b', '#d98a00', '#2a8bbf', '#7a3b1d', '#c8414f'] : ['#2f8f3a', '#d98a00', '#2a8bbf', '#8a4fc1', '#c8414f'];
   const mName = new Date(todayStr() + 'T00:00:00Z').toLocaleDateString(LANG === 'bn' ? 'bn-BD' : 'en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
   const T = B.reduce((a, b) => ({ s: a.s + b.stats.month.sales, p: a.p + b.stats.month.profit, c: a.c + b.stats.month.count }), { s: 0, p: 0, c: 0 });
   return `
@@ -181,10 +181,10 @@ async function reveal(id, btn) {
 }
 function passModal(title, sub, onSave, withCurrent) {
   modal(`<h3>${I('shield')} ${title}</h3><div style="opacity:.9">${sub}</div>`, `
-    ${withCurrent ? `<label class="f">${L('বর্তমান পাসওয়ার্ড', 'Current password')}<input class="in" id="cp-0" type="password" autocomplete="current-password"></label>` : ''}
-    <label class="f">${L('নতুন পাসওয়ার্ড', 'New password')}<input class="in" id="cp-1" type="password" autocomplete="new-password"></label>
+    ${withCurrent ? `<label class="f">${L('বর্তমান পাসওয়ার্ড', 'Current password')}<input class="in" id="cp-0" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="current-password"></label>` : ''}
+    <label class="f">${L('নতুন পাসওয়ার্ড', 'New password')}<input class="in" id="cp-1" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="new-password"></label>
     <div data-rulesfor="cp-1">${rulesHTML('')}</div>
-    <label class="f">${L('আবার লিখুন', 'Type it again')}<input class="in" id="cp-2" type="password" autocomplete="new-password"></label>
+    <label class="f">${L('আবার লিখুন', 'Type it again')}<input class="in" id="cp-2" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="new-password"></label>
     ${S.otp ? `<p class="muted" style="margin:0;font-size:.85rem">${L('সেভ করার আগে OTP যাচাই হবে।', 'An OTP check happens before saving.')}</p>` : ''}
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" id="cp-save">${I('check')} ${L('সেভ করুন', 'Save')}</button></div>`, { width: 480 });
   $('#cp-save').onclick = async (e) => {
@@ -274,7 +274,7 @@ VIEWS.wizard = () => {
       <label class="f">${L('ডিলার লাইসেন্স নং (ঐচ্ছিক)', 'Dealer licence no. (optional)')}<input class="in" id="w-lic" maxlength="40" value="${esc(w.licence)}"></label>
     </div>`;
   if (w.step === 1) body = `
-    <h3>${I('leaf')} ${L('এই দোকান কী কী বিক্রি করে?', 'What does this shop sell?')}</h3>
+    <h3>${BI()} ${L('এই দোকান কী কী বিক্রি করে?', 'What does this shop sell?')}</h3>
     <div class="tiles">${Object.entries(CAT).filter(([k]) => TYPE_CATS[btype()].includes(k)).map(([k, c]) => `
       <label class="tile ${w.cats.includes(k) ? 'sel' : ''}"><input type="checkbox" data-wcat="${k}" ${w.cats.includes(k) ? 'checked' : ''}><span class="chk">${I('check')}</span>
         <span class="big" style="background:${c.bg};color:${c.color}">${I(c.icon)}</span><b>${CN(k)}</b><small>${N(c.d)}</small></label>`).join('')}
@@ -288,7 +288,7 @@ VIEWS.wizard = () => {
     <h3>${I('users')} ${L('অ্যাডমিন ও সেলার আইডি', 'Admin & seller IDs')}</h3><p class="muted">${L('প্রত্যেকের মোবাইল নম্বরই লগইন আইডি। সবার আলাদা পাসওয়ার্ড। সেলার ০ থেকে ৩ জন।', 'Each person’s mobile number is their login ID, with their own password. 0 to 3 sellers.')}</p>
     <div class="form-g" style="margin-bottom:6px">
       <label class="f">${L('অ্যাডমিনের মোবাইল (এটাই আইডি)', 'Admin mobile (login ID)')}<input class="in num" id="w-admin" type="tel" value="${esc(w.adminUser || w.phone)}" placeholder="01XXXXXXXXX"></label>
-      <label class="f">${L('অ্যাডমিন পাসওয়ার্ড', 'Admin password')}<input class="in" id="w-apass" type="text" autocomplete="new-password" value="${esc(w.adminPass)}"></label>
+      <label class="f">${L('অ্যাডমিন পাসওয়ার্ড', 'Admin password')}<input class="in" id="w-apass" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="new-password" value="${esc(w.adminPass)}"></label>
     </div>
     <div style="margin-bottom:14px" data-rulesfor="w-apass">${rulesHTML(w.adminPass)}</div>
     <div style="display:flex;flex-direction:column;gap:10px">${w.sellers.map((s, i) => `
@@ -296,7 +296,7 @@ VIEWS.wizard = () => {
         <label class="f">${L('কোড', 'Code')}<input class="in" value="S-0${i + 1}" disabled></label>
         <label class="f">${L('সেলারের নাম', 'Seller name')}<input class="in" data-sname="${i}" maxlength="60" value="${esc(s.name)}"></label>
         <label class="f">${L('মোবাইল (আইডি)', 'Mobile (ID)')}<input class="in num" type="tel" data-sphone="${i}" value="${esc(s.phone)}" placeholder="01XXXXXXXXX"></label>
-        <label class="f">${L('পাসওয়ার্ড', 'Password')}<input class="in" type="text" autocomplete="new-password" id="sp-${i}" data-spass="${i}" value="${esc(s.pass)}"></label>
+        <label class="f">${L('পাসওয়ার্ড', 'Password')}<input class="in" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="new-password" id="sp-${i}" data-spass="${i}" value="${esc(s.pass)}"></label>
         <button class="iconbtn" data-sdel="${i}" aria-label="${L('সেলার বাদ দিন', 'Remove seller')}">${I('x')}</button>
         <div style="grid-column:1/-1" data-rulesfor="sp-${i}">${rulesHTML(s.pass)}</div>
       </div>`).join('')}</div>
@@ -330,12 +330,12 @@ VIEWS.wizard = () => {
     ${S.otp ? `<p class="muted" style="margin:10px 0 0">${L('সেটআপের আগে অ্যাডমিনের মোবাইলে OTP যাবে।', 'An OTP goes to the admin’s mobile before setup.')}</p>` : ''}
     <div id="setupbox"></div>`;
   return `
-  <div class="pagehead"><div><h2>${L('নতুন ব্যবসা সেটআপ', 'New business setup')}</h2><p>${L('একবার বাছাই করুন — কৃষিখাতা নিজেই অ্যাকাউন্ট, ক্যাটাগরি, আইডি ও হিসাবের খাতা তৈরি করবে।', 'Choose once — KrishiKhata creates the account, categories, IDs and ledgers.')}</p></div></div>
+  <div class="pagehead"><div><h2>${L('নতুন ব্যবসা সেটআপ', 'New business setup')}</h2><p>${L(`একবার বাছাই করুন — ${brand().name.bn} নিজেই অ্যাকাউন্ট, ক্যাটাগরি, আইডি ও হিসাবের খাতা তৈরি করবে।`, `Choose once — ${brand().name.en} creates the account, categories, IDs and ledgers.`)}</p></div></div>
   <div class="steps">${STEPS.map((t, i) => `<span class="step ${i === w.step ? 'on' : i < w.step ? 'done' : ''}"><span class="n">${i < w.step ? '✓' : bn(i + 1)}</span>${t}</span>`).join('')}</div>
   <div class="card">${body}
     <div class="wiz-foot">
       <button class="btn ghost" data-wback ${w.step === 0 ? 'disabled style="visibility:hidden"' : ''}>← ${L('পেছনে', 'Back')}</button>
-      ${w.step < 5 ? `<button class="btn" data-wnext>${L('পরের ধাপ', 'Next')} →</button>` : `<button class="btn sun" data-wrun>${I('leaf')} ${L('সেটআপ শুরু করুন', 'Start setup')}</button>`}
+      ${w.step < 5 ? `<button class="btn" data-wnext>${L('পরের ধাপ', 'Next')} →</button>` : `<button class="btn sun" data-wrun>${BI()} ${L('সেটআপ শুরু করুন', 'Start setup')}</button>`}
     </div>
   </div>`;
 };
@@ -394,7 +394,7 @@ function openBiz(id, skipPassword) {
   const b = supBiz(id);
   modal(`<h3>${I('shield')} ${L('পাসওয়ার্ড দিন', 'Enter your password')}</h3><div style="opacity:.9">${esc(b ? b.name : '')} — ${L('দোকানের প্যানেল খুলতে', 'to open the shop panel')}</div>`, `
     <form id="unlock-form" style="display:flex;flex-direction:column;gap:12px">
-      <label class="f">${L('আপনার (সুপার অ্যাডমিন) পাসওয়ার্ড', 'Your (super admin) password')}<input class="in" id="ul-pass" type="password" autocomplete="current-password" required></label>
+      <label class="f">${L('আপনার (সুপার অ্যাডমিন) পাসওয়ার্ড', 'Your (super admin) password')}<input class="in" id="ul-pass" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="current-password" required></label>
       <div style="display:flex;justify-content:flex-end;gap:8px"><button type="button" class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" type="submit">${I('check')} ${L('খুলুন', 'Open')}</button></div>
     </form>`, { width: 440 });
   $('#unlock-form').onsubmit = (e) => { e.preventDefault(); act(e.submitter || $('#unlock-form button[type=submit]'), async () => { await call('POST', '/api/super/unlock-shop', { bid: Number(id), password: $('#ul-pass').value }); closeModal(); await enter(); }); };
