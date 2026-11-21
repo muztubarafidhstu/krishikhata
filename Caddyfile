@@ -1,4 +1,4 @@
-{$DOMAIN}, www.{$DOMAIN} {
+{$DOMAIN} {
 	encode gzip
 	reverse_proxy app:3000
 	header {
