@@ -198,6 +198,7 @@ r.put('/plans', (req, res) => {
   const m = money(req.body.monthly, { name: 'monthly' }), y = money(req.body.yearly, { name: 'yearly' }), t = Math.round(money(req.body.trialDays, { max: 365, name: 'trial' }));
   setSetting('plan_monthly', m); setSetting('plan_yearly', y); setSetting('plan_trial_days', t);
   if (req.body.payTo !== undefined) setSetting('pay_to', str(req.body.payTo, 40));
+  if (req.body.whatsapp !== undefined) setSetting('whatsapp', str(req.body.whatsapp, 20).replace(/\D/g, ''));
   audit(req.user.id, 'plans', `${m}/${y}/${t}`);
   res.json(plans());
 });

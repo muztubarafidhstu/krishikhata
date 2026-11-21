@@ -46,6 +46,7 @@ const plans = () => ({
   yearly: Number(getSetting('plan_yearly', '5000')),
   trialDays: Number(getSetting('plan_trial_days', '14')),
   payTo: getSetting('pay_to', ''),
+  whatsapp: getSetting('whatsapp', ''),
 });
 
 /* ---------- OTP gate ----------

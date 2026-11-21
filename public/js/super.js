@@ -243,6 +243,7 @@ VIEWS.settings = () => {
         <label class="f">${L('বার্ষিক (৳)', 'Yearly (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="pl-y" value="${P.yearly}"></label>
         <label class="f">${L('ফ্রি ট্রায়াল (দিন)', 'Free trial (days)')}<input class="in num" type="text" inputmode="decimal" data-amt id="pl-t" value="${P.trialDays}"></label>
         <label class="f">${L('টাকা পাঠানোর নম্বর (বিকাশ/নগদ)', 'Payment number (bKash/Nagad)')}<input class="in num" id="pl-to" value="${esc(P.payTo)}"></label>
+        <label class="f">${L('WhatsApp নম্বর (অ্যাপ পেজের বোতাম)', 'WhatsApp number (app page buttons)')}<input class="in num" id="pl-wa" type="tel" value="${esc(P.whatsapp || P.payTo)}" placeholder="01XXXXXXXXX"></label>
       </div>
       <div style="margin-top:12px"><button class="btn" data-saveplans>${I('check')} ${L('সেভ করুন', 'Save')}</button></div></div>
     <div class="card"><h3 style="margin-bottom:10px">${I('phone')} ${L('SMS গেটওয়ে পরীক্ষা', 'Test the SMS gateway')}</h3>
