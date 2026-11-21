@@ -86,12 +86,25 @@ CREATE INDEX IF NOT EXISTS ix_notif_b ON notifications(business_id);
   const cols = db.prepare('PRAGMA table_info(businesses)').all().map((c) => c.name);
   const pcols = db.prepare('PRAGMA table_info(products)').all().map((c) => c.name);
   // Building materials: brand, thickness/size, weight per piece or bag (kg), pieces per bundle
-  for (const [c, t] of [['brand', "TEXT DEFAULT ''"], ['size', "TEXT DEFAULT ''"], ['weight', 'REAL'], ['per_pack', 'REAL']])
+  for (const [c, t] of [['brand', "TEXT DEFAULT ''"], ['size', "TEXT DEFAULT ''"], ['dims', "TEXT DEFAULT ''"], ['weight', 'REAL'], ['per_pack', 'REAL']])
     if (!pcols.includes(c)) db.exec(`ALTER TABLE products ADD COLUMN ${c} ${t}`);
   const icols = db.prepare('PRAGMA table_info(sale_items)').all().map((c) => c.name);
   if (!icols.includes('pcs')) db.exec('ALTER TABLE sale_items ADD COLUMN pcs REAL');
   for (const [c, t] of [['price_monthly', 'REAL'], ['price_yearly', 'REAL'], ['demo', 'INTEGER DEFAULT 0'], ['btype', "TEXT DEFAULT 'agri'"]])
     if (!cols.includes(c)) db.exec(`ALTER TABLE businesses ADD COLUMN ${c} ${t}`);
+  // v1.1: corrugated tin moved out of "sheet" into its own "tin" category (once).
+  if (!db.prepare("SELECT 1 x FROM settings WHERE key='mig_tin_v1'").get()) {
+    db.exec('BEGIN');
+    try {
+      for (const b of db.prepare("SELECT id,cats FROM businesses WHERE btype='build'").all()) {
+        const cats = JSON.parse(b.cats || '[]');
+        if (cats.includes('sheet') && !cats.includes('tin')) { cats.splice(cats.indexOf('sheet'), 0, 'tin'); db.prepare('UPDATE businesses SET cats=? WHERE id=?').run(JSON.stringify(cats), b.id); }
+        db.prepare(`UPDATE products SET cat='tin' WHERE business_id=? AND cat='sheet' AND (unit='bundle' OR per_pack IS NOT NULL OR name LIKE 'CI %' OR name LIKE '%Tin%' OR name LIKE '%টিন%' OR name LIKE '%ঢেউ%')`).run(b.id);
+      }
+      db.prepare("INSERT INTO settings(key,value) VALUES('mig_tin_v1','1')").run();
+      db.exec('COMMIT');
+    } catch (e) { db.exec('ROLLBACK'); throw e; }
+  }
 }
 
 // node:sqlite does not accept undefined — convert to null.

@@ -107,7 +107,16 @@ main{min-width:0;display:flex;flex-direction:column;gap:18px}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .p-pest{background:#2d2140}}
 .p-ok{background:var(--leaf-l);color:var(--leaf-d)} .p-low{background:var(--sun-l);color:var(--soil)} .p-out{background:var(--berry-l);color:var(--berry)}
 .p-due{background:var(--berry-l);color:var(--berry)}
-label.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;color:var(--muted);min-width:0}
+label.f,div.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;color:var(--muted);min-width:0}
+.f .req{color:var(--berry)}
+.fhint{margin:10px 0 0;font-size:.85rem;display:flex;gap:6px;align-items:flex-start}
+.fhint svg{flex:none;margin-top:2px}
+/* Big two/three-way choice buttons (MS / SS, Kilogram / Ton) */
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:96px;min-height:42px;border:1.5px solid var(--line);background:var(--surface2);color:var(--fg);border-radius:10px;padding:8px 10px;font:inherit;font-weight:700;cursor:pointer}
+.seg button small{font-weight:500;color:var(--muted)}
+.seg button.on{border-color:var(--leaf);background:var(--leaf-l);box-shadow:inset 0 0 0 1px var(--leaf)}
+.seg button:focus-visible{outline:2px solid var(--leaf);outline-offset:2px}
 input.in,select.in,textarea.in{border:1.5px solid var(--line);background:var(--surface2);border-radius:10px;padding:9px 11px;color:var(--fg);font-weight:500;width:100%;min-width:0}
 input.in:focus,select.in:focus{outline:none;border-color:var(--leaf);box-shadow:0 0 0 3px var(--leaf-l)}
 .tablewrap{overflow-x:auto;margin:0 -4px}
@@ -327,7 +336,8 @@ a.btn{text-decoration:none}
 /* building-material category pills */
 .p-rod{background:var(--soil-l);color:var(--soil)}
 .p-cement{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
-.p-sheet{background:var(--sky-l);color:var(--sky)}
+.p-sheet{background:var(--berry-l);color:var(--berry)}
+.p-tin{background:var(--sky-l);color:var(--sky)}
 .p-angle{background:var(--pest-l);color:var(--pest)}
 .p-bar{background:var(--sun-l);color:var(--soil)}
 

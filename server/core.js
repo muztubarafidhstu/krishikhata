@@ -89,7 +89,7 @@ function audit(userId, action, detail = '') { run('INSERT INTO audit(user_id,act
 // Business types: agricultural inputs (KrishiKhata) and building materials (NirmanKhata).
 const TYPES = {
   agri: { cats: ['seed', 'fert', 'pest'], brand: 'KrishiKhata' },
-  build: { cats: ['rod', 'cement', 'sheet', 'angle', 'bar', 'other'], brand: 'NirmanKhata' },
+  build: { cats: ['rod', 'cement', 'tin', 'sheet', 'angle', 'bar', 'other'], brand: 'NirmanKhata' },
 };
 const btypeOk = (t) => (TYPES[t] ? t : 'agri');
 const CATS = [...TYPES.agri.cats, ...TYPES.build.cats];
@@ -112,19 +112,20 @@ const STARTER = [
   { cat: 'pest', name: 'ম্যানকোজেব ছত্রাকনাশক (৫০০ গ্রা)', unit: 'packet', buy: 210, sell: 260, min: 25 },
   { cat: 'pest', name: 'কার্বোফুরান ৫জি দানাদার', unit: 'kg', buy: 150, sell: 190, min: 40 },
   { cat: 'pest', name: 'গ্লাইফোসেট আগাছানাশক (১ লি)', unit: 'bottle', buy: 420, sell: 500, min: 10 },
-  // Building materials — sample prices, the owner edits them. weight = kg per piece/bag, per_pack = pieces per bundle.
-  { cat: 'rod', name: 'MS Rod 10 mm (500W)', size: '10 mm', weight: 7.4, unit: 'kg', buy: 88, sell: 95, min: 500 },
-  { cat: 'rod', name: 'MS Rod 12 mm (500W)', size: '12 mm', weight: 10.66, unit: 'kg', buy: 87, sell: 94, min: 500 },
-  { cat: 'rod', name: 'MS Rod 16 mm (500W)', size: '16 mm', weight: 18.96, unit: 'kg', buy: 87, sell: 94, min: 300 },
-  { cat: 'cement', name: 'Cement PCC (50 kg)', size: 'PCC', weight: 50, unit: 'bag', buy: 500, sell: 530, min: 50 },
-  { cat: 'cement', name: 'Cement OPC (50 kg)', size: 'OPC', weight: 50, unit: 'bag', buy: 540, sell: 575, min: 30 },
-  { cat: 'sheet', name: 'CI Sheet 0.32 mm', size: '0.32 mm', per_pack: 12, unit: 'bundle', buy: 9800, sell: 10500, min: 5 },
-  { cat: 'sheet', name: 'CI Sheet 0.36 mm', size: '0.36 mm', per_pack: 12, unit: 'bundle', buy: 10800, sell: 11500, min: 5 },
-  { cat: 'sheet', name: 'Plain GI Sheet 0.42 mm', size: '0.42 mm', unit: 'piece', buy: 950, sell: 1050, min: 10 },
-  { cat: 'angle', name: 'Angle 1.5" x 1.5" x 5 mm', size: '1.5" x 1.5" x 5 mm', weight: 16.9, unit: 'kg', buy: 98, sell: 108, min: 100 },
-  { cat: 'angle', name: 'Angle 2" x 2" x 5 mm', size: '2" x 2" x 5 mm', weight: 22.8, unit: 'kg', buy: 98, sell: 108, min: 100 },
-  { cat: 'bar', name: 'Flat Bar 1" x 1/4"', size: '1" x 1/4"', weight: 7.6, unit: 'kg', buy: 100, sell: 110, min: 100 },
-  { cat: 'bar', name: 'Square Bar 12 mm', size: '12 mm', weight: 6.8, unit: 'kg', buy: 100, sell: 110, min: 100 },
+  // Building materials — sample prices, the owner edits them.
+  // Rod, sheet, angle, bar: size = 'MS' or 'SS', sold by weight. Tin: size = thickness, dims = size in feet, per_pack = pieces per bundle.
+  { cat: 'rod', name: 'MS Rod 500W', size: 'MS', unit: 'kg', buy: 87, sell: 94, min: 500 },
+  { cat: 'rod', name: 'MS Rod 400W', size: 'MS', unit: 'kg', buy: 85, sell: 92, min: 500 },
+  { cat: 'cement', name: 'Cement PCC (50 kg)', unit: 'bag', buy: 500, sell: 530, min: 50 },
+  { cat: 'cement', name: 'Cement OPC (50 kg)', unit: 'bag', buy: 540, sell: 575, min: 30 },
+  { cat: 'tin', name: 'Tin 0.32 mm (2.5 x 8 ft)', size: '0.32 mm', dims: '2.5 x 8 ft', per_pack: 12, unit: 'bundle', buy: 9800, sell: 10500, min: 5 },
+  { cat: 'tin', name: 'Tin 0.36 mm (2.5 x 10 ft)', size: '0.36 mm', dims: '2.5 x 10 ft', per_pack: 10, unit: 'bundle', buy: 12500, sell: 13400, min: 5 },
+  { cat: 'sheet', name: 'MS Sheet', size: 'MS', unit: 'kg', buy: 105, sell: 115, min: 200 },
+  { cat: 'sheet', name: 'SS Sheet', size: 'SS', unit: 'kg', buy: 320, sell: 360, min: 50 },
+  { cat: 'angle', name: 'MS Angle', size: 'MS', unit: 'kg', buy: 98, sell: 108, min: 100 },
+  { cat: 'angle', name: 'SS Angle', size: 'SS', unit: 'kg', buy: 330, sell: 370, min: 50 },
+  { cat: 'bar', name: 'MS Flat Bar', size: 'MS', unit: 'kg', buy: 100, sell: 110, min: 100 },
+  { cat: 'bar', name: 'MS Square Bar', size: 'MS', unit: 'kg', buy: 100, sell: 110, min: 100 },
 ];
 
 module.exports = { HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, plansFor, otpEnabled, otpGate, audit,

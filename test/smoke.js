@@ -111,6 +111,20 @@ const lastOtp = () => {
     r = await sup('POST', `/api/super/businesses/${bid}/restore`); assert.equal(r.status, 200);
     r = await own('GET', '/api/biz/state'); assert.equal(r.data.sales.length, 1);
 
+    // NirmanKhata shop: tin needs a company, name made from the details, units and categories
+    const bshop = { slug: 'steel-shop', name: 'Steel', owner: 'Owner B', cats: ['rod', 'cement', 'tin', 'sheet'], modules: ['pur', 'due'], admin: { phone: '01711000009', password: 'Owner@9' }, sellers: [], plan: 'trial' };
+    r = await sup('POST', '/api/super/businesses?type=build', bshop); assert.equal(r.status, 200);
+    const bown = client();
+    r = await bown('POST', '/api/login', { phone: '01711000009', password: 'Owner@9' }); assert.equal(r.status, 200);
+    r = await bown('GET', '/api/biz/state'); assert.equal(r.data.btype, 'build'); assert.ok(r.data.products.some((p) => p.cat === 'tin' && p.perPack > 0));
+    const tin = { cat: 'tin', catName: 'Tin', size: '0.32 mm', dims: '4 x 20 ft', unit: 'bundle', perPack: 12, buy: 9000, sell: 9500, min: 2 };
+    r = await bown('POST', '/api/biz/products', tin); assert.equal(r.status, 400, 'tin needs a company');
+    r = await bown('POST', '/api/biz/products', { ...tin, brand: 'PHP' }); assert.equal(r.status, 200);
+    r = await bown('GET', '/api/biz/state'); const tp = r.data.products.find((p) => p.dims === '4 x 20 ft');
+    assert.equal(tp.name, 'PHP Tin 0.32 mm (4 x 20 ft)'); assert.equal(tp.perPack, 12);
+    r = await bown('POST', '/api/biz/products', { cat: 'angle', catName: 'Angle', size: 'MS', unit: 'kg', buy: 90, sell: 100 }); assert.equal(r.status, 400, 'angle not in this shop');
+    r = await bown('POST', '/api/biz/products', { cat: 'sheet', catName: 'Sheet', size: 'SS', unit: 'ton', buy: 300000, sell: 330000 }); assert.equal(r.status, 200);
+
     // Public shop page
     r = await anon('GET', '/api/public/shop/test-shop'); assert.equal(r.status, 200); assert.equal(r.data.products[0].buy, undefined);
 

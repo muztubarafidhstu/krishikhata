@@ -36,7 +36,7 @@ const P = {
   edit:'<path d="M4 20h4L20 8l-4-4L4 16z"/>',
   rod:'<path d="M3 17L17 3M7 21L21 7M3 21l2-2M19 5l2-2"/>',
   sheet:'<path d="M3 7c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
-  angle:'<path d="M4 3h4v13h13v4H4z"/>',
+  angle:'<path d="M4 3h4v13h13v4H4z"/>', plate:'<path d="M3 9l9-5 9 5-9 5z"/><path d="M3 9v3l9 5 9-5V9"/>',
   bar:'<rect x="2" y="9" width="20" height="6" rx="1"/><path d="M6 9v6M18 9v6"/>', trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
 };
 const I = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ''}</svg>`;
@@ -89,16 +89,20 @@ const passOk = (p) => PASS_RULES.every(([r]) => r.test(p || ''));
 const passMsg = () => L('পাসওয়ার্ডে কমপক্ষে ৫ অক্ষর, একটি অক্ষর, একটি সংখ্যা ও একটি চিহ্ন লাগবে', 'The password needs 5+ characters with a letter, a number and a symbol');
 const rulesHTML = (p) => `<div class="rules">${PASS_RULES.map(([r, t]) => `<span class="${r.test(p || '') ? 'ok' : ''}">${r.test(p || '') ? '✓' : '•'} ${N(t)}</span>`).join('')}</div>`;
 
-const UNIT = { kg: { bn: 'কেজি', en: 'kg' }, bag: { bn: 'বস্তা', en: 'bag' }, bottle: { bn: 'বোতল', en: 'bottle' }, packet: { bn: 'প্যাকেট', en: 'packet' }, liter: { bn: 'লিটার', en: 'litre' } , ton: { bn: 'টন', en: 'ton' }, piece: { bn: 'পিস', en: 'piece' }, bundle: { bn: 'বান্ডিল', en: 'bundle' }, feet: { bn: 'ফুট', en: 'feet' } };
+const UNIT = { kg: { bn: 'কেজি', en: 'kg', f: 'Kilogram' }, bag: { bn: 'বস্তা', en: 'bag', f: 'Bag' }, bottle: { bn: 'বোতল', en: 'bottle', f: 'Bottle' }, packet: { bn: 'প্যাকেট', en: 'packet', f: 'Packet' }, liter: { bn: 'লিটার', en: 'litre', f: 'Litre' }, ton: { bn: 'টন', en: 'ton', f: 'Ton' }, piece: { bn: 'পিস', en: 'piece', f: 'Piece' }, bundle: { bn: 'বান্ডিল', en: 'bundle', f: 'Bundle' }, feet: { bn: 'ফুট', en: 'feet', f: 'Feet' } };
 const U = (u) => N(UNIT[u] || u);
+// Labels for lists and forms. NirmanKhata: "Kilogram (কেজি)", "Rod (রড)"; KrishiKhata: in the chosen language.
+const UL = (u) => (btype() === 'build' && UNIT[u] ? `${UNIT[u].f} (${UNIT[u].bn})` : U(u));
+const CN = (k) => (!CAT[k] ? esc(k) : btype() === 'build' ? `${CAT[k].n.en} (${CAT[k].n.bn})` : N(CAT[k].n));
 const CAT = {
   seed: { n: { bn: 'বীজ', en: 'Seed' }, icon: 'seed', cls: 'p-seed', color: 'var(--seed)', bg: 'var(--sun-l)', d: { bn: 'ধান, ভুট্টা, সবজি, পাট বীজ — প্যাকেট/কেজি হিসাবে', en: 'Rice, maize, vegetable, jute seed — by packet or kg' } },
   fert: { n: { bn: 'সার', en: 'Fertilizer' }, icon: 'sack', cls: 'p-fert', color: 'var(--fert)', bg: 'var(--sky-l)', d: { bn: 'ইউরিয়া, টিএসপি, এমওপি, জিপসাম — বস্তা/কেজি হিসাবে', en: 'Urea, TSP, MOP, gypsum — by bag or kg' } },
-  rod: { n: { bn: 'রড', en: 'Rod' }, icon: 'rod', cls: 'p-rod', color: 'var(--soil)', bg: 'var(--soil-l)', d: { bn: '৮, ১০, ১২, ১৬, ২০ মিমি — কেজি/টন হিসাবে', en: '8–25 mm deformed bar — by kg or ton' } },
-  cement: { n: { bn: 'সিমেন্ট', en: 'Cement' }, icon: 'sack', cls: 'p-cement', color: 'var(--muted)', bg: 'var(--surface2)', d: { bn: 'PCC, OPC — ৫০ কেজির ব্যাগ হিসাবে', en: 'PCC, OPC — by 50 kg bag' } },
-  sheet: { n: { bn: 'টিন / শিট', en: 'Sheet' }, icon: 'sheet', cls: 'p-sheet', color: 'var(--sky)', bg: 'var(--sky-l)', d: { bn: 'ঢেউটিন, প্লেইন শিট — পিস/বান্ডিল হিসাবে', en: 'Corrugated & plain sheet — by piece or bundle' } },
-  angle: { n: { bn: 'অ্যাঙ্গেল', en: 'Angle' }, icon: 'angle', cls: 'p-angle', color: 'var(--pest)', bg: 'var(--pest-l)', d: { bn: 'বিভিন্ন মাপের অ্যাঙ্গেল — কেজি/ফুট হিসাবে', en: 'Angles of all sizes — by kg or feet' } },
-  bar: { n: { bn: 'বার', en: 'Bar' }, icon: 'bar', cls: 'p-bar', color: 'var(--seed)', bg: 'var(--sun-l)', d: { bn: 'ফ্ল্যাট বার, স্কয়ার বার — কেজি হিসাবে', en: 'Flat & square bar — by kg' } },
+  rod: { n: { bn: 'রড', en: 'Rod' }, icon: 'rod', cls: 'p-rod', color: 'var(--soil)', bg: 'var(--soil-l)', d: { bn: 'MS / SS রড — কেজি বা টন হিসাবে', en: 'MS / SS rod — by kg or ton' } },
+  cement: { n: { bn: 'সিমেন্ট', en: 'Cement' }, icon: 'sack', cls: 'p-cement', color: 'var(--muted)', bg: 'var(--surface2)', d: { bn: 'সব কোম্পানির সিমেন্ট — বস্তা হিসাবে', en: 'Cement of any company — by bag' } },
+  tin: { n: { bn: 'ঢেউটিন', en: 'Tin' }, icon: 'sheet', cls: 'p-tin', color: 'var(--sky)', bg: 'var(--sky-l)', d: { bn: 'কোম্পানি, পুরুত্ব ও ফুট মাপ — বান্ডিল বা পিস হিসাবে', en: 'Company, thickness, size in feet — by bundle or piece' } },
+  sheet: { n: { bn: 'শিট', en: 'Sheet' }, icon: 'plate', cls: 'p-sheet', color: 'var(--berry)', bg: 'var(--berry-l)', d: { bn: 'MS / SS শিট — কেজি বা টন হিসাবে', en: 'MS / SS sheet — by kg or ton' } },
+  angle: { n: { bn: 'অ্যাঙ্গেল', en: 'Angle' }, icon: 'angle', cls: 'p-angle', color: 'var(--pest)', bg: 'var(--pest-l)', d: { bn: 'MS / SS অ্যাঙ্গেল — কেজি বা টন হিসাবে', en: 'MS / SS angle — by kg or ton' } },
+  bar: { n: { bn: 'বার', en: 'Bar' }, icon: 'bar', cls: 'p-bar', color: 'var(--seed)', bg: 'var(--sun-l)', d: { bn: 'MS / SS বার — কেজি বা টন হিসাবে', en: 'MS / SS bar — by kg or ton' } },
   other: { n: { bn: 'অন্যান্য', en: 'Other' }, icon: 'box', cls: 'p-ok', color: 'var(--leaf)', bg: 'var(--leaf-l)', d: { bn: 'তার, পেরেক, বালু, ইট ইত্যাদি', en: 'Wire, nails, sand, bricks and more' } },
   pest: { n: { bn: 'কীটনাশক', en: 'Pesticide' }, icon: 'spray', cls: 'p-pest', color: 'var(--pest)', bg: 'var(--pest-l)', d: { bn: 'কীটনাশক, ছত্রাকনাশক, আগাছানাশক — বোতল/প্যাকেট', en: 'Insecticide, fungicide, herbicide — by bottle or packet' } },
 };
@@ -125,33 +129,47 @@ const shopUrl = (slug) => (S.site && S.site.domain ? `https://${slug}.${S.site.d
 const publicUrl = (slug) => (S.site && S.site.domain ? `https://${slug}.${S.site.domain}/shop` : `${location.origin}/shop/${slug}`);
 const appLink = () => (S.site && S.site.domain ? `https://${S.site.domain}${brand().page}` : `${location.origin}${brand().page}`);
 const appCard = (who) => `<div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:var(--sun)"><span style="font-size:1.6rem" aria-hidden="true">📱</span><div style="flex:1;min-width:200px"><b>${who === 'super' ? L('অ্যাপ ডাউনলোড ও প্রচারের লিংক', 'App download & promotion link') : N(brand().name) + ' ' + L('Android অ্যাপ', 'Android app')}</b><div class="muted" style="font-size:.88rem">${who === 'super' ? L('এই লিংক ফেসবুক/মেসেঞ্জারে শেয়ার করুন: ছোট বিজ্ঞাপন, ফ্রি ডেমো, অ্যাপ ডাউনলোড ও ব্যবহারের নিয়ম।', 'Share on Facebook/Messenger: short ad, free demo, app download and how-to.') : L('সেলারদের এই লিংক দিন — অ্যাপ নামিয়ে দোকানের ঠিকানা লিখলেই হবে।', 'Give this link to your sellers — download the app and type the shop address.')}</div><div class="urlbox" style="margin-top:6px">${esc(appLink())}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sun sm" data-copy="${esc(appLink())}">${L('লিংক কপি', 'Copy link')}</button><a class="btn ghost sm" href="${esc(appLink())}" target="_blank" rel="noopener">${I('globe')} ${L('খুলুন', 'Open')}</a><a class="btn ghost sm" href="${brand().apk}" download>${I('down')} APK</a></div></div>`;
-const TYPE_CATS = { agri: ['seed', 'fert', 'pest'], build: ['rod', 'cement', 'sheet', 'angle', 'bar', 'other'] };
+const TYPE_CATS = { agri: ['seed', 'fert', 'pest'], build: ['rod', 'cement', 'tin', 'sheet', 'angle', 'bar', 'other'] };
 const BRAND = {
   agri: { name: { bn: 'কৃষিখাতা', en: 'KrishiKhata' }, sub: { bn: 'বীজ · সার · কীটনাশক ব্যবসা ব্যবস্থাপনা', en: 'Seed · Fertilizer · Pesticide business manager' },
     seller: { bn: 'বীজ, সার ও কীটনাশক বিক্রেতা', en: 'Seed, fertilizer & pesticide dealer' }, note: { bn: 'কীটনাশক ব্যবহারের আগে লেবেলের নির্দেশনা পড়ুন। ধন্যবাদ।', en: 'Read the label before using any pesticide. Thank you.' },
     search: { bn: 'যেমন: ইউরিয়া, ৫, B-05', en: 'e.g. urea, 5, B-05' }, hero: { bn: 'ভালো বীজ, সঠিক সার, নিরাপদ বালাইনাশক — আপনার ফসলের বিশ্বস্ত সঙ্গী।', en: 'Good seed, the right fertilizer, safe crop protection.' },
     login: { bn: 'বীজ, সার ও কীটনাশক ব্যবসার সহজ হিসাব', en: 'Simple accounts for seed, fertilizer and pesticide shops' }, apk: '/krishikhata.apk', page: '/app' },
-  build: { name: { bn: 'নির্মাণখাতা', en: 'NirmanKhata' }, sub: { bn: 'রড · সিমেন্ট · টিন · অ্যাঙ্গেল · বার ব্যবসা ব্যবস্থাপনা', en: 'Rod · Cement · Sheet · Angle · Bar business manager' },
-    seller: { bn: 'রড, সিমেন্ট, টিন ও নির্মাণ সামগ্রী বিক্রেতা', en: 'Rod, cement, sheet & building materials' }, note: { bn: 'মাল বুঝে নিয়ে মেমোটি সংরক্ষণ করুন। ধন্যবাদ।', en: 'Please check the goods and keep this memo. Thank you.' },
-    search: { bn: 'যেমন: রড ১২, সিমেন্ট, B-05', en: 'e.g. rod 12, cement, B-05' }, hero: { bn: 'ভালো মানের রড, সিমেন্ট ও টিন — আপনার নির্মাণের বিশ্বস্ত সঙ্গী।', en: 'Quality rod, cement and sheet for your building.' },
+  build: { name: { bn: 'নির্মাণখাতা', en: 'NirmanKhata' }, sub: { bn: 'রড · সিমেন্ট · টিন · শিট · অ্যাঙ্গেল · বার ব্যবসা ব্যবস্থাপনা', en: 'Rod · Cement · Tin · Sheet · Angle · Bar business manager' },
+    seller: { bn: 'রড, সিমেন্ট, টিন ও নির্মাণ সামগ্রী বিক্রেতা', en: 'Rod, cement, tin, sheet & building materials' }, note: { bn: 'মাল বুঝে নিয়ে মেমোটি সংরক্ষণ করুন। ধন্যবাদ।', en: 'Please check the goods and keep this memo. Thank you.' },
+    search: { bn: 'যেমন: রড, সিমেন্ট, টিন, B-05', en: 'e.g. rod, cement, tin, B-05' }, hero: { bn: 'ভালো মানের রড, সিমেন্ট ও টিন — আপনার নির্মাণের বিশ্বস্ত সঙ্গী।', en: 'Quality rod, cement, tin and sheet for your building.' },
     login: { bn: 'রড, সিমেন্ট ও নির্মাণ সামগ্রী ব্যবসার সহজ হিসাব', en: 'Simple accounts for rod, cement and building-material shops' }, apk: '/nirmankhata.apk', page: '/nirman' },
 };
-// Product details for building materials: brand + size suggestions, weight per piece/bag, pieces per bundle.
-const ROD_KG = { '8 mm': 4.74, '10 mm': 7.4, '12 mm': 10.66, '16 mm': 18.96, '20 mm': 29.6, '22 mm': 35.8, '25 mm': 46.3 }; // 40 ft (12 m) piece
+// Product details for building materials.
+//  Rod, sheet, angle, bar: MS or SS + company, sold by weight (kg / ton).
+//  Cement: company, by bag.   Tin: company + thickness + size in feet + pieces per bundle.
+const STEEL_CO = ['BSRM', 'KSRM', 'AKS', 'GPH Ispat', 'Anwar Ispat', 'Rahim Steel', 'SAS Steel', 'Bashundhara', 'PHP', 'Abul Khair', 'KY Steel'];
 const SPEC = {
-  rod: { brands: ['BSRM', 'KSRM', 'AKS', 'GPH', 'Anwar Ispat', 'Rahim Steel', 'SAS'], sizes: Object.keys(ROD_KG), unit: 'kg', en: 'Rod', w: { bn: 'ওজন প্রতি পিস (কেজি, ৪০ ফুট)', en: 'Weight per piece (kg, 40 ft)' } },
-  cement: { brands: ['Shah', 'Seven Rings', 'Bashundhara', 'Crown', 'Premier', 'Fresh', 'Akij', 'Meghna', 'Supercrete', 'Insee'], sizes: ['PCC', 'OPC'], unit: 'bag', weight: 50, en: 'Cement', w: { bn: 'ওজন প্রতি বস্তা (কেজি)', en: 'Weight per bag (kg)' } },
-  sheet: { brands: ['PHP', 'KY Steel', 'Abul Khair', 'Appollo', 'Anwar', 'Super'], sizes: ['0.12 mm', '0.15 mm', '0.17 mm', '0.19 mm', '0.20 mm', '0.22 mm', '0.25 mm', '0.32 mm', '0.36 mm', '0.42 mm', '0.46 mm', '0.51 mm'], unit: 'bundle', en: 'CI Sheet', w: { bn: 'ওজন প্রতি পিস (কেজি)', en: 'Weight per sheet (kg)' } },
-  angle: { brands: [], sizes: ['1" x 1" x 3 mm', '1.25" x 1.25" x 3 mm', '1.5" x 1.5" x 5 mm', '2" x 2" x 5 mm', '2.5" x 2.5" x 6 mm', '3" x 3" x 6 mm'], unit: 'kg', en: 'Angle', w: { bn: 'ওজন প্রতি পিস (কেজি, ২০ ফুট)', en: 'Weight per piece (kg, 20 ft)' } },
-  bar: { brands: [], sizes: ['Flat 1" x 1/8"', 'Flat 1" x 1/4"', 'Flat 1.5" x 1/4"', 'Square 10 mm', 'Square 12 mm', 'Round 12 mm'], unit: 'kg', en: 'Bar', w: { bn: 'ওজন প্রতি পিস (কেজি, ২০ ফুট)', en: 'Weight per piece (kg, 20 ft)' } },
-  other: { brands: [], sizes: [], unit: 'piece', en: '', w: { bn: 'ওজন প্রতি পিস (কেজি)', en: 'Weight per piece (kg)' } },
+  rod: { en: 'Rod', kinds: ['MS', 'SS'], units: ['kg', 'ton'], brands: STEEL_CO },
+  cement: { en: 'Cement', units: ['bag', 'kg', 'ton'], brandReq: true, brands: ['Shah', 'Seven Rings', 'Bashundhara', 'Crown', 'Premier', 'Fresh', 'Akij', 'Meghna', 'Supercrete', 'Insee', 'Anwar', 'Royal', 'Tiger', 'Ruby'] },
+  tin: { en: 'Tin', units: ['bundle', 'piece'], brandReq: true, pack: true, brands: ['PHP', 'KY Steel', 'Abul Khair', 'Appollo', 'Anwar', 'TK', 'S Alam', 'Bashundhara'],
+    thick: ['0.12 mm', '0.14 mm', '0.16 mm', '0.18 mm', '0.20 mm', '0.22 mm', '0.25 mm', '0.28 mm', '0.32 mm', '0.36 mm', '0.42 mm', '0.46 mm', '0.51 mm'],
+    dims: ['2.5 x 6 ft', '2.5 x 7 ft', '2.5 x 8 ft', '2.5 x 9 ft', '2.5 x 10 ft', '2.5 x 12 ft', '3 x 8 ft', '3 x 10 ft', '3 x 12 ft', '4 x 8 ft', '4 x 10 ft', '4 x 12 ft', '4 x 20 ft'] },
+  sheet: { en: 'Sheet', kinds: ['MS', 'SS'], units: ['kg', 'ton'], brands: STEEL_CO },
+  angle: { en: 'Angle', kinds: ['MS', 'SS'], units: ['kg', 'ton'], brands: STEEL_CO },
+  bar: { en: 'Bar', kinds: ['MS', 'SS'], units: ['kg', 'ton'], brands: STEEL_CO },
+  other: { en: '', units: ['piece', 'kg', 'ton', 'bag', 'bundle', 'feet', 'packet', 'liter'], brands: [] },
 };
-// "BSRM · 12 mm · 10.66 kg/pc"
-const pspec = (p) => [p.brand, p.size && !String(p.name).includes(p.size) ? p.size : '',
-  p.weight ? `${bn(p.weight)} ${L('কেজি', 'kg')}/${p.unit === 'bag' ? L('বস্তা', 'bag') : L('পিস', 'pc')}` : '',
+// "4*20", "4x20 ft", "৪ x ২০" → "4 x 20 ft";  "0.32" → "0.32 mm"
+const normDims = (v) => { const t = toAscii(String(v || '')).trim(), m = t.match(/^(\d+(?:\.\d+)?)\s*(?:ft|feet|')?\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(?:ft|feet|')?$/i); return m ? `${+m[1]} x ${+m[2]} ft` : t; };
+const normMm = (v) => { const t = toAscii(String(v || '')).trim(); return /^\d*\.?\d+$/.test(t) ? `${t} mm` : t.replace(/\s*mm$/i, ' mm'); };
+// Name made from the details when the owner leaves it empty: "BSRM MS Rod", "Shah Cement", "PHP Tin 0.32 mm (4 x 20 ft)"
+function autoNameOf(o) {
+  const sp = SPEC[o.cat]; if (!sp || o.cat === 'other') return '';
+  if (o.cat === 'tin') return [o.brand, 'Tin', normMm(o.size), o.dims && `(${normDims(o.dims)})`].filter(Boolean).join(' ');
+  if (o.cat === 'cement') return [o.brand, 'Cement'].filter(Boolean).join(' ');
+  return [o.brand, o.size, sp.en].filter(Boolean).join(' ');
+}
+// "PHP · 0.32 mm · 4 x 20 ft · 12 pcs/bundle"
+const pspec = (p) => [p.brand && !String(p.name).includes(p.brand) ? p.brand : '', p.size && !String(p.name).includes(p.size) ? p.size : '', p.dims && !String(p.name).includes(p.dims) ? p.dims : '',
   p.perPack ? `${bn(p.perPack)} ${L('পিস', 'pcs')}/${U(p.unit)}` : ''].filter(Boolean).join(' · ');
-// Selling by piece count: rod/angle by kg (pieces × kg per piece), tin by bundle (pieces ÷ pieces per bundle).
-const pcsConv = (p) => (!p ? 0 : p.weight > 0 && p.unit === 'kg' ? p.weight : p.weight > 0 && p.unit === 'ton' ? p.weight / 1000 : p.perPack > 0 && p.unit === 'bundle' ? 1 / p.perPack : 0);
+// Selling tin by piece count: pieces ÷ pieces per bundle.
+const pcsConv = (p) => (p && p.perPack > 0 && p.unit === 'bundle' ? 1 / p.perPack : 0);
 const btype = () => (S.cur && S.cur.btype) || (S.sup && S.sup.btype) || (S.pub && S.pub.btype) || (S.site && ((S.site.shop && S.site.shop.btype) || S.site.btype)) || 'agri';
 const brand = () => BRAND[btype()] || BRAND.agri;
 const hasBox = (b) => (b.modules || []).includes('box');
@@ -244,7 +262,7 @@ function toast(m, kind) { const t = $('#toast'); t.className = 'toast' + (kind =
 
 /* ---------- Small view pieces ---------- */
 function kpi(cls, ic, l, v, s) { return `<div class="kpi ${cls}"><div class="ico">${I(ic)}</div><div class="lbl">${l}</div><div class="val num">${v}</div><div class="sub">${s || ''}</div></div>`; }
-const catPill = (k) => `<span class="pill ${CAT[k].cls}">${I(CAT[k].icon)}${N(CAT[k].n)}</span>`;
+const catPill = (k) => (CAT[k] ? `<span class="pill ${CAT[k].cls}">${I(CAT[k].icon)}${CN(k)}</span>` : '');
 const subStateOf = (sub) => { if (sub.status === 'off') return 'off'; const d = daysTo(sub.expiry); return d < 0 ? 'expired' : d <= 7 ? 'soon' : 'active'; };
 const isLockedSub = (sub) => ['off', 'expired'].includes(subStateOf(sub));
 function subPill(sub) {

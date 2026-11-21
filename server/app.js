@@ -34,7 +34,7 @@ function createApp() {
     if (!b || isLocked(b) || !JSON.parse(b.modules).includes('shop')) return res.status(404).json({ error: 'দোকান পাওয়া যায়নি', error_en: 'Shop not found' });
     res.json({
       name: b.name, place: b.place, phone: b.phone, cats: JSON.parse(b.cats), btype: b.btype || 'agri',
-      products: all('SELECT id,name,cat,unit,sell,brand,size,stock>0 inStock FROM products WHERE business_id=? AND active=1 ORDER BY cat,id', b.id),
+      products: all('SELECT id,name,cat,unit,sell,brand,size,dims,stock>0 inStock FROM products WHERE business_id=? AND active=1 ORDER BY cat,id', b.id),
     });
   });
 
@@ -77,9 +77,17 @@ function createApp() {
     res.setHeader('Cache-Control', 'no-cache');
     res.type('html').send(html);
   });
-  app.get(['/', '/shop', '/shop/:slug', '/login'], (_req, res) => {
+  // The app page. NirmanKhata hosts get their own title, icon and colours (also the home-screen icon).
+  const INDEX = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+  const INDEX_BUILD = INDEX.replace(/<title>[^<]*<\/title>/, '<title>নির্মাণখাতা — NirmanKhata</title>')
+    .replace(/<meta name="description" content="[^"]*">/, '<meta name="description" content="রড, সিমেন্ট, টিন ও নির্মাণ সামগ্রী ব্যবসার হিসাব — NirmanKhata business manager">')
+    .replace('content="#1f6b2a"', 'content="#7a3b1d"').replaceAll('/icon.svg', '/icon-build.svg').replace('/manifest.webmanifest', '/manifest-build.webmanifest');
+  const { hostInfo } = require('./host');
+  app.get(['/', '/shop', '/shop/:slug', '/login'], (req, res) => {
+    let t = hostInfo(req).btype;
+    if (req.params.slug) t = (get('SELECT btype FROM businesses WHERE slug=?', String(req.params.slug)) || {}).btype || t;
     res.setHeader('Cache-Control', 'no-cache');
-    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+    res.type('html').send(t === 'build' ? INDEX_BUILD : INDEX);
   });
   app.use('/api', (_req, res) => res.status(404).json({ error: 'পাওয়া যায়নি', error_en: 'Not found' }));
 

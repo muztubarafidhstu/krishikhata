@@ -41,6 +41,12 @@ document.addEventListener('submit', (e) => { if (e.target.id === 'loginform') { 
 document.addEventListener('click', async (e) => {
   const t = e.target.closest('button,a[data-copy],[data-nav],[data-close],[data-addseller]'); if (!t) return;
   const d = t.dataset;
+  if (d.seg) { // MS / SS, Kilogram / Ton buttons
+    document.getElementById(d.seg).value = d.v;
+    t.parentElement.querySelectorAll('button').forEach((x) => { x.classList.toggle('on', x === t); x.setAttribute('aria-pressed', x === t); });
+    const pf = t.closest('[id$="-pf"]'); if (pf) updateAutoName(pf.id.slice(0, -3));
+    return;
+  }
   if (d.otp) return otpAnswer(d.otp);
   if (d.confirm) return confirmAnswer(d.confirm === 'yes');
   if (d.close !== undefined && (e.target === t || t.tagName === 'BUTTON')) { closeModal(); invOpen = null; if (confirmResolve) confirmAnswer(false); return; }
@@ -138,8 +144,13 @@ document.addEventListener('click', async (e) => {
 
 document.addEventListener('change', (e) => {
   const t = e.target, d = t.dataset;
-  if (d.pfcat) updateProductForm(d.pfcat);
-  if (d.pfsize) autoWeight(d.pfsize);
+  if (d.pfcat) return updateProductForm(d.pfcat);
+  // "Other (type it)" shows a text box; any other choice is copied into it.
+  if (d.pick) {
+    const inp = document.getElementById(d.pick);
+    if (t.value === OTHER) { inp.hidden = false; inp.value = ''; inp.focus(); } else { inp.hidden = true; inp.value = t.value; }
+  }
+  { const pf = t.closest('[id$="-pf"]'); if (pf) updateAutoName(pf.id.slice(0, -3)); }
   if (d.wcat) { const w = S.wiz; w.cats = t.checked ? [...new Set([...w.cats, d.wcat])] : w.cats.filter((k) => k !== d.wcat); t.closest('.tile').classList.toggle('sel', t.checked); }
   if (d.wmod) { const w = S.wiz; w.modules = t.checked ? [...new Set([...w.modules, d.wmod])] : w.modules.filter((k) => k !== d.wmod); t.closest('.mod').classList.toggle('sel', t.checked); }
   if (d.wstarter !== undefined) { S.wiz.starter = t.checked; t.closest('.mod').classList.toggle('sel', t.checked); }
@@ -156,6 +167,7 @@ document.addEventListener('input', (e) => {
   if (t.id === 'pay-qty') updPay();
   if (t.id === 'q' || t.id === 'sq') { if (t.id === 'q') S.q = t.value; else S.sq = t.value; const pos = t.selectionStart; render(); return refocus(t.id, pos); }
   if (t.id === 'd-q') { S.dq = t.value; $('#d-res').innerHTML = personResults(); return; }
+  { const pf = t.closest('[id$="-pf"]'); if (pf) return updateAutoName(pf.id.slice(0, -3)); }
   if (!draft) return;
   if (t.id === 's-pq') { draft.pq = t.value; $('#p-res').innerHTML = prodResults(); return; }
   if (t.id === 's-cq') { draft.cq = t.value; $('#cq-res').innerHTML = custResults(); return; }

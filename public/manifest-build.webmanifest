@@ -1,0 +1,9 @@
+{
+  "name": "নির্মাণখাতা — NirmanKhata",
+  "short_name": "নির্মাণখাতা",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6efe8",
+  "theme_color": "#7a3b1d",
+  "icons": [{ "src": "/icon-build.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

@@ -277,7 +277,7 @@ VIEWS.wizard = () => {
     <h3>${I('leaf')} ${L('এই দোকান কী কী বিক্রি করে?', 'What does this shop sell?')}</h3>
     <div class="tiles">${Object.entries(CAT).filter(([k]) => TYPE_CATS[btype()].includes(k)).map(([k, c]) => `
       <label class="tile ${w.cats.includes(k) ? 'sel' : ''}"><input type="checkbox" data-wcat="${k}" ${w.cats.includes(k) ? 'checked' : ''}><span class="chk">${I('check')}</span>
-        <span class="big" style="background:${c.bg};color:${c.color}">${I(c.icon)}</span><b>${N(c.n)}</b><small>${N(c.d)}</small></label>`).join('')}
+        <span class="big" style="background:${c.bg};color:${c.color}">${I(c.icon)}</span><b>${CN(k)}</b><small>${N(c.d)}</small></label>`).join('')}
     </div>
     <label class="mod ${w.starter ? 'sel' : ''}" style="margin-top:14px"><span class="ic">${I('tag')}</span><span>${L('সাধারণ পণ্যের তালিকা যোগ করুন', 'Add a starter product list')}<small>${L('স্টক ০ থাকবে; দাম পরে বদলানো যাবে', 'Stock starts at 0; prices can be edited')}</small></span><input type="checkbox" data-wstarter ${w.starter ? 'checked' : ''}></label>`;
   if (w.step === 2) body = `
@@ -377,7 +377,7 @@ async function runSetup(btn) {
       admin: { phone: pk(w.adminUser), password: w.adminPass }, sellers: w.sellers.map((s) => ({ name: s.name, phone: pk(s.phone), password: s.pass })),
       plan: w.plan, payMethod: w.payMethod, payRef: w.payRef,
     });
-    const tasks = [L(`“${w.name}” এর অ্যাকাউন্ট তৈরি`, `Account for “${w.name}” created`), L('পণ্যের ক্যাটাগরি: ', 'Product categories: ') + w.cats.map((k) => N(CAT[k].n)).join(', '),
+    const tasks = [L(`“${w.name}” এর অ্যাকাউন্ট তৈরি`, `Account for “${w.name}” created`), L('পণ্যের ক্যাটাগরি: ', 'Product categories: ') + w.cats.map(CN).join(', '),
       L('অ্যাডমিন আইডি: ', 'Admin ID: ') + dg(fmtPhone(w.adminUser)), w.sellers.length ? L('সেলার আইডি: ', 'Seller IDs: ') + w.sellers.map((s) => dg(fmtPhone(s.phone))).join(', ') : L('সেলার নেই', 'No sellers'),
       L('ইনভয়েস নম্বর #১০০১ থেকে শুরু', 'Invoice numbers start at #1001'), L('সাবস্ক্রিপশন: ', 'Subscription: ') + N(PLAN_N[w.plan])];
     $('#setupbox').innerHTML = `<div class="progress"><i id="pbar"></i></div><div class="setup-log" id="slog"></div>`;

@@ -240,7 +240,7 @@ VIEWS.sale = () => {
       <div class="picker">
         <b style="display:flex;gap:6px;align-items:center">${I('search')} ${L('পণ্য খুঁজুন — নাম, আইডি বা বক্স নম্বর', 'Find a product — name, ID or box number')}</b>
         <span class="searchbar" style="max-width:none">${I('search')}<input id="s-pq" type="search" value="${esc(draft.pq)}" placeholder="${N(brand().search)}" autocomplete="off"></span>
-        <div class="chips" role="group" aria-label="${L('ক্যাটাগরি', 'Category')}">${[['all', null], ...b.cats.map((k) => [k, CAT[k]])].map(([k, c]) => `<button type="button" class="chip-btn ${draft.pcat === k ? 'on' : ''}" data-pcat="${k}" aria-pressed="${draft.pcat === k}">${c ? I(c.icon) + N(c.n) : L('সব', 'All')}</button>`).join('')}</div>
+        <div class="chips" role="group" aria-label="${L('ক্যাটাগরি', 'Category')}">${[['all', null], ...b.cats.map((k) => [k, CAT[k]])].map(([k, c]) => `<button type="button" class="chip-btn ${draft.pcat === k ? 'on' : ''}" data-pcat="${k}" aria-pressed="${draft.pcat === k}">${c ? I(c.icon) + CN(k) : L('সব', 'All')}</button>`).join('')}</div>
         <div class="pgrid" id="p-res">${prodResults()}</div>
       </div>
       <h3 style="font-size:1rem;margin-bottom:8px">${I('cart')} ${L('এই মেমোর পণ্য', 'Items on this memo')}</h3>
@@ -266,7 +266,7 @@ function prodResults() {
       <span class="meta"><span class="num">${L('আইডি', 'ID')} #${dg(p.id)}</span>${hasBox(b) && p.box ? `<span class="num">${esc(dg(p.box))}</span>` : ''}</span>
       <b>${esc(p.name)}</b>${pspec(p) ? `<span class="meta"><span>${esc(pspec(p))}</span></span>` : ''}
       <span class="meta"><span class="price num">${tk(p.sell)}/${U(p.unit)}</span><span class="num">${p.stock <= 0 ? L('স্টক শেষ', 'Out of stock') : L('স্টক ', 'Stock ') + bn(p.stock)}</span></span>
-      <span class="meta"><span class="pill ${CAT[p.cat].cls}" style="font-size:.72rem">${N(CAT[p.cat].n)}</span><span style="color:var(--leaf-d);font-weight:700">${inCart ? L(`✓ ${bn(inCart.qty)} টি`, `✓ ${bn(inCart.qty)} added`) : '+ ' + L('যোগ করুন', 'Add')}</span></span>
+      <span class="meta"><span class="pill ${CAT[p.cat]?.cls || 'p-ok'}" style="font-size:.72rem">${CN(p.cat)}</span><span style="color:var(--leaf-d);font-weight:700">${inCart ? L(`✓ ${bn(inCart.qty)} টি`, `✓ ${bn(inCart.qty)} added`) : '+ ' + L('যোগ করুন', 'Add')}</span></span>
     </button>`; }).join('');
 }
 function lineHTML(l, i) {
@@ -344,44 +344,88 @@ VIEWS.stock = () => {
 };
 
 /* ---------- Product catalog ---------- */
-const dlOpts = (arr) => (arr || []).map((v) => `<option value="${esc(v)}"></option>`).join('');
+// Last unit used per category (e.g. rod: Ton), remembered on this phone/computer.
+const unitMem = {
+  get: (cat) => { try { return localStorage.getItem('kk-unit:' + cat) || ''; } catch (e) { return ''; } },
+  set: (cat, u) => { try { localStorage.setItem('kk-unit:' + cat, u); } catch (e) {} },
+};
+const OTHER = '__other';
+// A choice list with "Other (type)". The chosen or typed value is kept in the text box #id.
+function pickField(id, label, opts, val, ph, req) {
+  const v = val || '', inList = !v || opts.includes(v);
+  return `<div class="f"><label for="${id}-s">${label}${req ? ' <b class="req">*</b>' : ''}</label>
+    <select class="in" id="${id}-s" data-pick="${id}"><option value="">${L('— বাছাই করুন —', '— Choose —')}</option>${opts.map((o) => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}<option value="${OTHER}" ${inList ? '' : 'selected'}>${L('অন্য (নিজে লিখুন)', 'Other (type it)')}</option></select>
+    <input class="in" id="${id}" value="${esc(v)}" placeholder="${esc(ph || '')}" maxlength="40" autocomplete="off" aria-label="${esc(label)}" ${inList ? 'hidden' : ''}></div>`;
+}
+// Big buttons for a short list (MS / SS, Kilogram / Ton). The value is kept in the hidden input #id.
+function segField(id, label, opts, val, show) {
+  return `<div class="f"><span class="flabel">${label}</span><div class="seg" role="group" aria-label="${esc(label)}">${opts.map((o) => `<button type="button" class="${o === val ? 'on' : ''}" data-seg="${id}" data-v="${o}" aria-pressed="${o === val}">${show(o)}</button>`).join('')}</div><input type="hidden" id="${id}" value="${esc(val)}"></div>`;
+}
+const KIND_N = { MS: 'MS <small>(Mild Steel)</small>', SS: 'SS <small>(Stainless)</small>' };
+const CAT_HINT = {
+  rod: { bn: 'ওজন হিসাবে বিক্রি — দাম প্রতি কেজি বা টন।', en: 'Sold by weight — price per kilogram or ton.' },
+  cement: { bn: 'দাম প্রতি বস্তা (বা কেজি/টন)।', en: 'Price per bag (or per kg / ton).' },
+  tin: { bn: '"এক বান্ডিলে কত পিস" দিলে বিক্রির সময় পিস লিখলেই বান্ডিল হিসাব হবে।', en: 'With pieces per bundle you can sell single pieces — the bundle count is worked out.' },
+};
 function productForm(p, x = 'c') {
   const b = S.cur, build = btype() === 'build';
-  const cat = p?.cat || b.cats[0], sp = SPEC[cat] || {};
-  const unit = p?.unit || (build ? sp.unit : 'kg');
-  return `<div class="form-g">
-    <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat" data-pfcat="${x}">${b.cats.map((k) => `<option value="${k}" ${cat === k ? 'selected' : ''}>${N(CAT[k].n)}</option>`).join('')}</select></label>
-    ${build ? `<label class="f">${L('ব্র্যান্ড / কোম্পানি', 'Brand / company')}<input class="in" id="${x}-brand" list="${x}-dlb" maxlength="40" value="${esc(p?.brand || '')}" placeholder="${L('যেমন: BSRM, Shah, PHP', 'e.g. BSRM, Shah, PHP')}" autocomplete="off"><datalist id="${x}-dlb">${dlOpts(sp.brands)}</datalist></label>
-    <label class="f">${L('মাপ / পুরুত্ব', 'Size / thickness')}<input class="in" id="${x}-size" list="${x}-dls" maxlength="40" value="${esc(p?.size || '')}" placeholder="${L('যেমন: 12 mm, 0.32 mm, PCC', 'e.g. 12 mm, 0.32 mm, PCC')}" data-pfsize="${x}" autocomplete="off"><datalist id="${x}-dls">${dlOpts(sp.sizes)}</datalist></label>` : ''}
-    <label class="f">${build ? L('পণ্যের নাম (ঐচ্ছিক)', 'Product name (optional)') : L('পণ্যের নাম', 'Product name')}<input class="in" id="${x}-name" maxlength="80" value="${esc(p?.name || '')}" placeholder="${build ? L('খালি রাখলে ব্র্যান্ড + মাপ দিয়ে নাম হবে', 'Empty = made from brand + size') : L('যেমন: বোরো ধান বীজ (ব্রি-৮৯)', 'e.g. Boro rice seed (BRRI-89)')}"></label>
-    <label class="f">${build ? L('বিক্রির একক (দাম এই এককে)', 'Selling unit (price is per this unit)') : L('একক', 'Unit')}<select class="in" id="${x}-unit">${Object.keys(UNIT).map((u) => `<option value="${u}" ${unit === u ? 'selected' : ''}>${U(u)}</option>`).join('')}</select></label>
-    ${build ? `<label class="f"><span id="${x}-wl">${N(sp.w || SPEC.other.w)}</span><input class="in num" type="text" inputmode="decimal" data-amt id="${x}-weight" value="${p ? p.weight ?? '' : sp.weight || ''}" placeholder="${L('ঐচ্ছিক', 'Optional')}"></label>
-    <label class="f">${L('এক বান্ডিলে কত পিস', 'Pieces per bundle')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-pack" value="${p?.perPack ?? ''}" placeholder="${L('ঐচ্ছিক — টিনের জন্য', 'Optional — for sheets')}"></label>` : ''}
-    ${hasBox(b) ? `<label class="f">${L('বক্স / র‍্যাক নম্বর', 'Box / rack no.')}<input class="in" id="${x}-box" maxlength="20" value="${esc(p?.box || '')}" placeholder="B-13"></label>` : ''}
-    <label class="f">${L('ক্রয় দর (৳)', 'Cost price (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-buy" value="${p ? p.buy : ''}"></label>
-    <label class="f">${L('বিক্রয় দর (৳)', 'Sale price (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-sell" value="${p ? p.sell : ''}"></label>
-    <label class="f">${L('ন্যূনতম স্টক সতর্কতা', 'Low-stock alert at')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-min" value="${p ? p.min : 10}"></label>
+  const cat = p?.cat || b.cats[0], sp = SPEC[cat] || SPEC.other;
+  if (!build) {
+    const unit = p?.unit || 'kg';
+    return `<div class="form-g" id="${x}-pf">
+    <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat">${b.cats.map((k) => `<option value="${k}" ${cat === k ? 'selected' : ''}>${CN(k)}</option>`).join('')}</select></label>
+    <label class="f">${L('পণ্যের নাম', 'Product name')}<input class="in" id="${x}-name" maxlength="80" value="${esc(p?.name || '')}" placeholder="${L('যেমন: বোরো ধান বীজ (ব্রি-৮৯)', 'e.g. Boro rice seed (BRRI-89)')}"></label>
+    <label class="f">${L('একক', 'Unit')}<select class="in" id="${x}-unit">${Object.keys(UNIT).map((u) => `<option value="${u}" ${unit === u ? 'selected' : ''}>${U(u)}</option>`).join('')}</select></label>
+    ${priceFields(p, x, b)}</div>`;
+  }
+  const mem = unitMem.get(cat);
+  const unit = p?.unit && sp.units.includes(p.unit) ? p.unit : sp.units.includes(mem) ? mem : sp.units[0];
+  const kind = sp.kinds ? (sp.kinds.includes(p?.size) ? p.size : sp.kinds[0]) : '';
+  // An existing name that equals the automatic one stays empty, so it follows the details when they change.
+  const auto = autoNameOf({ cat, brand: p?.brand, size: sp.kinds ? kind : p?.size, dims: p?.dims });
+  const nameVal = p?.name && p.name !== auto ? p.name : '';
+  const unitBox = sp.units.length <= 3
+    ? segField(`${x}-unit`, L('বিক্রির একক (দাম এই এককে)', 'Selling unit (price is per this unit)'), sp.units, unit, UL)
+    : `<label class="f">${L('বিক্রির একক (দাম এই এককে)', 'Selling unit (price is per this unit)')}<select class="in" id="${x}-unit">${sp.units.map((u) => `<option value="${u}" ${unit === u ? 'selected' : ''}>${UL(u)}</option>`).join('')}</select></label>`;
+  return `<div id="${x}-pf"><div class="form-g">
+    <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat" data-pfcat="${x}">${b.cats.map((k) => `<option value="${k}" ${cat === k ? 'selected' : ''}>${CN(k)}</option>`).join('')}</select></label>
+    ${sp.kinds ? segField(`${x}-size`, L('ধরন', 'Type'), sp.kinds, kind, (k) => KIND_N[k] || k) : ''}
+    ${cat !== 'other' ? pickField(`${x}-brand`, sp.brandReq ? L('কোম্পানি', 'Company') : L('কোম্পানি (ঐচ্ছিক)', 'Company (optional)'), sp.brands, p?.brand, L('কোম্পানির নাম লিখুন', 'Type the company name'), sp.brandReq) : ''}
+    ${cat === 'tin' ? pickField(`${x}-size`, L('পুরুত্ব', 'Thickness'), sp.thick, p?.size, L('যেমন: 0.32', 'e.g. 0.32')) + pickField(`${x}-dims`, L('মাপ (ফুট)', 'Size (feet)'), sp.dims, p?.dims, L('যেমন: 4*20', 'e.g. 4*20')) : ''}
+    ${unitBox}
+    ${sp.pack ? `<label class="f">${L('এক বান্ডিলে কত পিস', 'Pieces per bundle')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-pack" value="${p?.perPack ?? ''}" placeholder="${L('যেমন: ১২', 'e.g. 12')}"></label>` : ''}
+    <label class="f">${cat === 'other' ? L('পণ্যের নাম', 'Product name') : L('পণ্যের নাম (ঐচ্ছিক)', 'Product name (optional)')}<input class="in" id="${x}-name" maxlength="80" value="${esc(nameVal)}" placeholder="${esc(cat === 'other' ? L('যেমন: তারকাটা ৩ ইঞ্চি', 'e.g. Wire nails 3 inch') : auto)}"></label>
+    ${priceFields(p, x, b)}
   </div>
-  ${build ? `<p class="muted" style="margin:8px 0 0;font-size:.85rem">${I('alert')} ${L('ওজন দিলে বিক্রির সময় শুধু পিস লিখলেই কেজি নিজে হিসাব হবে (যেমন ১২ মিমি রড ২০ পিস = ২১৩.২ কেজি)। টিনে "এক বান্ডিলে কত পিস" দিলে পিস হিসেবেও বিক্রি করা যাবে।', 'With a weight, you can sell by piece count and the kg is worked out (e.g. 12 mm rod, 20 pcs = 213.2 kg). For sheets, set pieces per bundle to sell single sheets.')}</p>` : ''}`;
+  ${CAT_HINT[cat] || sp.kinds ? `<p class="muted fhint">${I('alert')} ${N(CAT_HINT[cat] || CAT_HINT.rod)}${cat !== 'other' ? ' ' + L('নাম খালি রাখলে বিবরণ থেকে নাম তৈরি হবে।', 'Leave the name empty and it is made from the details.') : ''}</p>` : ''}</div>`;
 }
-// Category changed: refresh suggestions, weight label, default unit and weight.
+const priceFields = (p, x, b) => `${hasBox(b) ? `<label class="f">${L('বক্স / র‍্যাক নম্বর', 'Box / rack no.')}<input class="in" id="${x}-box" maxlength="20" value="${esc(p?.box || '')}" placeholder="B-13"></label>` : ''}
+    <label class="f">${L('ক্রয় দর (৳)', 'Cost price (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-buy" value="${p?.buy ?? ''}"></label>
+    <label class="f">${L('বিক্রয় দর (৳)', 'Sale price (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-sell" value="${p?.sell ?? ''}"></label>
+    <label class="f">${L('ন্যূনতম স্টক সতর্কতা', 'Low-stock alert at')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-min" value="${p?.min ?? 10}"></label>`;
+// Read the details typed so far (used to redraw the form and to save).
+function formVals(x) {
+  const v = (k) => document.getElementById(`${x}-${k}`), t = (k) => (v(k) ? v(k).value.trim() : '');
+  const cat = t('cat');
+  return { cat, name: t('name'), brand: t('brand'), size: cat === 'tin' ? normMm(t('size')) : t('size'), dims: cat === 'tin' ? normDims(t('dims')) : '', unit: t('unit'),
+    box: t('box'), buy: t('buy'), sell: t('sell'), min: t('min'), perPack: t('pack') };
+}
+// Category changed: draw the fields for the new category, keeping the name and prices.
 function updateProductForm(x) {
-  const cat = document.getElementById(`${x}-cat`)?.value, sp = SPEC[cat]; if (!sp || btype() !== 'build') return;
-  const dlb = document.getElementById(`${x}-dlb`), dls = document.getElementById(`${x}-dls`), wl = document.getElementById(`${x}-wl`);
-  if (dlb) dlb.innerHTML = dlOpts(sp.brands); if (dls) dls.innerHTML = dlOpts(sp.sizes); if (wl) wl.textContent = N(sp.w);
-  if (x === 'c') { const u = document.getElementById(`${x}-unit`); if (u) u.value = sp.unit; const w = document.getElementById(`${x}-weight`); if (w) w.value = sp.weight || ''; }
+  const el = document.getElementById(`${x}-pf`); if (!el || btype() !== 'build') return;
+  const f = formVals(x);
+  el.outerHTML = productForm({ cat: f.cat, name: f.name, box: f.box, buy: f.buy, sell: f.sell, min: f.min }, x);
 }
-// Size picked for a rod: fill the standard weight of a 40 ft piece.
-function autoWeight(x) {
-  const cat = document.getElementById(`${x}-cat`)?.value, size = (document.getElementById(`${x}-size`)?.value || '').trim().replace(/\s*mm$/i, ' mm');
-  const w = document.getElementById(`${x}-weight`);
-  if (cat === 'rod' && w && ROD_KG[size] && !w.value.trim()) w.value = ROD_KG[size];
+// Details changed: show the automatic name in the empty name box.
+function updateAutoName(x) {
+  const n = document.getElementById(`${x}-name`); if (!n || btype() !== 'build') return;
+  const f = formVals(x), a = autoNameOf(f); if (a) n.placeholder = a;
 }
 const productBody = (x = 'c') => {
-  const v = (k) => document.getElementById(`${x}-${k}`), opt = (k) => (v(k) && v(k).value.trim() !== '' ? toNum(v(k).value) : '');
-  const cat = v('cat').value;
-  return { name: v('name').value, cat, catName: SPEC[cat] ? SPEC[cat].en : '', unit: v('unit').value, box: v('box')?.value || '', buy: toNum(v('buy').value), sell: toNum(v('sell').value), min: toNum(v('min').value),
-    brand: v('brand')?.value || '', size: v('size')?.value || '', weight: opt('weight'), perPack: opt('pack') };
+  const f = formVals(x), build = btype() === 'build';
+  if (build && f.unit) unitMem.set(f.cat, f.unit);
+  return { name: f.name || (build ? autoNameOf(f) : ''), cat: f.cat, catName: SPEC[f.cat] ? SPEC[f.cat].en : '', unit: f.unit, box: f.box, buy: toNum(f.buy), sell: toNum(f.sell), min: toNum(f.min),
+    brand: f.brand, size: f.size, dims: f.dims, weight: '', perPack: f.perPack !== '' ? toNum(f.perPack) : '' };
 };
 VIEWS.catalog = () => {
   const b = S.cur;
@@ -389,7 +433,7 @@ VIEWS.catalog = () => {
   <div class="card"><h3 style="margin-bottom:10px">${I('plus')} ${L('নতুন পণ্য যোগ', 'Add product')}</h3>${productForm(null)}
     <div style="margin-top:12px"><button class="btn" data-addprod>${I('check')} ${L('পণ্য সেভ করুন', 'Save product')}</button></div></div>
   <div class="card"><div class="tablewrap"><table><thead><tr><th>${L('আইডি', 'ID')}</th><th>${L('পণ্য', 'Product')}</th><th>${L('ক্যাটাগরি', 'Category')}</th><th>${L('একক', 'Unit')}</th>${hasBox(b) ? `<th>${L('বক্স', 'Box')}</th>` : ''}<th class="r">${L('ক্রয়', 'Cost')}</th><th class="r">${L('বিক্রয়', 'Price')}</th><th class="r">${L('লাভ/একক', 'Profit/unit')}</th><th></th></tr></thead><tbody>
-  ${b.products.map((p) => `<tr><td class="num muted">#${dg(p.id)}</td><td><b>${esc(p.name)}</b>${pspec(p) ? `<div class="muted" style="font-size:.8rem">${esc(pspec(p))}</div>` : ''}</td><td>${catPill(p.cat)}</td><td>${U(p.unit)}</td>${hasBox(b) ? `<td class="num">${esc(dg(p.box || '—'))}</td>` : ''}<td class="r num">${tk(p.buy)}</td><td class="r num">${tk(p.sell)}</td><td class="r num" style="color:var(--leaf-d);font-weight:700">${tk(p.sell - p.buy)}</td>
+  ${b.products.map((p) => `<tr><td class="num muted">#${dg(p.id)}</td><td><b>${esc(p.name)}</b>${pspec(p) ? `<div class="muted" style="font-size:.8rem">${esc(pspec(p))}</div>` : ''}</td><td>${catPill(p.cat)}</td><td>${UL(p.unit)}</td>${hasBox(b) ? `<td class="num">${esc(dg(p.box || '—'))}</td>` : ''}<td class="r num">${tk(p.buy)}</td><td class="r num">${tk(p.sell)}</td><td class="r num" style="color:var(--leaf-d);font-weight:700">${tk(p.sell - p.buy)}</td>
   <td class="r" style="white-space:nowrap"><button class="btn ghost sm" data-editprod="${p.id}">${I('edit')} ${L('বদলান', 'Edit')}</button></td></tr>`).join('')}
   </tbody></table></div></div>`;
 };

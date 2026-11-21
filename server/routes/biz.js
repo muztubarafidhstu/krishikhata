@@ -95,23 +95,24 @@ r.post('/sales/:sid/void', adminOnly, (req, res) => {
 
 /* ---------- Products ---------- */
 function productFields(b, biz) {
-  const brand = str(b.brand, 40), size = str(b.size, 40);
-  // A building-material product may leave the name empty: it is made from brand + size.
-  const name = str(b.name, 80) || str([brand, b.catName, size].filter(Boolean).join(' '), 80);
+  const brand = str(b.brand, 40), size = str(b.size, 40), dims = str(b.dims, 30);
+  // A building-material product may leave the name empty: it is made from brand + category + size, e.g. "BSRM Rod 12 mm".
+  const name = str(b.name, 80) || str([brand, str(b.catName, 20), size, dims && `(${dims})`].filter(Boolean).join(' '), 80);
   if (!name) fail(400, 'পণ্যের নাম লিখুন', 'Enter a product name');
   const opt = (v, n) => (v === '' || v === null || v === undefined ? null : money(v, { name: n }));
   if (!CATS.includes(b.cat) || !JSON.parse(biz.cats).includes(b.cat)) fail(400, 'ক্যাটাগরি বাছাই করুন', 'Choose a category');
   if (!UNITS.includes(b.unit)) fail(400, 'একক বাছাই করুন', 'Choose a unit');
-  return { name, cat: b.cat, unit: b.unit, buy: money(b.buy, { name: 'cost' }), sell: money(b.sell, { name: 'price' }), min: money(b.min || 0, { name: 'min' }), box: str(b.box, 20), brand, size, weight: opt(b.weight, 'weight'), perPack: opt(b.perPack, 'pieces') };
+  if (biz.btype === 'build' && ['cement', 'tin'].includes(b.cat) && !brand) fail(400, 'কোম্পানি বাছাই করুন', 'Choose the company');
+  return { name, cat: b.cat, unit: b.unit, buy: money(b.buy, { name: 'cost' }), sell: money(b.sell, { name: 'price' }), min: money(b.min || 0, { name: 'min' }), box: str(b.box, 20), brand, size, dims, weight: opt(b.weight, 'weight'), perPack: opt(b.perPack, 'pieces') };
 }
 r.post('/products', adminOnly, (req, res) => {
   const f = productFields(req.body, req.biz);
-  const id = Number(run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,weight,per_pack) VALUES(?,?,?,?,?,?,0,?,?,?,?,?,?)', bid(req), f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box, f.brand, f.size, f.weight, f.perPack).lastInsertRowid);
+  const id = Number(run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,dims,weight,per_pack) VALUES(?,?,?,?,?,?,0,?,?,?,?,?,?,?)', bid(req), f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box, f.brand, f.size, f.dims, f.weight, f.perPack).lastInsertRowid);
   res.json({ id });
 });
 r.put('/products/:id', adminOnly, (req, res) => {
   const f = productFields(req.body, req.biz);
-  const c = run('UPDATE products SET name=?,cat=?,unit=?,buy=?,sell=?,min_stock=?,box=?,brand=?,size=?,weight=?,per_pack=? WHERE id=? AND business_id=?', f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box, f.brand, f.size, f.weight, f.perPack, Number(req.params.id), bid(req));
+  const c = run('UPDATE products SET name=?,cat=?,unit=?,buy=?,sell=?,min_stock=?,box=?,brand=?,size=?,dims=?,weight=?,per_pack=? WHERE id=? AND business_id=?', f.name, f.cat, f.unit, f.buy, f.sell, f.min, f.box, f.brand, f.size, f.dims, f.weight, f.perPack, Number(req.params.id), bid(req));
   if (!c.changes) fail(404, 'পণ্য পাওয়া যায়নি', 'Product not found');
   res.json({ ok: true });
 });

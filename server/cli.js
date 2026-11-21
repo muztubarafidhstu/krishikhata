@@ -51,7 +51,7 @@ if (cmd === 'backup') {
     run('UPDATE businesses SET next_inv=1001 WHERE id=?', b.id);
     let n = 1;
     for (const p of STARTER.filter((x) => JSON.parse(b.cats).includes(x.cat)))
-      run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,weight,per_pack) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', b.id, p.name, p.cat, p.unit, p.buy, p.sell, 0, p.min, 'B-' + String(n++).padStart(2, '0'), p.brand || '', p.size || '', p.weight ?? null, p.per_pack ?? null);
+      run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,dims,weight,per_pack) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', b.id, p.name, p.cat, p.unit, p.buy, p.sell, 0, p.min, 'B-' + String(n++).padStart(2, '0'), p.brand || '', p.size || '', p.dims || '', p.weight ?? null, p.per_pack ?? null);
     fillSample(b.id, (b.btype || 'agri') === 'build');
   });
   console.log(`Demo shop ${a1} refilled with fresh sample data.`);
@@ -65,7 +65,7 @@ if (cmd === 'backup') {
   }
   if (get('SELECT 1 x FROM businesses WHERE slug=?', slug)) { console.error('A shop with this address already exists.'); process.exit(1); }
   for (const p of [phone, sPhone].filter(Boolean)) if (get('SELECT 1 x FROM users WHERE phone=?', normPhone(p))) { console.error('This mobile number already has an ID: ' + p); process.exit(1); }
-  const bid = createBusiness({ btype: build ? 'build' : 'agri', name: build ? 'ডেমো স্টিল অ্যান্ড সিমেন্ট' : 'ডেমো কৃষি ভাণ্ডার', slug, owner: 'ডেমো মালিক', place: 'বগুড়া সদর', cats: build ? ['rod', 'cement', 'sheet', 'angle', 'bar', 'other'] : ['seed', 'fert', 'pest'],
+  const bid = createBusiness({ btype: build ? 'build' : 'agri', name: build ? 'ডেমো স্টিল অ্যান্ড সিমেন্ট' : 'ডেমো কৃষি ভাণ্ডার', slug, owner: 'ডেমো মালিক', place: 'বগুড়া সদর', cats: build ? ['rod', 'cement', 'tin', 'sheet', 'angle', 'bar', 'other'] : ['seed', 'fert', 'pest'],
     modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop'], admin: { phone, password: pass },
     sellers: sPhone ? [{ name: 'ডেমো সেলার', phone: sPhone, password: sPass }] : [], opening: 150000, starter: true, plan: 'trial' });
   run("UPDATE businesses SET plan='yearly', expiry=?, demo=1 WHERE id=?", addMonths(today(), 60), bid);
@@ -79,10 +79,10 @@ if (cmd === 'backup') {
 function fillSample(bid, build = false) {
   if (build) {
     // Demo brands so the shop looks real; owners type their own brands.
-    for (const [like, brand] of [['MS Rod 10%', 'BSRM'], ['MS Rod 12%', 'BSRM'], ['MS Rod 16%', 'KSRM'], ['Cement PCC%', 'Shah'], ['Cement OPC%', 'Seven Rings'], ['CI Sheet%', 'PHP']])
+    for (const [like, brand] of [['MS Rod 500W%', 'BSRM'], ['MS Rod 400W%', 'KSRM'], ['Cement PCC%', 'Shah'], ['Cement OPC%', 'Seven Rings'], ['Tin 0.32%', 'PHP'], ['Tin 0.36%', 'KY Steel']])
       run("UPDATE products SET brand=?, name=? || ' ' || name WHERE business_id=? AND name LIKE ?", brand, brand, bid, like);
   }
-  run("UPDATE products SET stock=CASE WHEN cat IN ('rod','angle','bar') THEN 3000 WHEN cat='fert' THEN 60 ELSE 120 END WHERE business_id=?", bid);
+  run("UPDATE products SET stock=CASE WHEN unit IN ('kg') AND cat IN ('rod','angle','bar','sheet') THEN 3000 WHEN cat='fert' THEN 60 ELSE 120 END WHERE business_id=?", bid);
   const custs = [['আব্দুল মালেক', 'শিবগঞ্জ', '01999000001'], ['হাসান আলী', 'মহাস্থান', '01999000002'], ['সুফিয়া বেগম', 'গাবতলী', '01999000003'], ['রফিকুল ইসলাম', 'নন্দীগ্রাম', '01999000004']]
     .map(([n, v, p]) => Number(run('INSERT INTO customers(business_id,name,village,phone,due) VALUES(?,?,?,?,0)', bid, n, v, p).lastInsertRowid));
   const v1 = Number(run('INSERT INTO vendors(business_id,name,phone,due) VALUES(?,?,?,?)', bid, build ? 'জেলা রড ডিলার' : 'জেলা সার ডিলার', '01999000011', 48000).lastInsertRowid);
@@ -91,7 +91,7 @@ function fillSample(bid, build = false) {
   const sellers = require('./db').all("SELECT * FROM users WHERE business_id=? AND role='seller' ORDER BY seller_code", bid);
   const plan = [[6, 1, [[0, 10], [4, 2]], 1], [6, -1, [[8, 3]], 1], [5, 2, [[4, 5], [6, 2]], 0.6], [4, 1, [[5, 3], [9, 4]], 0.5], [3, -1, [[2, 6], [8, 5]], 1], [2, 2, [[0, 20]], 1], [1, 3, [[4, 4], [5, 2]], 0.4], [0, 2, [[4, 3], [8, 2]], 1], [0, 1, [[1, 2], [11, 1]], 0.5]];
   plan.forEach(([d, ci, items, ratio], k) => {
-    const its = items.map(([pi, q]) => ({ p: prods[pi], q }));
+    const its = items.map(([pi, q]) => ({ p: prods[pi], q: build && prods[pi].unit === 'kg' ? q * 50 : q })); // steel is sold by the kilo
     const total = its.reduce((s, x) => s + x.p.sell * x.q, 0);
     const cust = ci >= 0 ? custs[ci] : null;
     const paid = cust ? Math.min(total, Math.round(total * ratio / 50) * 50) : total;
