@@ -11,6 +11,7 @@
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
     "seed-demo": "node --disable-warning=ExperimentalWarning server/cli.js seed-demo",
+    "demo-shop": "node --disable-warning=ExperimentalWarning server/cli.js demo-shop",
     "reset-super": "node --disable-warning=ExperimentalWarning server/cli.js reset-super",
     "backup": "node --disable-warning=ExperimentalWarning server/cli.js backup",
     "test": "node --disable-warning=ExperimentalWarning test/smoke.js"
