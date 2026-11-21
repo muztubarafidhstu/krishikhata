@@ -8,6 +8,7 @@ async function boot() {
     const r = await api('GET', '/api/public/shop/' + encodeURIComponent(m[1]));
     S.pub = r.ok ? r.data : { missing: true }; render(); return;
   }
+  { const r = await api('GET', '/api/site'); if (r.ok) S.site = r.data; }
   if (!S.me) { const r = await api('GET', '/api/me'); if (r.ok) { S.me = r.data.me; S.otp = r.data.otp; } }
   if (!S.me) { render(); return; }
   try {

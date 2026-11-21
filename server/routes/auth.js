@@ -2,11 +2,15 @@
 const express = require('express');
 const { get, run } = require('../db');
 const { verifyPassword, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
+const { ADMIN_DOMAIN, DOMAIN } = require('../config');
 const { createSession, destroySession, requireLogin, limit } = require('../auth');
 const { fail, otpGate, otpEnabled, audit, queueSms } = require('../core');
 
 const r = express.Router();
 const PASS_MSG = ['পাসওয়ার্ডে কমপক্ষে ৫ অক্ষর, একটি ইংরেজি অক্ষর, একটি সংখ্যা ও একটি চিহ্ন লাগবে', 'The password needs 5+ characters with a letter, a number and a symbol'];
+
+const isAdminHost = (req) => !!ADMIN_DOMAIN && String(req.hostname || '').toLowerCase() === ADMIN_DOMAIN;
+r.get('/site', (req, res) => res.json({ admin: isAdminHost(req), domain: DOMAIN, adminDomain: ADMIN_DOMAIN }));
 
 const meOf = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone, businessId: u.business_id, sellerCode: u.seller_code });
 
@@ -17,6 +21,12 @@ r.post('/login', (req, res) => {
     fail(429, 'অনেকবার ভুল চেষ্টা হয়েছে। ১৫ মিনিট পরে আবার চেষ্টা করুন।', 'Too many attempts. Try again in 15 minutes.');
   const u = get('SELECT * FROM users WHERE phone=? AND active=1', phone);
   if (!u || !verifyPassword(String(req.body.password || ''), u.pass_hash)) fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true });
+  // With ADMIN_DOMAIN set, the super admin signs in only on that address and shop users only on the main one.
+  if (ADMIN_DOMAIN) {
+    const onAdmin = isAdminHost(req);
+    if (u.role === 'super' && !onAdmin) fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true });
+    if (u.role !== 'super' && onAdmin) fail(403, `এটি মাদার প্যানেল। দোকানের লগইন: ${DOMAIN || 'মূল ঠিকানা'}`, `This is the mother panel. Shops sign in at ${DOMAIN || 'the main address'}`, { login: true });
+  }
   createSession(res, req, u.id);
   audit(u.id, 'login');
   res.json({ me: meOf(u), otp: otpEnabled() });

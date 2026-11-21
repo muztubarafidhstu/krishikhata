@@ -1,4 +1,4 @@
-{$DOMAIN} {
+(app) {
 	encode gzip
 	reverse_proxy app:3000
 	header {
@@ -8,4 +8,14 @@
 		output stdout
 		format console
 	}
+}
+
+# Shops, sellers and the public product pages
+{$DOMAIN} {
+	import app
+}
+
+# Mother panel (super admin)
+{$ADMIN_DOMAIN} {
+	import app
 }

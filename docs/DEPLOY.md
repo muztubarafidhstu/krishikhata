@@ -24,7 +24,7 @@
 | Type | Name | Value |
 |---|---|---|
 | A | `@` | আপনার সার্ভারের IP |
-| A | `www` | আপনার সার্ভারের IP |
+| A | `admin` | আপনার সার্ভারের IP (মাদার প্যানেলের আলাদা ঠিকানা) |
 
 Cloudflare ব্যবহার করলে প্রথমে মেঘের চিহ্ন **ধূসর (DNS only)** রাখুন, যাতে HTTPS সার্টিফিকেট নিজে থেকে তৈরি হতে পারে।
 DNS ছড়াতে ৫ মিনিট থেকে কয়েক ঘণ্টা লাগতে পারে। যাচাই: কম্পিউটারে `ping example.com` দিলে আপনার সার্ভারের IP দেখাবে।
@@ -96,7 +96,8 @@ cp .env.example .env && nano .env
 যা বসাবেন:
 
 ```
-DOMAIN=example.com                 ← আপনার ডোমেইন (https:// ও www ছাড়া)
+DOMAIN=example.com                 ← দোকানের ঠিকানা (https:// ছাড়া)
+ADMIN_DOMAIN=admin.example.com     ← মাদার প্যানেলের ঠিকানা
 SUPER_PHONE=017XXXXXXXX            ← আপনার মোবাইল (সুপার অ্যাডমিন আইডি)
 SUPER_PASSWORD=YourPass@1          ← কমপক্ষে ৫ অক্ষর, অক্ষর + সংখ্যা + চিহ্ন
 APP_SECRET=...                     ← প্রথম openssl কমান্ডের ৬৪ অক্ষরের মান
@@ -125,7 +126,8 @@ docker compose logs --tail=30 app
 docker compose logs --tail=30 caddy
 ```
 
-এখন ব্রাউজারে **https://example.com** খুলুন → আপনার `SUPER_PHONE` ও `SUPER_PASSWORD` দিয়ে লগইন করুন। 🎉
+এখন ব্রাউজারে **https://admin.example.com** খুলুন → আপনার `SUPER_PHONE` ও `SUPER_PASSWORD` দিয়ে লগইন করুন। 🎉
+দোকানের মালিক ও সেলাররা লগইন করবেন **https://example.com**-এ। সুপার অ্যাডমিন শুধু admin ঠিকানায় ঢুকতে পারেন।
 
 ## ধাপ ৮ — প্রথম কাজগুলো
 

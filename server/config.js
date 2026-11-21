@@ -36,6 +36,8 @@ module.exports = {
   APP_SECRET: secret,
   COOKIE_SECURE: process.env.COOKIE_SECURE === '1',
   GATEWAY_KEY: process.env.GATEWAY_KEY || '',
+  DOMAIN: (process.env.DOMAIN || '').toLowerCase(),
+  ADMIN_DOMAIN: (process.env.ADMIN_DOMAIN || '').toLowerCase(), // separate address for the mother panel
   SUPER_PHONE: process.env.SUPER_PHONE || '',
   SUPER_PASSWORD: process.env.SUPER_PASSWORD || '',
   SUPER_NAME: process.env.SUPER_NAME || 'Super Admin',
