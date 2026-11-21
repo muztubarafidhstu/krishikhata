@@ -384,10 +384,21 @@ async function runSetup(btn) {
     for (let i = 0; i < tasks.length; i++) { $('#slog').insertAdjacentHTML('beforeend', `<div><span class="dot">${I('check')}</span>${esc(tasks[i])}</div>`); $('#pbar').style.width = ((i + 1) / tasks.length) * 100 + '%'; await new Promise((ok) => setTimeout(ok, 220)); }
     S.wiz = null; await loadSuper();
     toast(L('সেটআপ সম্পন্ন! ঠিকানা: ', 'Setup complete! Address: ') + r.url);
-    openBiz(r.id);
+    openBiz(r.id, true);
   });
 }
-async function openBiz(id) { S.bid = Number(id); S.dq = ''; S.sq = ''; draft = null; await act(null, async () => { await loadBiz(); go('dash'); }); }
+// Opening a shop panel asks for the super admin password again (skip = right after creating that shop).
+function openBiz(id, skipPassword) {
+  const enter = async () => { S.bid = Number(id); S.dq = ''; S.sq = ''; draft = null; await loadBiz(); go('dash'); };
+  if (skipPassword) return act(null, enter);
+  const b = supBiz(id);
+  modal(`<h3>${I('shield')} ${L('পাসওয়ার্ড দিন', 'Enter your password')}</h3><div style="opacity:.9">${esc(b ? b.name : '')} — ${L('দোকানের প্যানেল খুলতে', 'to open the shop panel')}</div>`, `
+    <form id="unlock-form" style="display:flex;flex-direction:column;gap:12px">
+      <label class="f">${L('আপনার (সুপার অ্যাডমিন) পাসওয়ার্ড', 'Your (super admin) password')}<input class="in" id="ul-pass" type="password" autocomplete="current-password" required></label>
+      <div style="display:flex;justify-content:flex-end;gap:8px"><button type="button" class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" type="submit">${I('check')} ${L('খুলুন', 'Open')}</button></div>
+    </form>`, { width: 440 });
+  $('#unlock-form').onsubmit = (e) => { e.preventDefault(); act(e.submitter || $('#unlock-form button[type=submit]'), async () => { await call('POST', '/api/super/unlock-shop', { bid: Number(id), password: $('#ul-pass').value }); closeModal(); await enter(); }); };
+}
 
 /* Change a shop's web address */
 function editSlug(id) {

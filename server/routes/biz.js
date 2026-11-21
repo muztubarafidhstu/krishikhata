@@ -2,7 +2,7 @@
 const express = require('express');
 const { get, all, run, tx, today } = require('../db');
 const { hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
-const { requireLogin } = require('../auth');
+const { requireLogin, shopUnlocked } = require('../auth');
 const { fail, money, str, otpGate, audit, queueSms, isLocked, CATS, UNITS, EXP_TYPES } = require('../core');
 const { bizState } = require('../state');
 const { PASS_MSG } = require('./auth');
@@ -16,6 +16,7 @@ r.use((req, _res, next) => {
   if (u.role === 'super') {
     const bid = Number(req.query.bid || req.body?.bid);
     req.biz = get('SELECT * FROM businesses WHERE id=?', bid) || fail(400, 'ব্যবসা বাছাই করুন', 'Choose a business');
+    if (!shopUnlocked(req, bid)) fail(403, 'দোকানের প্যানেল খুলতে আবার পাসওয়ার্ড দিন', 'Enter your password again to open the shop panel', { needUnlock: true });
     req.viewer = { role: 'admin', id: u.id, label: 'admin', isSuper: true };
   } else {
     req.biz = get('SELECT * FROM businesses WHERE id=?', u.business_id) || fail(403, 'অনুমতি নেই', 'Not allowed');

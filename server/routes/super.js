@@ -1,8 +1,8 @@
 'use strict';
 const express = require('express');
 const { get, all, run, tx, getSetting, setSetting, today, addMonths } = require('../db');
-const { decrypt, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
-const { requireSuper } = require('../auth');
+const { decrypt, verifyPassword, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
+const { requireSuper, unlockShop, limit } = require('../auth');
 const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, audit, isLocked, CATS, MODULE_KEYS, METHODS } = require('../core');
 const { bizSummary } = require('../state');
 const { createBusiness } = require('../business');
@@ -88,7 +88,18 @@ r.post('/businesses', (req, res) => {
   audit(req.user.id, 'business-create', bid + ' ' + name);
   notify(bid, `কৃষিখাতায় স্বাগতম! আপনার আইডি: ${admin.phone}`, `Welcome to KrishiKhata! Your login ID is ${admin.phone}.`, `Welcome to KrishiKhata! Sign in at ${shopUrl(slug)} with ID ${admin.phone}.`);
   sellers.forEach((s) => require('../core').queueSms(s.phone, `KrishiKhata: your seller ID ${s.phone} at ${name} is active. Get your password from the owner.`));
+  unlockShop(req, bid);
   res.json({ id: bid, slug, url: shopUrl(slug) });
+});
+
+// Opening a shop's panel from the mother panel needs the super admin password again.
+r.post('/unlock-shop', (req, res) => {
+  const b = bizOr404(req.body.bid);
+  if (!limit('unlock:' + req.user.id, 10, 15 * 60000)) fail(429, 'অনেকবার ভুল চেষ্টা। ১৫ মিনিট পরে চেষ্টা করুন।', 'Too many attempts. Try again in 15 minutes.');
+  if (!verifyPassword(String(req.body.password || ''), req.user.pass_hash)) fail(400, 'পাসওয়ার্ড ভুল', 'Wrong password');
+  unlockShop(req, b.id);
+  audit(req.user.id, 'open-shop', String(b.id));
+  res.json({ ok: true });
 });
 
 r.get('/slug-check', (req, res) => {

@@ -92,6 +92,14 @@ const lastOtp = () => {
     r = await sup('POST', `/api/super/businesses/${bid}/payment`, { plan: 'monthly', qty: 2, method: 'bkash' }); assert.equal(r.status, 200); assert.equal(r.data.amount, 1000);
     r = await own('POST', '/api/biz/expenses', { type: 'tea', amount: '৫০' }); assert.equal(r.status, 200);
 
+    // Super admin must re-enter the password to open a shop panel
+    const sup2 = client();
+    r = await sup2('POST', '/api/login', { phone: '01700000000', password: 'Super@1', remember: true }); assert.equal(r.status, 200);
+    r = await sup2('GET', `/api/biz/state?bid=${bid}`); assert.equal(r.status, 403); assert.ok(r.data.needUnlock);
+    r = await sup2('POST', '/api/super/unlock-shop', { bid, password: 'wrong@1' }); assert.equal(r.status, 400);
+    r = await sup2('POST', '/api/super/unlock-shop', { bid, password: 'Super@1' }); assert.equal(r.status, 200);
+    r = await sup2('GET', `/api/biz/state?bid=${bid}`); assert.equal(r.status, 200);
+
     // Reveal password (super only)
     r = await sup('GET', '/api/super/users'); const ownerUser = r.data.find((u) => u.phone === '01711000001');
     r = await sup('POST', `/api/super/users/${ownerUser.id}/reveal`); assert.equal(r.data.password, 'Owner@1');

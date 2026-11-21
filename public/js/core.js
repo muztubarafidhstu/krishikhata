@@ -139,7 +139,11 @@ async function call(method, url, body = {}) {
     res = await api(method, url, { ...body, otpId: otp.otpId, otpCode: ans });
   }
   closeOtp();
-  if (!res.ok) { if (res.data.locked) { await reload(); render(); } toast(errText(res.data), 'err'); throw new ApiErr('api', true); }
+  if (!res.ok) {
+    if (res.data.needUnlock) { S.bid = null; S.cur = null; await loadSuper(); go('home'); }
+    else if (res.data.locked) { await reload(); render(); }
+    toast(errText(res.data), 'err'); throw new ApiErr('api', true);
+  }
   return res.data;
 }
 // Runs an async action with the button disabled; swallows already-shown errors.
