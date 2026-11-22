@@ -212,7 +212,7 @@ cd /opt/krishikhata && docker compose exec app npm run demo-all
 প্রতিটি সফটওয়্যারের দুটো ডেমো তৈরি হয়: সাজানো ডেমো (নমুনা বিক্রি, ক্রেতা, বাকিসহ — `/demo1` … `/demo8`)
 আর নতুন দোকান ডেমো (একদম খালি — কোনো পণ্য নেই; `newkrishi`, `newnirman`, `newbike` … )।
 এখনই সব ডেমো আগের অবস্থায় ফেরাতে: `docker compose exec app npm run reset-demos`
-সব ডেমো লিংক এক পেজে: `demo.example.com` (কোথাও প্রকাশিত নয়, সার্চ ইঞ্জিনেও আসে না)।
+নতুন দোকান ডেমোর লিংক: `demo.example.com` (কোথাও প্রকাশিত নয়, সার্চ ইঞ্জিনেও আসে না)। এগুলোতে লগইন লাগে — ৮টিতেই একই আইডি `01700000000`, পাসওয়ার্ড `demo` (বদলাতে `.env`-এ `DEMO_LOGIN_PHONE` ও `DEMO_LOGIN_PASSWORD`)।
 
 ## আপডেট করা (নতুন ফিচার এলে)
 

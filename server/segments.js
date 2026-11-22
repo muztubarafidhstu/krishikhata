@@ -60,6 +60,9 @@ const SEGMENTS = [
     feats: [['🔧', 'পাইপ ও ফিটিংস', 'সাইজ অনুযায়ী'], ['🚿', 'স্যানিটারি ও টাইলস', 'বক্স বা পিস'], ['🎨', 'রং ও ইলেকট্রিক', 'লিটার, মিটার, পিস'], ['👷', 'মিস্ত্রির বাকি', 'মোবাইল নম্বরে খুঁজুন'], ['🧾', 'ক্যাশ মেমো', 'PDF ও প্রিন্ট'], ['📈', 'লাভ-ক্ষতি', 'কোন মালে কত লাভ']],
   },
 ];
+// One shared login for the 8 'new shop' demos (newkrishi, newnirman, …): on any of those addresses
+// this ID and password open that shop. Not shown on any page; the owner gives it out.
+const FRESH_LOGIN = { phone: process.env.DEMO_LOGIN_PHONE || '01700000000', password: process.env.DEMO_LOGIN_PASSWORD || 'demo' };
 const SEG = Object.fromEntries(SEGMENTS.map((s) => [s.key, s]));
 const segByNum = (n) => SEGMENTS.find((s) => s.num === Number(n));
 // demo  = the full demo shop (sample sales, customers, dues …), public at rafid5.com/demoN.
@@ -67,4 +70,4 @@ const segByNum = (n) => SEGMENTS.find((s) => s.num === Number(n));
 // Shops that sell one unique item at a time with its papers (engine/chassis number, owner, dates).
 const VEHICLE = { bike: 'bike', car: 'car' };
 
-module.exports = { SEGMENTS, SEG, segByNum, VEHICLE };
+module.exports = { SEGMENTS, SEG, segByNum, VEHICLE, FRESH_LOGIN };

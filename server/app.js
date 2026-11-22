@@ -110,7 +110,7 @@ function createApp() {
     if (DOMAIN && h.kind === 'main') return sendPage(res, pages.demoPage(pageVars(req, null)));
     const slug = h.kind === 'shop' ? h.slug : !DOMAIN ? String(req.query.shop || '') : '';
     const b = slug && get('SELECT id,slug,demo FROM businesses WHERE slug=?', slug);
-    if (!b || !b.demo) return res.redirect(302, '/');
+    if (!b || !b.demo || require('./demo').isFresh(b.slug)) return res.redirect(302, '/'); // 'new shop' demos need the login
     if (!limit('demo:' + req.ip, 40, 10 * 60000)) return res.status(429).type('text').send('অনেকবার চেষ্টা হয়েছে। একটু পরে আবার চেষ্টা করুন।');
     const u = get("SELECT * FROM users WHERE business_id=? AND role='admin' AND active=1", b.id);
     if (!u) return res.redirect(302, '/');

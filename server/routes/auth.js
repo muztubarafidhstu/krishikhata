@@ -13,7 +13,7 @@ const { hostInfo, adminTypeOf, isLauncherHost, isDemoHost, shopUrl } = require('
 const isAdminHost = (req) => hostInfo(req).kind === 'admin';
 r.get('/site', (req, res) => {
   const h = hostInfo(req);
-  res.json({ kind: h.kind, admin: h.kind === 'admin', launcher: !!h.launcher, btype: h.btype || 'agri', shop: h.biz ? { name: h.biz.name, slug: h.biz.slug, btype: h.btype, demo: !!(get('SELECT demo FROM businesses WHERE id=?', h.biz.id) || {}).demo } : null, missingShop: h.kind === 'shop' && !h.biz, domain: DOMAIN, adminDomain: ADMIN_DOMAIN, buildAdminDomain: BUILD_ADMIN_DOMAIN });
+  res.json({ kind: h.kind, admin: h.kind === 'admin', launcher: !!h.launcher, btype: h.btype || 'agri', shop: h.biz ? { name: h.biz.name, slug: h.biz.slug, btype: h.btype, demo: !!(get('SELECT demo FROM businesses WHERE id=?', h.biz.id) || {}).demo, fresh: require('../demo').isFresh(h.biz.slug) } : null, missingShop: h.kind === 'shop' && !h.biz, domain: DOMAIN, adminDomain: ADMIN_DOMAIN, buildAdminDomain: BUILD_ADMIN_DOMAIN });
 });
 // Caddy asks this before creating an HTTPS certificate for a new address — only real shops get one.
 r.get('/tls-check', (req, res) => {
@@ -31,6 +31,21 @@ r.post('/login', (req, res) => {
   const kIp = 'login:' + req.ip, kPhone = 'login:' + phone;
   if (tooMany(kIp, 30, 15 * 60000) || tooMany(kPhone, 8, 15 * 60000))
     fail(429, 'অনেকবার ভুল পাসওয়ার্ড দেওয়া হয়েছে। ১৫ মিনিট পরে আবার চেষ্টা করুন।', 'Too many wrong passwords. Try again in 15 minutes.');
+  // 'New shop' demos (newkrishi.<domain> …): the shared demo login opens the shop of this address.
+  {
+    const h0 = hostInfo(req);
+    const { FRESH_LOGIN } = require('../segments');
+    if (h0.kind === 'shop' && h0.biz && phone === FRESH_LOGIN.phone && require('../demo').isFresh(h0.biz.slug)) {
+      const b0 = get('SELECT id,demo FROM businesses WHERE id=?', h0.biz.id);
+      const owner = b0 && b0.demo ? get("SELECT * FROM users WHERE business_id=? AND role='admin' AND active=1", b0.id) : null;
+      const a = Buffer.from(String(req.body.password || '').trim().toLowerCase()), e = Buffer.from(FRESH_LOGIN.password.toLowerCase());
+      if (!owner || a.length !== e.length || !require('node:crypto').timingSafeEqual(a, e)) { addFail(kIp); addFail(kPhone); fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true }); }
+      clearFails(kPhone);
+      createSession(res, req, owner, !!req.body.remember);
+      audit(owner.id, 'login-demo');
+      return res.json({ me: meOf(owner), otp: otpEnabled() });
+    }
+  }
   const u = get('SELECT * FROM users WHERE phone=? AND active=1', phone);
   // A space typed by mistake before or after the password is ignored.
   const pw = String(req.body.password || '');
