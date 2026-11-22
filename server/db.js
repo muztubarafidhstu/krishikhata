@@ -92,7 +92,7 @@ CREATE INDEX IF NOT EXISTS ix_notif_b ON notifications(business_id);
   if (!pucols.includes('void')) db.exec('ALTER TABLE purchases ADD COLUMN void INTEGER DEFAULT 0');
   const icols = db.prepare('PRAGMA table_info(sale_items)').all().map((c) => c.name);
   if (!icols.includes('pcs')) db.exec('ALTER TABLE sale_items ADD COLUMN pcs REAL');
-  for (const [c, t] of [['price_monthly', 'REAL'], ['price_yearly', 'REAL'], ['demo', 'INTEGER DEFAULT 0'], ['btype', "TEXT DEFAULT 'agri'"]])
+  for (const [c, t] of [['price_monthly', 'REAL'], ['price_yearly', 'REAL'], ['demo', 'INTEGER DEFAULT 0'], ['btype', "TEXT DEFAULT 'agri'"], ['vcond', "TEXT DEFAULT 'both'"]])
     if (!cols.includes(c)) db.exec(`ALTER TABLE businesses ADD COLUMN ${c} ${t}`);
   // v1.1: corrugated tin moved out of "sheet" into its own "tin" category (once).
   if (!db.prepare("SELECT 1 x FROM settings WHERE key='mig_tin_v1'").get()) {

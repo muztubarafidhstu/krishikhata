@@ -33,6 +33,8 @@ function createBusiness(data) {
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, data.name, data.owner, data.place || '', normPhone(data.phone || data.admin.phone), data.licence || '',
       'tmp-' + Date.now() + Math.random(), JSON.stringify(data.cats), JSON.stringify(data.modules), data.opening || 0, plan, 'on', t, expiry);
     run('UPDATE businesses SET btype=? WHERE id=?', btype, Number(r.lastInsertRowid));
+    // Bike shops: new bikes, used bikes or both (chosen in the setup wizard). Car shops: used cars only.
+    run('UPDATE businesses SET vcond=? WHERE id=?', btype === 'car' ? 'old' : ['new', 'old', 'both'].includes(data.vcond) ? data.vcond : 'both', Number(r.lastInsertRowid));
     const bid = Number(r.lastInsertRowid);
     run('UPDATE businesses SET slug=? WHERE id=?', data.slug || slugify(data.slugHint || data.name, bid), bid);
     addUser({ bid, role: 'admin', name: data.owner, phone: data.admin.phone, password: data.admin.password });

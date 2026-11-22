@@ -13,7 +13,8 @@ const isDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(
 function vehicleInput(b, biz) {
   const cat = b.cat === 'car' ? 'car' : 'bike';
   if (!JSON.parse(biz.cats).includes(cat)) fail(400, 'ক্যাটাগরি বাছাই করুন', 'Choose a category');
-  const cond = cat === 'car' ? 'old' : b.cond === 'new' ? 'new' : 'old'; // cars: second-hand only
+  // Cars: second-hand only. Bikes: what the shop was set up for (new / used), or the owner's choice when it sells both.
+  const cond = cat === 'car' ? 'old' : ['new', 'old'].includes(biz.vcond) ? biz.vcond : b.cond === 'new' ? 'new' : 'old';
   const m = {
     cond, brand: str(b.brand, 40), model: str(b.model, 60), year: str(b.year, 4), engine: str(b.engine, 40).toUpperCase(), chassis: str(b.chassis, 40).toUpperCase(),
     color: str(b.color, 30), cc: str(b.cc, 8), regNo: str(b.regNo, 40), regDate: str(b.regDate, 10), buyDate: str(b.buyDate, 10) || today(),

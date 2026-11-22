@@ -94,7 +94,7 @@ r.post('/businesses', (req, res) => {
     btype: req.btype,
     name, owner, place: str(b.place, 80), phone: validPhone(b.phone) ? b.phone : admin.phone, licence: str(b.licence, 40),
     opening: b.opening ? money(b.opening, { name: 'opening' }) : 0, cats, modules, starter: b.starter !== false, admin, sellers,
-    plan: b.plan, payMethod: b.payMethod, payRef: str(b.payRef, 40), slug,
+    plan: b.plan, payMethod: b.payMethod, payRef: str(b.payRef, 40), slug, vcond: b.vcond,
   });
   audit(req.user.id, 'business-create', bid + ' ' + name);
   notify(bid, `${brandOf(req.btype).bn}-য় স্বাগতম! আপনার আইডি: ${admin.phone}`, `Welcome to ${brandOf(req.btype).brand}! Your login ID is ${admin.phone}.`, `Welcome to ${brandOf(req.btype).brand}! Sign in at ${shopUrl(slug)} with ID ${admin.phone}.`);
@@ -128,6 +128,16 @@ r.put('/businesses/:id/slug', (req, res) => {
   notify(b.id, `আপনার দোকানের নতুন ঠিকানা: ${shopUrl(s)}`, `Your shop’s new address: ${shopUrl(s)}`);
   audit(req.user.id, 'slug', `${b.id} ${s}`);
   res.json({ ok: true, url: shopUrl(s) });
+});
+
+// Bike shop: sells new bikes, used bikes or both.
+r.put('/businesses/:id/vcond', (req, res) => {
+  const b = bizOr404(req.params.id, req);
+  if (b.btype !== 'bike') fail(400, 'শুধু বাইকের দোকানের জন্য', 'Only for bike shops');
+  const v = ['new', 'old', 'both'].includes(req.body.vcond) ? req.body.vcond : fail(400, 'ধরন বাছাই করুন', 'Choose a type');
+  run('UPDATE businesses SET vcond=? WHERE id=?', v, b.id);
+  audit(req.user.id, 'vcond', `${b.id} ${v}`);
+  res.json({ ok: true });
 });
 
 // Special price for one shop. Send empty values to go back to the standard price.

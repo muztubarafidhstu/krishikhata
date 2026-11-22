@@ -171,6 +171,23 @@ const lastOtp = () => {
     const pu2 = r.data.purchases.find((x) => x.items[0].pid === vid2);
     r = await vown('POST', `/api/biz/purchases/${pu2.id}/void`); assert.equal(r.status, 200);
     r = await vown('GET', '/api/biz/state'); assert.ok(!r.data.products.find((p) => p.id === vid2), 'cancelling the purchase removes the bike');
+    // Bike shop set up for used bikes only: every bike is saved as used; switch to new-only
+    r = await sup('POST', '/api/super/businesses?type=bike', { slug: 'old-bikes', name: 'Puraton Bike Ghor', owner: 'Owner E', cats: ['bike'], modules: [], admin: { phone: '01711000055', password: 'Owner@5' }, sellers: [], plan: 'trial', vcond: 'old' });
+    assert.equal(r.status, 200); const obid = r.data.id;
+    const oown = client(); await oown('POST', '/api/login', { phone: '01711000055', password: 'Owner@5' });
+    r = await oown('POST', '/api/biz/vehicles', { cat: 'bike', cond: 'new', model: 'FZS', buy: 1, sell: 2 }); assert.equal(r.status, 200);
+    r = await oown('GET', '/api/biz/state'); assert.equal(r.data.vcond, 'old'); assert.equal(r.data.products[0].meta.cond, 'old');
+    r = await sup('PUT', `/api/super/businesses/${obid}/vcond?type=bike`, { vcond: 'new' }); assert.equal(r.status, 200);
+    r = await oown('POST', '/api/biz/vehicles', { cat: 'bike', cond: 'old', model: 'Pulsar', buy: 1, sell: 2 });
+    r = await oown('GET', '/api/biz/state'); assert.equal(r.data.products.find((p) => p.meta.model === 'Pulsar').meta.cond, 'new');
+    // Shop finder: address name, full shop name, a user's mobile number
+    const loc = async (q) => (await fetch(base + '/go?q=' + encodeURIComponent(q), { redirect: 'manual' })).headers.get('location');
+    assert.equal(await loc('old-bikes'), '/shop/old-bikes');
+    assert.equal(await loc('  OLD BIKES '), '/shop/old-bikes');
+    assert.equal(await loc('Puraton Bike Ghor'), '/shop/old-bikes');
+    assert.equal(await loc('০১৭১১-০০০০৫৫'), '/shop/old-bikes/#id=01711000055');
+    assert.ok((await loc('nobody-here')).startsWith('/?nf=1&q=nobody-here'));
+
     // Car shop: used cars only
     r = await sup('POST', '/api/super/businesses?type=car', { slug: 'car-shop', name: 'Car House', owner: 'Owner D', cats: ['car'], modules: [], admin: { phone: '01711000044', password: 'Owner@4' }, sellers: [], plan: 'trial' });
     const cown = client(); await cown('POST', '/api/login', { phone: '01711000044', password: 'Owner@4' });

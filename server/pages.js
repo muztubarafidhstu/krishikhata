@@ -34,11 +34,11 @@ const SHARED_CSS = `
 `;
 
 // "Already a customer? Go to your shop": shop name or mobile number → /go → that shop's own address.
-const finderHTML = (nf) => `<div class="finder" id="finder"><form action="/go" method="get">
+const finderHTML = (nf, q = '') => `<div class="finder" id="finder"><form action="/go" method="get">
   <span class="ic" aria-hidden="true">🏪</span>
-  <div class="t"><b>আগেই গ্রাহক? নিজের দোকানে যান</b><span>দোকানের নাম (যেমন karim) অথবা আপনার মোবাইল নম্বর (আইডি) লিখুন</span></div>
-  <div class="row"><input name="q" required maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="karim বা 01XXXXXXXXX" aria-label="দোকানের নাম বা মোবাইল নম্বর"><button type="submit">আমার দোকান →</button></div>
-  ${nf ? '<p class="nf">এই নাম বা নম্বরে কোনো দোকান পাওয়া যায়নি। বানান দেখে আবার লিখুন, অথবা WhatsApp করুন।</p>' : ''}
+  <div class="t"><b>আগেই গ্রাহক? নিজের দোকানে যান</b><span>দোকানের ঠিকানার নাম (যেমন ঠিকানা rahim.rafid5.com হলে লিখুন <b>rahim</b>), দোকানের পুরো নাম, অথবা আপনার মোবাইল নম্বর (আইডি)</span></div>
+  <div class="row"><input name="q" required maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="যেমন: demoshop বা 01XXXXXXXXX" aria-label="দোকানের নাম বা মোবাইল নম্বর" value="${nf ? esc(q) : ''}"><button type="submit">আমার দোকান →</button></div>
+  ${nf ? `<p class="nf">"${esc(q)}" — এই নাম বা নম্বরে কোনো দোকান পাওয়া যায়নি। দোকানের ঠিকানার নাম বা মালিক/সেলারের মোবাইল নম্বর ঠিকমতো লিখুন, অথবা WhatsApp করুন।</p>` : ''}
 </form></div>`;
 
 const allAppsHTML = (current, prices) => `<section class="allapps" id="all"><h2>আমাদের সব সফটওয়্যার</h2><p class="sub">যে ব্যবসা, সেই অনুযায়ী আলাদা অ্যাপ — সবগুলোতে ${bnNum(14)} দিন ফ্রি</p>
@@ -130,7 +130,7 @@ function segPage(s, v) {
     <a class="btn dl" href="/${s.apk}" download="${s.apk}">${DL_ICON}অ্যাপ ডাউনলোড</a></div>
   <div class="meta"><span>${bnNum(P.trialDays)} দিন ফ্রি</span><span>মাসিক মাত্র ৳${bnNum(P.monthly)}</span><span>কোনো সেটআপ খরচ নেই</span><span>মোবাইল ও কম্পিউটারে</span></div>
 </div><img class="art" src="/art/${s.key}.svg" alt="" width="480" height="300"></div></header>
-${finderHTML(v.nf)}
+${finderHTML(v.nf, v.q)}
 <main class="wrap">
   <section><div class="eyebrow">সমস্যা চেনেন তো?</div><h2>খাতায় হিসাব রাখলে প্রতি মাসে টাকা হারায়</h2>
     <div class="vs"><div class="col bad"><h3>📒 খাতা-কলমে</h3><ul>${(s.pains || []).map((x) => `<li>${esc(x)}</li>`).join('')}<li>খাতা হারালে বা ভিজলে সব হিসাব শেষ</li></ul></div>
@@ -222,7 +222,7 @@ function hubPage(v) {
 </div>
 <div class="mosaic">${SEGMENTS.map((x) => `<a href="/app${x.num}" style="background:radial-gradient(120% 90% at 85% 0%,${x.color} 0%,${x.dark} 85%)" aria-label="${esc(x.bn)}"><img src="/art/${x.key}.svg" alt=""><span>${esc(x.bn)}</span></a>`).join('')}</div>
 </div></header>
-${finderHTML(v.nf)}
+${finderHTML(v.nf, v.q)}
 <main class="wrap"><div class="ads" id="ads">${SEGMENTS.map(ad).join('')}</div></main>
 <footer>© ${esc(v.domain)} · ব্যবসার হিসাবের অ্যাপ · WhatsApp ${esc(v.waShow)}</footer>
 <a class="float" href="${v.waQ}" target="_blank" rel="noopener" aria-label="WhatsApp-এ প্রশ্ন করুন">${v.WA}<span>প্রশ্ন করুন</span></a>

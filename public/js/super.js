@@ -37,6 +37,7 @@ VIEWS.home = () => {
         <div style="min-width:0"><h3>${esc(b.name)}</h3><div class="muted" style="font-size:.88rem">${esc(b.owner)} · ${esc(b.place)}</div>
         <div class="muted num" style="font-size:.8rem">${esc(dg(fmtPhone(b.admin.phone)))}</div>
         <div style="font-size:.82rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><a href="${esc(shopUrl(b.slug))}" target="_blank" rel="noopener" class="num">${esc(shopUrl(b.slug).replace('https://', ''))}</a><button class="linkbtn muted" data-slugedit="${b.id}" aria-label="${L('ঠিকানা বদলান', 'Change address')}">${I('edit')}</button></div></div></div>
+      ${b.btype === 'bike' ? `<div style="font-size:.85rem;display:flex;gap:6px;align-items:center"><span class="pill p-low">${I('bike')}${N(VCOND[b.vcond] || VCOND.both)}</span><button class="linkbtn muted" data-vcond="${b.id}" aria-label="${L('বাইকের ধরন বদলান', 'Change bike type')}">${I('edit')}</button></div>` : ''}
       <div class="meta">${b.cats.map(catPill).join('')}<span class="pill p-ok">${I('users')}${bn(b.sellers.length)} ${L('সেলার', 'sellers')}</span></div>
       <div class="summary num" style="font-size:.9rem">
         <div><span class="muted">${L('মোট বিক্রি', 'Total sales')}</span><b>${tk(b.stats.sales)}</b></div>
@@ -257,7 +258,7 @@ VIEWS.settings = () => {
 };
 
 /* ----- New business wizard ----- */
-function newWiz() { return { step: 0, slug: '', name: '', owner: '', phone: '', place: '', licence: '', opening: '', cats: [...TYPE_CATS[btype()]], modules: MODULES.map((m) => m.k), starter: true, sellers: [{ name: '', phone: '', pass: '' }], adminUser: '', adminPass: '', plan: 'trial', payMethod: 'bkash', payRef: '' }; }
+function newWiz() { return { vcond: 'old', step: 0, slug: '', name: '', owner: '', phone: '', place: '', licence: '', opening: '', cats: [...TYPE_CATS[btype()]], modules: MODULES.map((m) => m.k), starter: true, sellers: [{ name: '', phone: '', pass: '' }], adminUser: '', adminPass: '', plan: 'trial', payMethod: 'bkash', payRef: '' }; }
 VIEWS.wizard = () => {
   if (!S.wiz) S.wiz = newWiz();
   const w = S.wiz;
@@ -280,6 +281,9 @@ VIEWS.wizard = () => {
       <label class="tile ${w.cats.includes(k) ? 'sel' : ''}"><input type="checkbox" data-wcat="${k}" ${w.cats.includes(k) ? 'checked' : ''}><span class="chk">${I('check')}</span>
         <span class="big" style="background:${c.bg};color:${c.color}">${I(c.icon)}</span><b>${CN(k)}</b><small>${N(c.d)}</small></label>`).join('')}
     </div>
+    ${btype() === 'bike' ? `<h3 style="margin-top:18px">${I('bike')} ${L('এই দোকান কোন বাইক বিক্রি করে?', 'Which bikes does this shop sell?')}</h3>
+    <div class="tiles">${['old', 'new', 'both'].map((k) => `<label class="tile ${w.vcond === k ? 'sel' : ''}"><input type="radio" name="wvcond" data-wvcond="${k}" ${w.vcond === k ? 'checked' : ''}><span class="chk">${I('check')}</span>
+      <span class="big" style="background:var(--leaf-l);color:var(--leaf-d)">${I(k === 'new' ? 'tag' : k === 'old' ? 'bike' : 'reset')}</span><b>${N(VCOND[k])}</b><small>${N(VCOND_D[k])}</small></label>`).join('')}</div>` : ''}
     <label class="mod ${w.starter ? 'sel' : ''}" style="margin-top:14px"><span class="ic">${I('tag')}</span><span>${L('সাধারণ পণ্যের তালিকা যোগ করুন', 'Add a starter product list')}<small>${L('স্টক ০ থাকবে; দাম পরে বদলানো যাবে', 'Stock starts at 0; prices can be edited')}</small></span><input type="checkbox" data-wstarter ${w.starter ? 'checked' : ''}></label>`;
   if (w.step === 2) body = `
     <h3>${I('dash')} ${L('কোন কোন সুবিধা চালু থাকবে?', 'Which features should be on?')}</h3>
@@ -322,6 +326,7 @@ VIEWS.wizard = () => {
         <div><span class="muted">${L('মালিক', 'Owner')}</span><b>${esc(w.owner)}</b></div>
         <div><span class="muted">${L('অ্যাডমিন আইডি', 'Admin ID')}</span><b class="num">${esc(dg(fmtPhone(w.adminUser)))}</b></div>
         <div><span class="muted">${L('পণ্যের ধরন', 'Product types')}</span><span>${w.cats.map(catPill).join(' ')}</span></div>
+        ${btype() === 'bike' ? `<div><span class="muted">${L('বাইক', 'Bikes')}</span><b>${N(VCOND[w.vcond])}</b></div>` : ''}
         <div><span class="muted">${L('সেলার', 'Sellers')}</span><b>${bn(w.sellers.length)}</b></div>
         <div><span class="muted">${L('প্ল্যান', 'Plan')}</span><b>${N(PLAN_N[w.plan])}</b></div>
       </div>
@@ -376,7 +381,7 @@ async function runSetup(btn) {
     const r = await call('POST', '/api/super/businesses', {
       slug: w.slug, name: w.name, owner: w.owner, phone: w.phone ? pk(w.phone) : '', place: w.place, licence: w.licence, opening: toNum(w.opening), cats: w.cats, modules: w.modules, starter: w.starter,
       admin: { phone: pk(w.adminUser), password: w.adminPass }, sellers: w.sellers.map((s) => ({ name: s.name, phone: pk(s.phone), password: s.pass })),
-      plan: w.plan, payMethod: w.payMethod, payRef: w.payRef,
+      plan: w.plan, payMethod: w.payMethod, payRef: w.payRef, vcond: w.vcond,
     });
     const tasks = [L(`“${w.name}” এর অ্যাকাউন্ট তৈরি`, `Account for “${w.name}” created`), L('পণ্যের ক্যাটাগরি: ', 'Product categories: ') + w.cats.map(CN).join(', '),
       L('অ্যাডমিন আইডি: ', 'Admin ID: ') + dg(fmtPhone(w.adminUser)), w.sellers.length ? L('সেলার আইডি: ', 'Seller IDs: ') + w.sellers.map((s) => dg(fmtPhone(s.phone))).join(', ') : L('সেলার নেই', 'No sellers'),
@@ -412,6 +417,21 @@ function editSlug(id) {
 }
 
 /* Special subscription price for one shop */
+const VCOND = { old: { bn: 'শুধু পুরাতন (সেকেন্ড-হ্যান্ড) বাইক', en: 'Used (second-hand) bikes only' }, new: { bn: 'শুধু নতুন বাইক', en: 'New bikes only' }, both: { bn: 'নতুন ও পুরাতন দুটোই', en: 'Both new and used bikes' } };
+const VCOND_D = { old: { bn: 'আগের মালিক, রেজিস্ট্রেশন, কেনার তারিখসহ', en: 'With previous owner, registration, buying date' }, new: { bn: 'শোরুম/ডিলার থেকে কেনা নতুন বাইক', en: 'New bikes bought from a showroom or dealer' }, both: { bn: 'প্রতিবার বাইক যোগের সময় বেছে নেবেন', en: 'Choose each time a bike is added' } };
+// Bike shop: new bikes, used bikes or both.
+function editVcond(id) {
+  const b = supBiz(id);
+  modal(`<h3>${I('bike')} ${L('এই দোকান কোন বাইক বিক্রি করে?', 'Which bikes does this shop sell?')}</h3><div style="opacity:.9">${esc(b.name)}</div>`, `
+    <div class="tiles">${['old', 'new', 'both'].map((k) => `<label class="tile ${b.vcond === k ? 'sel' : ''}"><input type="radio" name="evc" value="${k}" ${b.vcond === k ? 'checked' : ''}><span class="chk">${I('check')}</span><b>${N(VCOND[k])}</b><small>${N(VCOND_D[k])}</small></label>`).join('')}</div>
+    <p class="muted" style="margin:0;font-size:.85rem">${L('আগে যোগ করা বাইকগুলো যেমন আছে তেমনই থাকবে।', 'Bikes already added stay as they are.')}</p>
+    <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn ghost" data-close>${L('বাতিল', 'Cancel')}</button><button class="btn" id="vc-save">${I('check')} ${L('সেভ করুন', 'Save')}</button></div>`, { width: 620 });
+  document.querySelectorAll('input[name=evc]').forEach((r) => r.addEventListener('change', () => document.querySelectorAll('input[name=evc]').forEach((x) => x.closest('.tile').classList.toggle('sel', x.checked))));
+  $('#vc-save').onclick = (e) => act(e.currentTarget, async () => {
+    await call('PUT', `/api/super/businesses/${id}/vcond`, { vcond: document.querySelector('input[name=evc]:checked').value });
+    closeModal(); await loadSuper(); render(); toast(L('সেভ হয়েছে', 'Saved'));
+  });
+}
 function editPrice(id) {
   const b = supBiz(id), P = P_();
   modal(`<h3>${I('tag')} ${L('এই দোকানের দাম', 'Price for this shop')}</h3><div style="opacity:.9">${esc(b.name)}</div>`, `

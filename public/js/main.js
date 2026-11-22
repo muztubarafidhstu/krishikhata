@@ -66,6 +66,7 @@ document.addEventListener('click', async (e) => {
   if (d.savepay !== undefined) return savePay(t);
   if (d.react) return showReact(d.react);
   if (d.price) return editPrice(d.price);
+  if (d.vcond) return editVcond(d.vcond);
   if (d.requick) { $('#re-date').value = addMonths(todayStr(), +d.requick); return updReact(); }
   if (d.resave !== undefined) return saveReact(t);
   if (d.deact) return deactivate(d.deact);
@@ -170,6 +171,7 @@ document.addEventListener('change', (e) => {
   { const pf = t.closest('[id$="-pf"]'); if (pf) updateAutoName(pf.id.slice(0, -3)); }
   if (d.wcat) { const w = S.wiz; w.cats = t.checked ? [...new Set([...w.cats, d.wcat])] : w.cats.filter((k) => k !== d.wcat); t.closest('.tile').classList.toggle('sel', t.checked); }
   if (d.wmod) { const w = S.wiz; w.modules = t.checked ? [...new Set([...w.modules, d.wmod])] : w.modules.filter((k) => k !== d.wmod); t.closest('.mod').classList.toggle('sel', t.checked); }
+  if (d.wvcond) { S.wiz.vcond = d.wvcond; document.querySelectorAll('[data-wvcond]').forEach((x) => x.closest('.tile').classList.toggle('sel', x.checked)); }
   if (d.wstarter !== undefined) { S.wiz.starter = t.checked; t.closest('.mod').classList.toggle('sel', t.checked); }
   if (d.wplan) { S.wiz.plan = d.wplan; document.querySelectorAll('[data-wplan]').forEach((x) => x.closest('.tile').classList.toggle('sel', x.checked)); $('#w-paybox').hidden = d.wplan === 'trial'; }
   if (t.id === 'pay-plan' || t.id === 'pay-qty') updPay();

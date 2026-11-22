@@ -472,11 +472,12 @@ const condName = (c) => (c === 'new' ? L('নতুন', 'New') : L('পুর�
 const vName = (cat) => (cat === 'car' ? L('গাড়ি', 'car') : L('বাইক', 'bike'));
 function vehicleForm(p, x, cat) {
   const b = S.cur, m = p?.meta || {}, edit = x === 'pe';
-  const cond = cat === 'car' ? 'old' : m.cond === 'new' ? 'new' : 'old';
+  const fixed = cat === 'car' ? 'old' : ['new', 'old'].includes(b.vcond) ? b.vcond : null; // car shops: used only; bike shops set up for one kind
+  const cond = fixed || (m.cond === 'new' ? 'new' : 'old');
   const inp = (k, label, val, extra = '') => `<label class="f">${label}<input class="in" id="${x}-v${k}" value="${esc(val ?? '')}" ${extra}></label>`;
   return `<div id="${x}-pf"><div class="form-g">
     <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat" data-pfcat="${x}">${b.cats.map((k) => `<option value="${k}" ${cat === k ? 'selected' : ''}>${CN(k)}</option>`).join('')}</select></label>
-    ${cat === 'bike' ? segField(`${x}-vcond`, L(`নতুন না পুরাতন ${vName(cat)}?`, `New or used ${vName(cat)}?`), ['new', 'old'], cond, condName) : `<input type="hidden" id="${x}-vcond" value="old">`}
+    ${!fixed ? segField(`${x}-vcond`, L(`নতুন না পুরাতন ${vName(cat)}?`, `New or used ${vName(cat)}?`), ['new', 'old'], cond, condName) : `<div class="f"><span class="flabel">${L('ধরন', 'Type')}</span><span class="pill p-low" style="align-self:flex-start;padding:8px 12px">${condName(cond)} ${vName(cat)}</span><input type="hidden" id="${x}-vcond" value="${cond}"></div>`}
     ${pickField(`${x}-vbrand`, L('কোম্পানি', 'Make'), VBRANDS[cat], m.brand, L('কোম্পানির নাম', 'Make'))}
     ${inp('model', L('মডেল *', 'Model *'), m.model, `maxlength="60" placeholder="${cat === 'car' ? 'Axio, Premio' : 'Pulsar 150, FZS'}"`)}
     ${inp('year', L('তৈরির সাল', 'Year of production'), m.year, 'inputmode="numeric" maxlength="4" placeholder="2019"')}

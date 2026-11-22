@@ -66,7 +66,7 @@ function createApp() {
     const waLink = (msg) => (waOk ? `https://wa.me/88${wa}?text=${encodeURIComponent(msg)}` : '#price');
     const bname = s ? s.bn : 'আপনাদের সফটওয়্যার';
     return {
-      base: `https://${host}`, domain: host, P, WA: WA_ICON, waLocal: wa, waShow: waOk ? `${wa.slice(0, 5)}-${wa.slice(5)}` : '', nf: req.query.nf === '1',
+      base: `https://${host}`, domain: host, P, WA: WA_ICON, waLocal: wa, waShow: waOk ? `${wa.slice(0, 5)}-${wa.slice(5)}` : '', nf: req.query.nf === '1', q: String(req.query.q || '').slice(0, 80),
       prices: Object.fromEntries(SEGMENTS.map((x) => [x.key, plans(x.key)])),
       waTrial: waLink(`আসসালামু আলাইকুম। আমি ${bname} ${P.trialDays} দিন ফ্রি ট্রায়াল শুরু করতে চাই।\nদোকানের নাম: \nমালিকের নাম: \nএলাকা: `),
       waM: waLink(`আসসালামু আলাইকুম। আমি ${bname}র মাসিক প্ল্যান (৳${P.monthly}) নিতে চাই।\nদোকানের নাম: \nএলাকা: `),
@@ -90,30 +90,39 @@ function createApp() {
       '{{WA_ICON}}': WA_ICON, '{{WA_LOCAL}}': v.waLocal, '{{WA_SHOW}}': v.waShow,
       '{{WA_LINK_TRIAL}}': v.waTrial, '{{WA_LINK_M}}': v.waM, '{{WA_LINK_Y}}': v.waY, '{{WA_LINK_Q}}': v.waQ,
       '{{SHARED_CSS}}': `:root{--seg:${s.color};--seg-d:${s.dark}}` + pages.SHARED_CSS,
-      '{{FINDER}}': pages.finderHTML(v.nf), '{{ALLAPPS}}': pages.allAppsHTML(s.key, v.prices),
+      '{{FINDER}}': pages.finderHTML(v.nf, v.q), '{{ALLAPPS}}': pages.allAppsHTML(s.key, v.prices),
     };
     let html = TPL[s.key];
     for (const [k, val] of Object.entries(vals)) html = html.replaceAll(k, val);
     sendPage(res, html);
   });
-  // "Go to my shop": a shop name (karim) or the owner's/seller's mobile number → that shop's own address.
+  // "Go to my shop": the shop's address name (karim), its full name, or a user's mobile number → that shop's own address.
+  // The super admin's number opens the mother panel of the page it was typed on.
+  const { adminUrl } = require('./host');
   app.get('/go', (req, res) => {
     if (!limit('go:' + req.ip, 60, 10 * 60000)) return res.status(429).type('text').send('অনেকবার চেষ্টা হয়েছে। একটু পরে আবার চেষ্টা করুন।');
-    let q = String(req.query.q || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    const raw = String(req.query.q || '').trim().slice(0, 80);
+    let q = raw.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
     if (DOMAIN) q = q.replace('.' + DOMAIN, '');
     let back = '/';
     try { const r = new URL(req.get('referer') || ''); if (/^\/(app\d{1,2})?$/.test(r.pathname)) back = r.pathname; } catch (e) { /* no referer */ }
-    const phone = normPhone(q);
-    if (/^[0-9০-৯+\s-]+$/.test(q) && validPhone(phone)) {
-      const u = get("SELECT business_id FROM users WHERE phone=? AND active=1 AND role<>'super'", phone);
-      const b = u && get('SELECT slug FROM businesses WHERE id=?', u.business_id);
+    const digits = q.replace(/[\s-]/g, '');
+    if (/^\+?[0-9০-৯]{10,14}$/.test(digits) && validPhone(normPhone(digits))) {
+      const phone = normPhone(digits);
+      const u = get('SELECT role,business_id FROM users WHERE phone=? AND active=1', phone);
+      if (u && u.role === 'super') { const seg = segByNum((back.match(/^\/app(\d+)/) || [])[1] || 1); const url = seg && adminUrl(seg.key); if (url) return res.redirect(302, url); }
+      const b = u && u.business_id && get('SELECT slug FROM businesses WHERE id=?', u.business_id);
       if (b) return res.redirect(302, shopUrl(b.slug) + '/#id=' + phone);
-    } else if (/^[a-z0-9-]{2,30}$/.test(q)) {
-      const b = get('SELECT slug FROM businesses WHERE slug=?', q);
+    } else if (q) {
+      const slug = q.replace(/\s+/g, '-');
+      let b = /^[a-z0-9-]{2,30}$/.test(slug) && get('SELECT slug FROM businesses WHERE slug=?', slug);
+      if (!b) { const byName = all('SELECT slug FROM businesses WHERE lower(name)=lower(?) LIMIT 2', raw); if (byName.length === 1) b = byName[0]; }
+      if (!b && raw.length >= 3) { const like = all("SELECT slug FROM businesses WHERE name LIKE ? ESCAPE '\\' LIMIT 2", '%' + raw.replace(/[\\%_]/g, (c) => '\\' + c) + '%'); if (like.length === 1) b = like[0]; }
       if (b) return res.redirect(302, shopUrl(b.slug));
     }
-    res.redirect(302, back + '?nf=1#finder');
+    res.redirect(302, back + '?nf=1&q=' + encodeURIComponent(raw) + '#finder');
   });
+
   // The app page. NirmanKhata hosts get their own title, icon and colours (also the home-screen icon).
   const INDEX = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
   const INDEX_BUILD = INDEX.replace('<html lang="bn">', '<html lang="bn" data-brand="build">').replace(/<title>[^<]*<\/title>/, '<title>নির্মাণখাতা — NirmanKhata</title>')
