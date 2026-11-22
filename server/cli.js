@@ -41,6 +41,9 @@ if (cmd === 'backup') {
   if (!b) { console.error('No shop with address: ' + a1); process.exit(1); }
   run('UPDATE businesses SET demo=? WHERE id=?', a2 === 'off' ? 0 : 1, b.id);
   console.log(a2 === 'off' ? `${a1}: demo protection OFF` : `${a1}: demo protection ON (logins can't be changed by visitors)`);
+} else if (cmd === 'reset-demos') {
+  // npm run reset-demos → right now: full demos get fresh sample data, 'new shop' demos become empty
+  console.log('Reset:', require('./demo').resetDemos().join(', ') || 'no demo shops found');
 } else if (cmd === 'demo-all') {
   // npm run demo-all → every software gets a full demo and a 'new shop' demo (only missing ones are made)
   for (const line of require('./demo').createDemoShops()) console.log(line);

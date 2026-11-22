@@ -219,7 +219,7 @@ section{margin-top:28px}.demos8.fresh a span{background:#fff;color:#1d2430}
 <main class="wrap">
   <section><div class="demohead"><div><h2>▶ সাজানো ডেমো</h2><p>নমুনা পণ্য, বিক্রি, ক্রেতা, বাকি ও রিপোর্টসহ — চালু দোকান দেখতে কেমন।</p></div></div>
     <div class="demos8">${SEGMENTS.map((x) => card(x, `/demo${x.num}`, '▶ সাজানো ডেমো')).join('')}</div></section>
-  <section><div class="demohead"><div><h2>✨ নতুন দোকান — শুরুর দিন যেমন দেখায়</h2><p>নতুন গ্রাহক সেটআপের পর প্রথম দিন যা দেখবেন: শুধু শুরুর পণ্যের তালিকা, কোনো বিক্রি নেই, ${bnNum(14)} দিনের ফ্রি ট্রায়াল।</p></div></div>
+  <section><div class="demohead"><div><h2>✨ নতুন দোকান — একদম খালি</h2><p>কোনো পণ্য, বিক্রি বা ক্রেতা নেই — নিজে পণ্য যোগ করে দেখান, নতুন গ্রাহকের প্রথম দিন যেমন হয়।</p></div></div>
     <div class="demos8 fresh">${SEGMENTS.map((x) => card(x, `https://${esc(x.fresh[0])}.${esc(v.domain)}/demo`, '✨ নতুন দোকান দেখুন')).join('')}</div></section>
 </main>
 <footer>demo.${esc(v.domain)}</footer>

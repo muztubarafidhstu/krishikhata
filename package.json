@@ -14,6 +14,7 @@
     "demo-shop": "node --disable-warning=ExperimentalWarning server/cli.js demo-shop",
     "refill-demo": "node --disable-warning=ExperimentalWarning server/cli.js refill-demo",
     "demo-all": "node --disable-warning=ExperimentalWarning server/cli.js demo-all",
+    "reset-demos": "node --disable-warning=ExperimentalWarning server/cli.js reset-demos",
     "mark-demo": "node --disable-warning=ExperimentalWarning server/cli.js mark-demo",
     "reset-super": "node --disable-warning=ExperimentalWarning server/cli.js reset-super",
     "backup": "node --disable-warning=ExperimentalWarning server/cli.js backup",

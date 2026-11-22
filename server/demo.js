@@ -79,14 +79,14 @@ function fillSample(bid, type = 'agri') {
 }
 
 // Wipe a demo shop's records and fill it again: with sample data (full demo), or only the starter
-// products like a brand-new account (empty = true, the 'new shop' demos). Logins and settings stay.
+// products, or completely empty with no products at all (empty = true, the 'new shop' demos). Logins and settings stay.
 function refillDemo(b, empty = false) {
   if (!b || !b.demo) throw new Error('not a demo shop');
   tx(() => {
     for (const t of ['sales', 'purchases', 'expenses', 'collections', 'vendor_payments', 'customers', 'vendors', 'products']) run(`DELETE FROM ${t} WHERE business_id=?`, b.id);
     run('UPDATE businesses SET next_inv=1001 WHERE id=?', b.id);
     let n = 1;
-    for (const p of starterFor(b.btype || 'agri', JSON.parse(b.cats)))
+    if (!empty) for (const p of starterFor(b.btype || 'agri', JSON.parse(b.cats)))
       run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,dims,weight,per_pack) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', b.id, p.name, p.cat, p.unit, p.buy, p.sell, 0, p.min, 'B-' + String(n++).padStart(2, '0'), p.brand || '', p.size || '', p.dims || '', p.weight ?? null, p.per_pack ?? null);
     if (empty) {
       // Looks like the first day: 14 days of free trial left, no cash, only the welcome note.
@@ -99,7 +99,7 @@ function refillDemo(b, empty = false) {
 const isFresh = (slug) => SEGMENTS.some((s) => s.fresh && s.fresh[0] === slug);
 
 // Every night: all official demo shops start again — full demos with fresh sample data,
-// 'new shop' demos empty again. Only shops marked as demo are touched.
+// 'new shop' demos completely empty again (no products). Only shops marked as demo are touched.
 function resetDemos() {
   const done = [];
   for (const s of SEGMENTS) {
@@ -122,7 +122,7 @@ function createDemoShops() {
       if (get('SELECT 1 x FROM users WHERE phone=? AND active=1', normPhone(phone))) { out.push(`${slug}: SKIPPED — ${phone} already has an ID`); continue; }
       const bid = createBusiness({ btype: s.key, slug, name: fresh ? 'আপনার দোকান' : DEMO_NAME[s.key], owner: fresh ? 'আপনার নাম' : 'ডেমো মালিক', place: fresh ? 'আপনার এলাকা' : 'বগুড়া সদর',
         cats: s.cats, modules: ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop'], admin: { phone, password: 'Demo@123' }, sellers: [],
-        opening: fresh ? 0 : s.key === 'car' ? 5000000 : s.key === 'bike' ? 800000 : 150000, starter: true, plan: 'trial', vcond: 'both' });
+        opening: fresh ? 0 : s.key === 'car' ? 5000000 : s.key === 'bike' ? 800000 : 150000, starter: !fresh, plan: 'trial', vcond: 'both' });
       run('UPDATE businesses SET demo=1 WHERE id=?', bid);
       if (!fresh) { run("UPDATE businesses SET plan='yearly', expiry=? WHERE id=?", addDays(today(), 365 * 5), bid); fillSample(bid, s.key); }
       out.push(`${slug}: created (${fresh ? 'new shop' : 'full demo'}) — ${normPhone(phone)}`);
