@@ -185,23 +185,26 @@ docker compose start app
 
 ## ৮টি সফটওয়্যার — ঠিকানাগুলো (একই সার্ভার, একই সুপার অ্যাডমিন লগইন)
 
-| # | সফটওয়্যার | বিজ্ঞাপন ও অ্যাপ ডাউনলোড | মাদার প্যানেল | অ্যাপ (APK) | ফ্রি ডেমো |
+| # | সফটওয়্যার | বিজ্ঞাপন ও অ্যাপ ডাউনলোড | মাদার প্যানেল | অ্যাপ (APK) | ফ্রি ডেমো (এক চাপে, লগইন ছাড়া) |
 |---|---|---|---|---|---|
-| ১ | কৃষিখাতা (বীজ-সার-কীটনাশক) | example.com/app1 | admin1.example.com | krishikhata.apk | demoshop · 01900000000 |
-| ২ | নির্মাণখাতা (রড-সিমেন্ট) | example.com/app2 | admin2.example.com | nirmankhata.apk | demosteel · 01900000002 |
-| ৩ | বাইকখাতা (নতুন ও পুরাতন বাইক) | example.com/app3 | admin3.example.com | bikekhata.apk | demobike · 01900000004 |
-| ৪ | ইটখাতা (ইট-খোয়া-ব্লক) | example.com/app4 | admin4.example.com | itkhata.apk | demobrick · 01900000006 |
-| ৫ | মোবাইলখাতা (মোবাইল-ইলেকট্রনিক্স) | example.com/app5 | admin5.example.com | mobilekhata.apk | demomobile · 01900000008 |
-| ৬ | ফার্নিচারখাতা | example.com/app6 | admin6.example.com | furniturekhata.apk | demofurniture · 01900000010 |
-| ৭ | গাড়িখাতা (পুরাতন গাড়ি) | example.com/app7 | admin7.example.com | garikhata.apk | democar · 01900000012 |
-| ৮ | হার্ডওয়্যারখাতা (হার্ডওয়্যার-স্যানিটারি) | example.com/app8 | admin8.example.com | hardwarekhata.apk | demohardware · 01900000014 |
+| ১ | কৃষিখাতা (বীজ-সার-কীটনাশক) | example.com/app1 | admin1.example.com | krishikhata.apk | example.com/demo1 |
+| ২ | নির্মাণখাতা (রড-সিমেন্ট) | example.com/app2 | admin2.example.com | nirmankhata.apk | example.com/demo2 |
+| ৩ | বাইকখাতা (নতুন ও পুরাতন বাইক) | example.com/app3 | admin3.example.com | bikekhata.apk | example.com/demo3 |
+| ৪ | ইটখাতা (ইট-খোয়া-ব্লক) | example.com/app4 | admin4.example.com | itkhata.apk | example.com/demo4 |
+| ৫ | মোবাইলখাতা (মোবাইল-ইলেকট্রনিক্স) | example.com/app5 | admin5.example.com | mobilekhata.apk | example.com/demo5 |
+| ৬ | ফার্নিচারখাতা | example.com/app6 | admin6.example.com | furniturekhata.apk | example.com/demo6 |
+| ৭ | গাড়িখাতা (পুরাতন গাড়ি) | example.com/app7 | admin7.example.com | garikhata.apk | example.com/demo7 |
+| ৮ | হার্ডওয়্যারখাতা (হার্ডওয়্যার-স্যানিটারি) | example.com/app8 | admin8.example.com | hardwarekhata.apk | example.com/demo8 |
 
 - `example.com` (মূল ঠিকানা) সব সফটওয়্যারের তালিকা দেখায়; প্রতিটি পেজে "নিজের দোকানে যান" বক্সে দোকানের নাম বা মোবাইল নম্বর লিখলে নিজের দোকানে চলে যায়।
 - আগের ঠিকানাগুলো (`/app`, `/nirman`, `ADMIN_DOMAIN`, `BUILD_ADMIN_DOMAIN`) আগের মতোই কাজ করে।
 - যে মাদার প্যানেল থেকে দোকান খোলা হয়, দোকানটি সেই সফটওয়্যারের হয়।
 - DNS-এ নতুন কিছু লাগবে না (`*` রেকর্ডটাই যথেষ্ট); প্রথমবার খুললে HTTPS সার্টিফিকেট নিজে তৈরি হয়।
 
-ডেমো দোকান তৈরি (একবার, একটা একটা করে; পাসওয়ার্ড Demo@123):
+- ফ্রি ডেমো লিংক (`/demo1` … `/demo8`) চাপলে সেই ডেমো দোকান লগইন ছাড়াই খুলে যায় (শুধু "ডেমো" চিহ্নিত দোকানে কাজ করে; ডেমোতে পাসওয়ার্ড/আইডি বদলানো যায় না)।
+- এই ৮টি ডেমো দোকান প্রতি রাত ৩টায় নিজে থেকে নতুন নমুনা ডেটায় ফিরে যায়।
+
+ডেমো দোকান তৈরি (একবার, একটা একটা করে):
 ```bash
 cd /opt/krishikhata
 docker compose exec app npm run demo-shop -- demobike 01900000004 "Demo@123" --type=bike

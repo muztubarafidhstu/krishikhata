@@ -96,6 +96,26 @@ function createApp() {
     for (const [k, val] of Object.entries(vals)) html = html.replaceAll(k, val);
     sendPage(res, html);
   });
+  // Free demo with one tap: rafid5.com/demo1 … /demo8 → that segment's demo shop, already signed in.
+  app.get(/^\/demo(\d{1,2})\/?$/, (req, res, next) => {
+    const s = segByNum(req.params[0]); if (!s) return next();
+    if (!DOMAIN) return res.redirect(302, '/demo?shop=' + s.demo[0]); // local testing without a domain
+    res.redirect(302, shopUrl(s.demo[0]) + '/demo');
+  });
+  // <demo shop>.rafid5.com/demo → signed in as that demo shop's owner (only shops marked as demo).
+  const { createSession } = require('./auth');
+  app.get('/demo', (req, res) => {
+    const h = hostOf(req);
+    const slug = h.kind === 'shop' ? h.slug : !DOMAIN ? String(req.query.shop || '') : '';
+    const b = slug && get('SELECT id,slug,demo FROM businesses WHERE slug=?', slug);
+    if (!b || !b.demo) return res.redirect(302, '/');
+    if (!limit('demo:' + req.ip, 40, 10 * 60000)) return res.status(429).type('text').send('অনেকবার চেষ্টা হয়েছে। একটু পরে আবার চেষ্টা করুন।');
+    const u = get("SELECT * FROM users WHERE business_id=? AND role='admin' AND active=1", b.id);
+    if (!u) return res.redirect(302, '/');
+    createSession(res, req, u, false);
+    res.setHeader('Cache-Control', 'no-store');
+    res.redirect(302, DOMAIN ? '/' : '/login');
+  });
   // "Go to my shop": the shop's address name (karim), its full name, or a user's mobile number → that shop's own address.
   // The super admin's number opens the mother panel of the page it was typed on.
   const { adminUrl } = require('./host');

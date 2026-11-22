@@ -98,7 +98,11 @@ h2{font-size:clamp(1.4rem,3vw,1.9rem);margin:2px 0 14px}
 .price.best{border-color:var(--seg)}
 .price .amt{font-family:var(--display);font-size:2.4rem;font-weight:800;color:var(--seg)}
 .demo{background:var(--card);border:2px dashed var(--seg);border-radius:20px;padding:16px 18px;display:grid;gap:4px}
-.demo code{font:700 1.1rem ui-monospace,Menlo,monospace;color:var(--seg)}
+.demo.dbig{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:20px;align-items:center;border-style:solid;background:radial-gradient(120% 90% at 85% 0%,var(--seg) 0%,var(--seg-d) 85%);color:#fff;padding:18px 22px}
+.demo.dbig img{width:100%;height:auto;display:block}
+.demo.dbig b{display:block;font:800 1.4rem/1.2 var(--display)}
+.demo.dbig span{display:block;opacity:.92;margin:6px 0 14px}
+@media (max-width:760px){.demo.dbig{grid-template-columns:minmax(0,1fr)}}
 .steps{counter-reset:s;list-style:none;padding:0;display:grid;gap:10px}
 .steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px 12px 56px;position:relative}
 .steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:30px;height:30px;border-radius:50%;background:var(--seg);color:#fff;display:grid;place-items:center;font-weight:800}
@@ -127,7 +131,7 @@ function segPage(s, v) {
   <h1>খাতা-কলম ছাড়ুন, দোকানের <em>সব হিসাব মোবাইলে</em></h1>
   <p class="lead">${isV ? `প্রতিটি ${s.key === 'car' ? 'গাড়ির' : 'বাইকের'} ইঞ্জিন/চেসিস নম্বর, কেনা ও বিক্রির তারিখ, আগের মালিক আর লাভ — সব এক জায়গায়, এক চাপে খুঁজে পান।` : 'কে কত বাকি, কোন মাল কত আছে, আজ কত বিক্রি, মাস শেষে কত লাভ — এক চাপে দেখুন।'} বাংলায়, সহজে।</p>
   <div class="btns"><a class="btn wa" href="${v.waTrial}" target="_blank" rel="noopener">${v.WA}${bnNum(P.trialDays)} দিন ফ্রি শুরু করুন</a>
-    <a class="btn dl" href="/${s.apk}" download="${s.apk}">${DL_ICON}অ্যাপ ডাউনলোড</a></div>
+    <a class="btn dl" href="/${s.apk}" download="${s.apk}">${DL_ICON}অ্যাপ ডাউনলোড</a><a class="btn ghost" href="/demo${s.num}">▶ ফ্রি ডেমো</a></div>
   <div class="meta"><span>${bnNum(P.trialDays)} দিন ফ্রি</span><span>মাসিক মাত্র ৳${bnNum(P.monthly)}</span><span>কোনো সেটআপ খরচ নেই</span><span>মোবাইল ও কম্পিউটারে</span></div>
 </div><img class="art" src="/art/${s.key}.svg" alt="" width="480" height="300"></div></header>
 ${finderHTML(v.nf, v.q)}
@@ -144,9 +148,10 @@ ${finderHTML(v.nf, v.q)}
     <div class="prices"><div class="price"><div>ফ্রি ট্রায়াল</div><div class="amt">${bnNum(P.trialDays)} দিন</div><div>সব সুবিধা চালু</div></div>
       <div class="price best"><div>মাসিক</div><div class="amt">৳${bnNum(P.monthly)}</div><div>প্রতি মাসে</div></div>
       <div class="price"><div>বার্ষিক</div><div class="amt">৳${bnNum(P.yearly)}</div><div>${P.monthly * 12 > P.yearly ? `৳${bnNum(P.monthly * 12 - P.yearly)} সাশ্রয়` : 'প্রতি বছরে'}</div></div></div></section>
-  <section><div class="eyebrow">নিজে চালিয়ে দেখুন</div><h2>ফ্রি ডেমো</h2>
-    <div class="demo"><span>ঠিকানা: <code>${esc(s.demo[0])}.${esc(v.domain)}</code></span><span>মোবাইল: <code>${esc(s.demo[1])}</code></span><span>পাসওয়ার্ড: <code>Demo@123</code></span>
-      <span style="color:var(--mu);font-size:.9rem">অ্যাপে শুধু <b>${esc(s.demo[0])}</b> লিখুন, অথবা ব্রাউজারে <a href="https://${esc(s.demo[0])}.${esc(v.domain)}">${esc(s.demo[0])}.${esc(v.domain)}</a> খুলুন।</span></div></section>
+  <section id="demo"><div class="eyebrow">নিজে চালিয়ে দেখুন</div><h2>ফ্রি ডেমো — লগইন লাগবে না</h2>
+    <div class="demo dbig"><img src="/art/${s.key}.svg" alt="" width="480" height="300"><div><b>এক চাপে পুরো অ্যাপ ঘুরে দেখুন</b>
+      <span>নমুনা ${['bike', 'car'].includes(s.key) ? (s.key === 'car' ? 'গাড়ি' : 'বাইক') + ', কাগজপত্র' : 'পণ্য'}, বিক্রি, বাকি ও রিপোর্টসহ সাজানো একটি দোকান। যা খুশি চালিয়ে দেখুন — প্রতি রাতে নতুন করে সাজানো হয়।</span>
+      <a class="btn dl" href="/demo${s.num}">▶ ফ্রি ডেমো চালু করুন</a></div></div></section>
   <section><div class="eyebrow">কীভাবে শুরু করবেন</div><h2>৩ ধাপে শুরু</h2>
     <ol class="steps"><li><b>WhatsApp-এ মেসেজ দিন</b>দোকানের নাম, মালিকের নাম ও এলাকা লিখুন — আমরা আপনার দোকানের নিজস্ব ঠিকানা তৈরি করে দেব (যেমন yourshop.${esc(v.domain)})।</li>
       <li><b>অ্যাপ ডাউনলোড করুন</b>উপরের "অ্যাপ ডাউনলোড" চাপুন, ইনস্টল করে শুধু দোকানের নাম লিখুন।</li>
@@ -175,8 +180,8 @@ function hubPage(v) {
       <ul>${x.feats.slice(0, 4).map(([e, b, t]) => `<li><span>${e}</span><b>${esc(b)}</b> — ${esc(t)}</li>`).join('')}</ul>
       <div class="pr"><b>৳${bnNum(P.monthly)}</b> / মাস <span>· ${bnNum(P.trialDays)} দিন সম্পূর্ণ ফ্রি</span></div>
       <div class="go"><a class="b1" href="/app${x.num}">বিস্তারিত দেখুন →</a><a class="b2" href="/${x.apk}" download="${x.apk}">${DL} অ্যাপ ডাউনলোড</a>
-        <a class="b3" href="https://${esc(x.demo[0])}.${esc(v.domain)}" title="মোবাইল ${esc(x.demo[1])} · পাসওয়ার্ড Demo@123">▶ ফ্রি ডেমো</a></div>
-      <small class="dlg">ডেমো লগইন: <b>${esc(x.demo[1])}</b> · পাসওয়ার্ড <b>Demo@123</b></small>
+        <a class="b3" href="/demo${x.num}">▶ ফ্রি ডেমো</a></div>
+      <small class="dlg">ফ্রি ডেমো: লগইন লাগবে না — এক চাপে পুরো অ্যাপ ঘুরে দেখুন</small>
     </div></article>`; };
   return `${HEAD('ব্যবসার হিসাবের অ্যাপ — খাতা-কলম ছাড়ুন', 'কৃষিখাতা, নির্মাণখাতা, বাইকখাতা, ইটখাতা, মোবাইলখাতা, ফার্নিচারখাতা, গাড়িখাতা, হার্ডওয়্যারখাতা — আপনার ব্যবসার জন্য আলাদা অ্যাপ।', s.color, v.base, '/', '<link rel="icon" href="/icon.svg" type="image/svg+xml">')}
 <style>${BASE_CSS(s)}

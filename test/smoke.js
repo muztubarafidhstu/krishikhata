@@ -200,6 +200,15 @@ const lastOtp = () => {
     assert.equal((await fetch(base + '/app9')).status, 404);
     assert.equal((await fetch(base + '/nirman', { redirect: 'manual' })).headers.get('location'), '/app2');
 
+    // One-tap demo: only shops marked as demo, signed in as their owner, no password
+    const demoLogin = async (slug) => { const rr = await fetch(base + '/demo?shop=' + slug, { redirect: 'manual' }); const ck = (rr.headers.get('set-cookie') || '').split(';')[0]; return { loc: rr.headers.get('location'), ck }; };
+    let dl = await demoLogin('old-bikes'); assert.equal(dl.loc, '/'); assert.equal(dl.ck, '', 'a normal shop is not a demo');
+    { const { DatabaseSync } = require('node:sqlite'); const d = new DatabaseSync(path.join(dir, 'krishikhata.db')); d.prepare("UPDATE businesses SET demo=1 WHERE slug='old-bikes'").run(); d.close(); }
+    dl = await demoLogin('old-bikes'); assert.ok(dl.ck.startsWith('kk_'), 'demo shop signs in');
+    r = await fetch(base + '/api/biz/state', { headers: { Cookie: dl.ck, 'X-KK': '1' } }); assert.equal(r.status, 200); assert.equal((await r.json()).name, 'Puraton Bike Ghor');
+    r = await fetch(base + '/api/password', { method: 'POST', headers: { Cookie: dl.ck, 'X-KK': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ current: 'x', password: 'New@123' }) }); assert.equal(r.status, 403, 'demo password cannot be changed');
+    assert.equal((await fetch(base + '/demo3', { redirect: 'manual' })).headers.get('location'), '/demo?shop=demobike');
+
     // Public shop page
     r = await anon('GET', '/api/public/shop/test-shop'); assert.equal(r.status, 200); assert.equal(r.data.products[0].buy, undefined);
 

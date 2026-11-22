@@ -25,8 +25,8 @@
   .err{color:#c8414f;font-weight:600;margin-top:10px;min-height:1.2em}
   .help{color:var(--mu);font-size:.95rem;line-height:1.6;margin-top:18px}
   .help b{color:var(--fg)}
-  .demo{margin-top:16px;background:#fff1d2;border-radius:14px;padding:12px 14px;font-size:.95rem;line-height:1.6}
-  .demo a{color:var(--g);font-weight:700}
+  .demo{display:block;margin-top:16px;background:#fff1d2;border:2px dashed #f2a516;border-radius:14px;padding:12px 14px;font-size:1.08rem;line-height:1.5;font-weight:800;color:var(--g);text-decoration:none;text-align:center}
+  .demo small{display:block;font-weight:500;font-size:.85rem;color:var(--mu)}
 </style>
 </head>
 <body>
@@ -42,7 +42,7 @@
     <div class="err" id="err"></div>
     <button type="submit">দোকান খুলুন →</button>
     <p class="help">দোকানের ঠিকানা আপনার অ্যাকাউন্ট খোলার সময় দেওয়া হয়েছে — যেমন <b>karim</b>.rafid5.com হলে শুধু <b>karim</b> লিখুন। একবার লিখলে অ্যাপ মনে রাখবে।</p>
-    <div class="demo">ফ্রি ডেমো দেখতে চাইলে লিখুন <a href="#" id="demo">demoshop</a><br>মোবাইল: <span id="dphone">01900000000</span> · পাসওয়ার্ড: Demo@123</div>
+    <a class="demo" id="demo" href="#">▶ ফ্রি ডেমো দেখুন <small>লগইন লাগবে না — এক চাপে পুরো অ্যাপ ঘুরে দেখুন</small></a>
   </form>
 </main>
 <script>
@@ -74,8 +74,6 @@
     document.title = b[0];
     document.getElementById('bname').textContent = b[0];
     document.getElementById('bsub').textContent = b[1];
-    document.getElementById('demo').textContent = b[2];
-    document.getElementById('dphone').textContent = b[3];
     document.documentElement.style.setProperty('--g', b[4]);
     document.documentElement.style.setProperty('--g2', b[5]);
     document.documentElement.style.setProperty('--bg', '#f3f5f8');
@@ -85,7 +83,8 @@
     document.querySelector('.logo').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="' + b[5] + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + ICON[key] + '</svg>';
   }
   document.getElementById('dom').textContent = '.' + dom;
-  document.getElementById('demo').onclick = function (e) { e.preventDefault(); document.getElementById('slug').value = demoSlug; };
+  // Free demo: opens the demo shop already signed in (https://<demo>.rafid5.com/demo) — no login details needed.
+  document.getElementById('demo').onclick = function (e) { e.preventDefault(); location.href = 'https://' + demoSlug + '.' + dom + '/demo'; };
   document.getElementById('f').onsubmit = function (e) {
     e.preventDefault();
     var v = document.getElementById('slug').value.trim().toLowerCase();

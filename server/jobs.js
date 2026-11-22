@@ -2,7 +2,7 @@
 // Background jobs: expiry reminders (hourly), nightly database backup, cleanup.
 const fs = require('node:fs');
 const path = require('node:path');
-const { db, all, run, today, daysBetween } = require('./db');
+const { db, all, run, today, daysBetween, getSetting, setSetting } = require('./db');
 const { DATA_DIR, BACKUP_KEEP_DAYS } = require('./config');
 const { notify, brandOf } = require('./core');
 
@@ -52,6 +52,17 @@ function start() {
   // Back up once a day (checked hourly) — the file name carries the date.
   const daily = safe(() => { const f = path.join(DATA_DIR, 'backups', `krishikhata-${today()}.db`); if (!fs.existsSync(f)) console.log('[backup]', backup()); }, 'backup');
   daily(); setInterval(daily, 3600000).unref();
+  // The official demo shops start fresh once a day, at 3 at night Bangladesh time (anyone can open them with one tap).
+  const demoReset = safe(() => {
+    const bdHour = new Date(Date.now() + 6 * 3600000).getUTCHours();
+    const key = 'demo_reset_' + today();
+    if (bdHour !== 3 || getSetting(key, '')) return;
+    setSetting(key, '1');
+    run("DELETE FROM settings WHERE key LIKE 'demo_reset_%' AND key<>?", key);
+    const done = require('./demo').resetDemos();
+    if (done.length) console.log('[demo] fresh sample data:', done.join(', '));
+  }, 'demo-reset');
+  setInterval(demoReset, 15 * 60000).unref();
 }
 
 module.exports = { start, backup, reminders };

@@ -13,7 +13,7 @@ const { hostInfo, adminTypeOf, shopUrl } = require('../host');
 const isAdminHost = (req) => hostInfo(req).kind === 'admin';
 r.get('/site', (req, res) => {
   const h = hostInfo(req);
-  res.json({ kind: h.kind, admin: h.kind === 'admin', btype: h.btype || 'agri', shop: h.biz ? { name: h.biz.name, slug: h.biz.slug, btype: h.btype } : null, missingShop: h.kind === 'shop' && !h.biz, domain: DOMAIN, adminDomain: ADMIN_DOMAIN, buildAdminDomain: BUILD_ADMIN_DOMAIN });
+  res.json({ kind: h.kind, admin: h.kind === 'admin', btype: h.btype || 'agri', shop: h.biz ? { name: h.biz.name, slug: h.biz.slug, btype: h.btype, demo: !!(get('SELECT demo FROM businesses WHERE id=?', h.biz.id) || {}).demo } : null, missingShop: h.kind === 'shop' && !h.biz, domain: DOMAIN, adminDomain: ADMIN_DOMAIN, buildAdminDomain: BUILD_ADMIN_DOMAIN });
 });
 // Caddy asks this before creating an HTTPS certificate for a new address — only real shops get one.
 r.get('/tls-check', (req, res) => {

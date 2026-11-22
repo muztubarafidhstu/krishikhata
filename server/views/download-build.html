@@ -98,6 +98,9 @@ h2{font-size:clamp(1.5rem,3.5vw,2rem);margin:4px 0 8px}
 .demo dt{color:var(--mu)}
 .demo dd{margin:0;font:700 1.05rem ui-monospace,Menlo,Consolas,monospace;text-align:right;user-select:all}
 .demo a{color:var(--g2);font-weight:700}
+.demo .go{display:inline-flex;align-items:center;gap:8px;margin-top:12px;background:var(--seg);color:#fff!important;text-decoration:none;border-radius:14px;padding:12px 18px;font:800 1.05rem/1 var(--display);box-shadow:0 4px 0 var(--seg-d)}
+.demo p.d{margin:8px 0 0;color:var(--mu)}
+
 .steps{counter-reset:s;display:grid;gap:12px;padding:0;margin:0;list-style:none}
 .steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px 14px 62px;position:relative}
 .steps li::before{content:counter(s);position:absolute;left:16px;top:14px;width:32px;height:32px;border-radius:50%;background:var(--g2);color:#fff;font-weight:800;display:grid;place-items:center;font-family:var(--display)}
@@ -214,11 +217,11 @@ footer{text-align:center;color:var(--mu);font-size:.85rem;padding:30px 0 calc(10
 
   <section>
     <div class="eyebrow">কেনার আগে চালিয়ে দেখুন</div>
-    <h2>ফ্রি ডেমো — এখনই লগইন করে দেখুন</h2>
+    <h2>ফ্রি ডেমো — লগইন লাগবে না</h2>
     <div class="demos">
-      <div class="demo"><span class="tag">নির্মাণখাতা ডেমো</span>
-        <dl><dt>অ্যাপে ঠিকানা</dt><dd>demosteel</dd><dt>মোবাইল</dt><dd>01900000002</dd><dt>পাসওয়ার্ড</dt><dd>Demo@123</dd></dl>
-        <p style="margin:10px 0 0"><a href="https://demosteel.{{DOMAIN}}/">ব্রাউজারে খুলুন →</a></p></div>
+      <div class="demo"><span class="tag">নির্মাণখাতা ডেমো — রড, সিমেন্ট ও টিনের দোকান</span>
+        <p class="d">নমুনা পণ্য, বিক্রি, বাকি ও রিপোর্টসহ সাজানো দোকান — এক চাপে খুলুন, যা খুশি চালিয়ে দেখুন।</p>
+        <a class="go" href="/demo2">▶ ফ্রি ডেমো চালু করুন</a></div>
     </div>
   </section>
 
