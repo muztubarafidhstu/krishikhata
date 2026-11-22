@@ -472,3 +472,20 @@ fieldset.vbox{border:1.5px dashed var(--line);border-radius:14px;padding:10px 12
 fieldset.vbox legend{padding:0 6px;font-weight:700;color:var(--muted);font-size:.85rem}
 .panels{display:flex;flex-direction:column;gap:10px}
 .panels .chips a{text-decoration:none}
+
+/* Segments 3–8: their own background pattern (bikes, bricks, phones, furniture, cars, tools) */
+:root[data-brand="bike"] body::after{background-image:url(/art/pattern-bike.svg);background-size:150px}
+:root[data-brand="brick"] body::after{background-image:url(/art/pattern-brick.svg);background-size:150px}
+:root[data-brand="mobile"] body::after{background-image:url(/art/pattern-mobile.svg);background-size:150px}
+:root[data-brand="furniture"] body::after{background-image:url(/art/pattern-furniture.svg);background-size:150px}
+:root[data-brand="car"] body::after{background-image:url(/art/pattern-car.svg);background-size:150px}
+:root[data-brand="hardware"] body::after{background-image:url(/art/pattern-hardware.svg);background-size:150px}
+:root[data-palette="seg"] .hero::before,:root[data-palette="seg"] .shop-h::before{content:"";position:absolute;inset:0;opacity:.12;pointer-events:none;background-size:150px}
+:root[data-brand="bike"] .hero::before,:root[data-brand="bike"] .shop-h::before{background-image:url(/art/pattern-bike-w.svg)}
+:root[data-brand="brick"] .hero::before,:root[data-brand="brick"] .shop-h::before{background-image:url(/art/pattern-brick-w.svg)}
+:root[data-brand="mobile"] .hero::before,:root[data-brand="mobile"] .shop-h::before{background-image:url(/art/pattern-mobile-w.svg)}
+:root[data-brand="furniture"] .hero::before,:root[data-brand="furniture"] .shop-h::before{background-image:url(/art/pattern-furniture-w.svg)}
+:root[data-brand="car"] .hero::before,:root[data-brand="car"] .shop-h::before{background-image:url(/art/pattern-car-w.svg)}
+:root[data-brand="hardware"] .hero::before,:root[data-brand="hardware"] .shop-h::before{background-image:url(/art/pattern-hardware-w.svg)}
+.hero img.scene,.shop-h img.scene{height:100%;width:auto;max-width:52%;object-fit:contain;object-position:right bottom}
+@media (max-width:720px){.hero img.scene,.shop-h img.scene{max-width:80%;opacity:.35}}

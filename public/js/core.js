@@ -358,6 +358,7 @@ function navList() {
 }
 // Segments 3–8: the segment's own picture, drawn large and soft on the right, with a sun.
 function segScene() {
+  if (['bike', 'brick', 'mobile', 'furniture', 'car', 'hardware'].includes(btype())) return `<img class="scene" src="/art/${btype()}.svg" alt="" aria-hidden="true">`;
   return `<svg class="scene" viewBox="0 0 420 200" preserveAspectRatio="xMaxYMax meet" aria-hidden="true">
     <circle cx="330" cy="52" r="26" fill="#ffd34d" opacity=".85"/><path d="M120 200 Q260 150 420 172 V200Z" fill="#000" opacity=".12"/>
     <g transform="translate(250 70) scale(5.4)" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".9">${P[brand().icon] || ''}</g></svg>`;
