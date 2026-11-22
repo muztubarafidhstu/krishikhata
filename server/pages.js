@@ -200,6 +200,32 @@ function demoPage(v) {
 </body></html>`;
 }
 
+// demo.<domain>: every demo link — full demos (sample data) and 'new shop' demos (as a new customer sees it).
+// Not linked from anywhere, and search engines are asked not to list it.
+function demoDirPage(v) {
+  const s = { key: 'hub', color: '#1f2937', dark: '#0b1220', emoji: '▶' };
+  const card = (x, href, label) => `<a href="${href}" style="background:radial-gradient(120% 90% at 85% 0%,${x.color} 0%,${x.dark} 85%)"><img src="/art/${x.key}.svg" alt="" width="480" height="300" loading="lazy"><b>${x.emoji} ${esc(x.bn)}</b><span>${label}</span></a>`;
+  return `${HEAD('সব ডেমো লিংক', 'সব সফটওয়্যারের ডেমো', s.color, v.base, '/', '<meta name="robots" content="noindex,nofollow"><link rel="icon" href="/icon.svg" type="image/svg+xml">')}
+<style>${BASE_CSS(s)}${DEMO_CSS}
+.hero{padding:26px 0 30px;background:radial-gradient(120% 120% at 90% 0%,#334155 0%,#0b1220 70%)}.hero .wrap{grid-template-columns:minmax(0,1fr)}
+.hero::before,body::before{background:none}
+section{margin-top:28px}.demos8.fresh a span{background:#fff;color:#1d2430}
+.note{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 16px;margin-top:18px;color:var(--mu);font-size:.92rem}</style></head><body>
+<header class="hero"><div class="wrap"><div>
+  <span class="badge">🔒 শুধু আপনার জন্য — কোথাও প্রকাশিত নয়</span>
+  <h1>সব ডেমো <em>এক জায়গায়</em></h1>
+  <p class="lead">প্রতিটি সফটওয়্যারের দুই রকম ডেমো — লগইন লাগবে না, এক চাপে খোলে। প্রতি রাতে নিজে থেকে আগের অবস্থায় ফিরে যায়।</p>
+</div></div></header>
+<main class="wrap">
+  <section><div class="demohead"><div><h2>▶ সাজানো ডেমো</h2><p>নমুনা পণ্য, বিক্রি, ক্রেতা, বাকি ও রিপোর্টসহ — চালু দোকান দেখতে কেমন।</p></div></div>
+    <div class="demos8">${SEGMENTS.map((x) => card(x, `/demo${x.num}`, '▶ সাজানো ডেমো')).join('')}</div></section>
+  <section><div class="demohead"><div><h2>✨ নতুন দোকান — শুরুর দিন যেমন দেখায়</h2><p>নতুন গ্রাহক সেটআপের পর প্রথম দিন যা দেখবেন: শুধু শুরুর পণ্যের তালিকা, কোনো বিক্রি নেই, ${bnNum(14)} দিনের ফ্রি ট্রায়াল।</p></div></div>
+    <div class="demos8 fresh">${SEGMENTS.map((x) => card(x, `https://${esc(x.fresh[0])}.${esc(v.domain)}/demo`, '✨ নতুন দোকান দেখুন')).join('')}</div></section>
+</main>
+<footer>demo.${esc(v.domain)}</footer>
+</body></html>`;
+}
+
 // rafid5.com home: an advert for every software, with its page, app download and free demo.
 function hubPage(v) {
   const s = { key: 'hub', color: '#1f2937', dark: '#0b1220', emoji: '📒' };
@@ -269,4 +295,4 @@ ${finderHTML(v.nf, v.q)}
 </body></html>`;
 }
 
-module.exports = { SHARED_CSS, finderHTML, allAppsHTML, segPage, hubPage, demoPage };
+module.exports = { SHARED_CSS, finderHTML, allAppsHTML, segPage, hubPage, demoPage, demoDirPage };

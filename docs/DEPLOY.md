@@ -205,16 +205,13 @@ docker compose start app
 - ফ্রি ডেমো লিংক (`/demo1` … `/demo8`) চাপলে সেই ডেমো দোকান লগইন ছাড়াই খুলে যায় (শুধু "ডেমো" চিহ্নিত দোকানে কাজ করে; ডেমোতে পাসওয়ার্ড/আইডি বদলানো যায় না)।
 - এই ৮টি ডেমো দোকান প্রতি রাত ৩টায় নিজে থেকে নতুন নমুনা ডেটায় ফিরে যায়।
 
-ডেমো দোকান তৈরি (একবার, একটা একটা করে):
+ডেমো দোকান তৈরি — একটা কমান্ডেই সব (যেগুলো নেই শুধু সেগুলো তৈরি হয়):
 ```bash
-cd /opt/krishikhata
-docker compose exec app npm run demo-shop -- demobike 01900000004 "Demo@123" --type=bike
-docker compose exec app npm run demo-shop -- demobrick 01900000006 "Demo@123" --type=brick
-docker compose exec app npm run demo-shop -- demomobile 01900000008 "Demo@123" --type=mobile
-docker compose exec app npm run demo-shop -- demofurniture 01900000010 "Demo@123" --type=furniture
-docker compose exec app npm run demo-shop -- democar 01900000012 "Demo@123" --type=car
-docker compose exec app npm run demo-shop -- demohardware 01900000014 "Demo@123" --type=hardware
+cd /opt/krishikhata && docker compose exec app npm run demo-all
 ```
+প্রতিটি সফটওয়্যারের দুটো ডেমো তৈরি হয়: সাজানো ডেমো (নমুনা বিক্রি, ক্রেতা, বাকিসহ — `/demo1` … `/demo8`)
+আর নতুন দোকান ডেমো (নতুন গ্রাহক প্রথম দিন যা দেখেন — `newkrishi`, `newnirman`, `newbike` … )।
+সব ডেমো লিংক এক পেজে: `demo.example.com` (কোথাও প্রকাশিত নয়, সার্চ ইঞ্জিনেও আসে না)।
 
 ## আপডেট করা (নতুন ফিচার এলে)
 

@@ -24,7 +24,7 @@ VIEWS.launch = () => {
   <div class="launch">${O.map((o) => { const B = BRAND[o.key]; return `
     <a class="lcard" href="${esc(o.url)}" style="--c:${B.color || (o.key === 'build' ? '#a8532b' : '#2f8f3a')};--d:${B.dark || (o.key === 'build' ? '#7a3b1d' : '#1f6b2a')}">
       <span class="pic" style="background:radial-gradient(120% 90% at 85% 0%,var(--c) 0%,var(--d) 85%)"><img src="/art/${o.key}.svg" alt=""><span class="n">${bn(o.num)}</span></span>
-      <span class="body"><b>${N(B.name)}</b><small>${esc(o.url.replace('https://', ''))}</small>
+      <span class="body"><b>${N(B.name)}</b><small>${esc(o.url.replace('https://', ''))}${o.demos ? ` · ${L(`আরও ${bn(o.demos)}টি ডেমো দোকান`, `plus ${bn(o.demos)} demo shops`)}` : ''}</small>
         <span class="st"><span><b>${bn(o.shops)}</b>${L('দোকান', 'shops')}</span><span><b>${bn(o.active)}</b>${L('সক্রিয়', 'active')}</span><span><b>${bn(o.locked)}</b>${L('বন্ধ', 'locked')}</span></span>
         <span class="mo">${L('এই মাসে', 'This month')}: ${tk(o.sales)} ${L('বিক্রি', 'sales')} · ${tk(o.income)} ${L('আয়', 'income')}</span>
         <span class="go">${L('প্যানেল খুলুন', 'Open panel')} →</span></span></a>`; }).join('')}</div>`;

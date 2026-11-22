@@ -41,12 +41,16 @@ if (cmd === 'backup') {
   if (!b) { console.error('No shop with address: ' + a1); process.exit(1); }
   run('UPDATE businesses SET demo=? WHERE id=?', a2 === 'off' ? 0 : 1, b.id);
   console.log(a2 === 'off' ? `${a1}: demo protection OFF` : `${a1}: demo protection ON (logins can't be changed by visitors)`);
+} else if (cmd === 'demo-all') {
+  // npm run demo-all → every software gets a full demo and a 'new shop' demo (only missing ones are made)
+  for (const line of require('./demo').createDemoShops()) console.log(line);
+  console.log('All demo links: https://demo.' + (process.env.DOMAIN || 'your-domain'));
 } else if (cmd === 'refill-demo') {
   // npm run refill-demo -- demosteel   → wipes a DEMO shop and fills it again with fresh sample data
   const b = get('SELECT * FROM businesses WHERE slug=?', String(a1 || ''));
   if (!b) { console.error('No shop with address: ' + a1); process.exit(1); }
   if (!b.demo) { console.error('Only demo shops can be refilled (mark it first: npm run mark-demo -- ' + a1 + ')'); process.exit(1); }
-  refillDemo(b);
+  refillDemo(b, require('./demo').isFresh(b.slug));
   console.log(`Demo shop ${a1} refilled with fresh sample data.`);
 } else if (cmd === 'demo-shop') {
   // A ready-made demo shop to show customers:

@@ -27,11 +27,14 @@ function adminTypeOf(host) {
 // Super admin start page: adminr.<domain> (also admin.<domain>) — links to every mother panel.
 const LAUNCHER = ['adminr', 'admin'];
 const isLauncherHost = (host) => { host = String(host || '').toLowerCase(); return !!DOMAIN && LAUNCHER.some((l) => host === `${l}.${DOMAIN}`); };
+// demo.<domain>: the unlisted page with every demo link (full demos and 'new shop' demos).
+const isDemoHost = (host) => !!DOMAIN && String(host || '').toLowerCase() === `demo.${DOMAIN}`;
 const adminUrl = (t) => { const s = SEGMENTS.find((x) => x.key === t); return DOMAIN && s ? `https://admin${s.num}.${DOMAIN}` : ''; };
 
 function hostInfo(req) {
   const host = String(req.hostname || '').toLowerCase();
   if (isLauncherHost(host)) return { kind: 'admin', host, btype: 'agri', launcher: true };
+  if (isDemoHost(host)) return { kind: 'demos', host };
   const at = adminTypeOf(host);
   if (at) return { kind: 'admin', host, btype: at };
   if (DOMAIN && host.endsWith('.' + DOMAIN)) {
@@ -46,4 +49,4 @@ function hostInfo(req) {
 // Address of a shop, e.g. https://karim.rafid5.com
 const shopUrl = (slug) => (DOMAIN ? `https://${slug}.${DOMAIN}` : `/shop/${slug}`);
 
-module.exports = { hostInfo, adminTypeOf, adminUrl, isLauncherHost, slugValid, shopUrl, RESERVED };
+module.exports = { hostInfo, adminTypeOf, adminUrl, isLauncherHost, isDemoHost, slugValid, shopUrl, RESERVED };

@@ -34,7 +34,7 @@ const fmtDateBn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('bn-BD', 
 r.get('/overview', (req, res) => {
   const month = today().slice(0, 7);
   res.json(SEGMENTS.map((s) => {
-    const shops = all("SELECT * FROM businesses WHERE COALESCE(btype,'agri')=?", s.key);
+    const all8 = all("SELECT * FROM businesses WHERE COALESCE(btype,'agri')=?", s.key), shops = all8.filter((b) => !b.demo);
     const ids = shops.map((b) => Number(b.id)).join(',');
     const sum = (sql) => (ids ? get(sql.replace('IDS', ids), month).v : 0);
     return {
@@ -43,7 +43,7 @@ r.get('/overview', (req, res) => {
       trial: shops.filter((b) => b.plan === 'trial' && !isLocked(b)).length,
       sales: sum('SELECT COALESCE(SUM(total),0) v FROM sales WHERE business_id IN (IDS) AND void=0 AND substr(date,1,7)=?'),
       income: sum('SELECT COALESCE(SUM(amount),0) v FROM sub_payments WHERE business_id IN (IDS) AND substr(date,1,7)=?'),
-      price: plans(s.key).monthly,
+      price: plans(s.key).monthly, demos: all8.length - shops.length,
     };
   }));
 });

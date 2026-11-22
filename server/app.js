@@ -159,6 +159,7 @@ function createApp() {
   app.get(['/', '/shop', '/shop/:slug', '/login'], (req, res) => {
     // The main address (rafid5.com) opens the page listing every software; the app itself is at /login there.
     if (req.path === '/' && DOMAIN && hostOf(req).kind === 'main') return sendPage(res, pages.hubPage(pageVars(req, null)));
+    if (DOMAIN && hostOf(req).kind === 'demos') return sendPage(res, pages.demoDirPage(pageVars(req, null)));
     let t = hostInfo(req).btype;
     if (req.params.slug) t = (get('SELECT btype FROM businesses WHERE slug=?', String(req.params.slug)) || {}).btype || t;
     res.setHeader('Cache-Control', 'no-cache');

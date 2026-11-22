@@ -209,6 +209,10 @@ const lastOtp = () => {
     r = await fetch(base + '/api/password', { method: 'POST', headers: { Cookie: dl.ck, 'X-KK': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ current: 'x', password: 'New@123' }) }); assert.equal(r.status, 403, 'demo password cannot be changed');
     assert.equal((await fetch(base + '/demo3', { redirect: 'manual' })).headers.get('location'), '/demo?shop=demobike');
 
+    // demo.<domain> lists every demo (unlisted); not linked from the public pages
+    { const hp = await (await fetch(base + '/', { headers: { Host: 'demo.localhost' } })).text(); assert.ok(hp.length > 0); }
+    { const { createDemoShops } = require('../server/demo'); assert.equal(typeof createDemoShops, 'function'); }
+
     // Public shop page
     r = await anon('GET', '/api/public/shop/test-shop'); assert.equal(r.status, 200); assert.equal(r.data.products[0].buy, undefined);
 

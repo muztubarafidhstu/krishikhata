@@ -9,7 +9,7 @@ const { fail, otpGate, otpEnabled, audit, queueSms, brandForReq } = require('../
 const r = express.Router();
 const PASS_MSG = ['পাসওয়ার্ডে কমপক্ষে ৫ অক্ষর, একটি ইংরেজি অক্ষর, একটি সংখ্যা ও একটি চিহ্ন লাগবে', 'The password needs 5+ characters with a letter, a number and a symbol'];
 
-const { hostInfo, adminTypeOf, isLauncherHost, shopUrl } = require('../host');
+const { hostInfo, adminTypeOf, isLauncherHost, isDemoHost, shopUrl } = require('../host');
 const isAdminHost = (req) => hostInfo(req).kind === 'admin';
 r.get('/site', (req, res) => {
   const h = hostInfo(req);
@@ -18,7 +18,7 @@ r.get('/site', (req, res) => {
 // Caddy asks this before creating an HTTPS certificate for a new address — only real shops get one.
 r.get('/tls-check', (req, res) => {
   const d = String(req.query.domain || '').toLowerCase();
-  if (d && (d === DOMAIN || adminTypeOf(d) || isLauncherHost(d))) return res.sendStatus(200);
+  if (d && (d === DOMAIN || adminTypeOf(d) || isLauncherHost(d) || isDemoHost(d))) return res.sendStatus(200);
   if (DOMAIN && d.endsWith('.' + DOMAIN) && get('SELECT 1 x FROM businesses WHERE slug=?', d.slice(0, -DOMAIN.length - 1))) return res.sendStatus(200);
   res.sendStatus(404);
 });
