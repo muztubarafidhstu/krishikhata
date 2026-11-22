@@ -22,6 +22,7 @@ VIEWS.home = () => {
   <div class="pagehead"><div><h2>${L('সব ব্যবসা', 'All businesses')}</h2><p>${L('প্রতিটি ব্যবসায়ীর আলাদা অ্যাকাউন্ট সেটআপ ও নিয়ন্ত্রণ করুন।', 'Set up and control a separate account for each business owner.')}</p></div>
   <button class="btn sun" data-nav="wizard">${I('plus')} ${L('নতুন ব্যবসা সেটআপ', 'Set up new business')}</button></div>
   ${appCard('super')}
+  ${S.site && S.site.domain ? `<div class="card panels"><b>${I('crown')} ${L('সব মাদার প্যানেল', 'All mother panels')}</b><div class="chips">${Object.entries(BRAND).sort((a, z) => a[1].num - z[1].num).map(([k, B]) => `<a class="chip-btn ${k === btype() ? 'on' : ''}" href="https://admin${B.num}.${esc(S.site.domain)}">${I(B.icon)} ${B.num}. ${N(B.name)}</a>`).join('')}</div></div>` : ''}
   <div class="grid g-kpi">
     ${kpi('k-leaf', 'build', L('মোট ব্যবসা', 'Businesses'), bn(B.length), L(`${bn(B.filter((b) => isLockedSub(b.sub)).length)} টি বন্ধ / মেয়াদ শেষ`, `${bn(B.filter((b) => isLockedSub(b.sub)).length)} locked`))}
     ${kpi('k-sky', 'cart', L('মোট বিক্রি (সব ব্যবসা)', 'Total sales (all)'), tk(tot.s))}

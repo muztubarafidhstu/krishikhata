@@ -86,7 +86,7 @@ CREATE INDEX IF NOT EXISTS ix_notif_b ON notifications(business_id);
   const cols = db.prepare('PRAGMA table_info(businesses)').all().map((c) => c.name);
   const pcols = db.prepare('PRAGMA table_info(products)').all().map((c) => c.name);
   // Building materials: brand, thickness/size, weight per piece or bag (kg), pieces per bundle
-  for (const [c, t] of [['brand', "TEXT DEFAULT ''"], ['size', "TEXT DEFAULT ''"], ['dims', "TEXT DEFAULT ''"], ['weight', 'REAL'], ['per_pack', 'REAL']])
+  for (const [c, t] of [['brand', "TEXT DEFAULT ''"], ['size', "TEXT DEFAULT ''"], ['dims', "TEXT DEFAULT ''"], ['weight', 'REAL'], ['per_pack', 'REAL'], ['meta', 'TEXT']])
     if (!pcols.includes(c)) db.exec(`ALTER TABLE products ADD COLUMN ${c} ${t}`);
   const pucols = db.prepare('PRAGMA table_info(purchases)').all().map((c) => c.name);
   if (!pucols.includes('void')) db.exec('ALTER TABLE purchases ADD COLUMN void INTEGER DEFAULT 0');

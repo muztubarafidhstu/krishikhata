@@ -3,6 +3,7 @@ const express = require('express');
 const { get, all, run, tx, today } = require('../db');
 const { hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
 const { freePhone } = require('../business');
+const { VEHICLE_CATS, addVehicle, updateVehicle } = require('../vehicles');
 const { requireLogin, shopUnlocked } = require('../auth');
 const { fail, money, str, otpGate, audit, queueSms, isLocked, CATS, UNITS, EXP_TYPES, brandOf } = require('../core');
 const { bizState } = require('../state');
@@ -104,6 +105,7 @@ function productFields(b, biz) {
   if (!CATS.includes(b.cat) || !JSON.parse(biz.cats).includes(b.cat)) fail(400, 'ক্যাটাগরি বাছাই করুন', 'Choose a category');
   if (!UNITS.includes(b.unit)) fail(400, 'একক বাছাই করুন', 'Choose a unit');
   if (biz.btype === 'build' && ['cement', 'tin'].includes(b.cat) && !brand) fail(400, 'কোম্পানি বাছাই করুন', 'Choose the company');
+  if (VEHICLE_CATS.includes(b.cat)) fail(400, 'বাইক/গাড়ি যোগ করতে গাড়ির ফর্ম ব্যবহার করুন', 'Use the vehicle form to add a bike or car');
   return { name, cat: b.cat, unit: b.unit, buy: money(b.buy, { name: 'cost' }), sell: money(b.sell, { name: 'price' }), min: money(b.min || 0, { name: 'min' }), box: str(b.box, 20), brand, size, dims, weight: opt(b.weight, 'weight'), perPack: opt(b.perPack, 'pieces') };
 }
 r.post('/products', adminOnly, (req, res) => {
@@ -117,6 +119,9 @@ r.put('/products/:id', adminOnly, (req, res) => {
   if (!c.changes) fail(404, 'পণ্য পাওয়া যায়নি', 'Product not found');
   res.json({ ok: true });
 });
+// Bikes and cars (one unique vehicle each, with papers and the buying date)
+r.post('/vehicles', adminOnly, (req, res) => res.json({ id: addVehicle(req.biz, req.body || {}) }));
+r.put('/vehicles/:id', adminOnly, (req, res) => { updateVehicle(req.biz, req.params.id, req.body || {}); res.json({ ok: true }); });
 r.post('/products/:id/remove', adminOnly, (req, res) => {
   run('UPDATE products SET active=0 WHERE id=? AND business_id=?', Number(req.params.id), bid(req));
   res.json({ ok: true });
@@ -135,6 +140,7 @@ r.post('/purchases', adminOnly, (req, res) => {
   tx(() => {
     const v = get('SELECT * FROM vendors WHERE id=? AND business_id=?', Number(b.vendor), bid(req)) || fail(400, 'ভেন্ডর বাছাই করুন', 'Choose a vendor');
     const p = get('SELECT * FROM products WHERE id=? AND business_id=? AND active=1', Number(b.pid), bid(req)) || fail(400, 'পণ্য বাছাই করুন', 'Choose a product');
+    if (VEHICLE_CATS.includes(p.cat)) fail(400, 'বাইক/গাড়ি কেনা হয় "নতুন গাড়ি যোগ" ফর্ম থেকে', 'Bikes and cars are bought through the add-vehicle form');
     const qty = money(b.qty, { min: 0.001, name: 'qty' }), rate = money(b.rate, { name: 'rate' });
     const total = Math.round(qty * rate * 100) / 100, paid = Math.min(money(b.paid || 0, { name: 'paid' }), total);
     run('INSERT INTO purchases(business_id,date,vendor_id,product_id,qty,rate,total,paid) VALUES(?,?,?,?,?,?,?,?)', bid(req), today(), v.id, p.id, qty, rate, total, paid);
@@ -153,6 +159,7 @@ r.post('/purchases/:id/void', adminOnly, (req, res) => {
     if (p) run('UPDATE products SET stock=stock-? WHERE id=?', pu.qty, p.id);
     if (pu.total > pu.paid) run('UPDATE vendors SET due=MAX(0,due-?) WHERE id=?', pu.total - pu.paid, pu.vendor_id);
     run('UPDATE purchases SET void=1 WHERE id=?', pu.id);
+    if (p && VEHICLE_CATS.includes(p.cat)) run('UPDATE products SET active=0 WHERE id=?', p.id); // a cancelled vehicle purchase removes the vehicle
     audit(req.user.id, 'purchase-void', `${bid(req)} ${pu.id}`);
   });
   res.json({ ok: true });

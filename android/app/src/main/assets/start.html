@@ -16,7 +16,7 @@
   main{flex:1;padding:0 18px 24px;margin-top:-44px}
   .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 10px 30px -18px rgba(31,80,30,.5)}
   label{display:block;font-weight:700;margin-bottom:8px}
-  .field{display:flex;align-items:center;border:2px solid var(--line);border-radius:14px;background:#f6faf1;overflow:hidden}
+  .field{display:flex;align-items:center;border:2px solid var(--line);border-radius:14px;background:var(--fieldbg,#f6faf1);overflow:hidden}
   .field:focus-within{border-color:var(--g2)}
   input{flex:1;min-width:0;border:0;background:transparent;font-size:1.2rem;padding:14px 12px;outline:none;color:var(--fg);font-family:inherit}
   .field span{padding:0 12px;color:var(--mu);font-weight:600;white-space:nowrap}
@@ -49,17 +49,40 @@
   var A = window.KKAndroid;
   var dom = A ? A.domain() : 'rafid5.com';
   var demoSlug = 'demoshop';
-  if (A && A.brand && A.brand() === 'build') {
-    demoSlug = 'demosteel';
-    document.title = 'নির্মাণখাতা';
-    document.getElementById('bname').textContent = 'নির্মাণখাতা';
-    document.getElementById('bsub').textContent = 'রড · সিমেন্ট · টিন · অ্যাঙ্গেল · বার ব্যবসার হিসাব';
-    document.getElementById('demo').textContent = 'demosteel';
-    document.getElementById('dphone').textContent = '01900000002';
-    document.documentElement.style.setProperty('--g', '#7a3b1d');
-    document.documentElement.style.setProperty('--g2', '#a8532b');
-    document.querySelector('header').style.background = 'linear-gradient(135deg,#7a3b1d,#a8532b 60%,#d08a3a)';
-    document.querySelector('.logo').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#a8532b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9 21v-5h6v5M9 12h6"/></svg>';
+  // Each app (product flavor) has its own name, colours, logo and free demo shop.
+  var ICON = {
+    build: '<path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9 21v-5h6v5M9 12h6"/>',
+    bike: '<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5l4-7h5l4 7M9.5 9.5L8 6H5.5M14.5 9.5l2-3.5h2.5M12 16.5l2.5-7"/>',
+    brick: '<rect x="2" y="5" width="9" height="4" rx=".5"/><rect x="13" y="5" width="9" height="4" rx=".5"/><rect x="7" y="10" width="10" height="4" rx=".5"/><rect x="2" y="15" width="9" height="4" rx=".5"/><rect x="13" y="15" width="9" height="4" rx=".5"/>',
+    mobile: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+    furniture: '<path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2z"/><path d="M5 18v2M19 18v2"/>',
+    car: '<path d="M3 16V12l2.5-5h13L21 12v4z"/><path d="M3 12h18"/><circle cx="7" cy="16.5" r="2"/><circle cx="17" cy="16.5" r="2"/>',
+    hardware: '<path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3z"/><path d="M14.5 6.5l3-3 3 3-3 3"/>'
+  };
+  var BR = {
+    build: ['নির্মাণখাতা', 'রড · সিমেন্ট · টিন · অ্যাঙ্গেল · বার ব্যবসার হিসাব', 'demosteel', '01900000002', '#7a3b1d', '#a8532b', '#d08a3a'],
+    bike: ['বাইকখাতা', 'নতুন ও পুরাতন মোটরসাইকেল ব্যবসার হিসাব', 'demobike', '01900000004', '#9a3412', '#c2410c', '#ea7a45'],
+    brick: ['ইটখাতা', 'ইট · খোয়া · ব্লক ব্যবসার হিসাব', 'demobrick', '01900000006', '#7f1d1d', '#b91c1c', '#e0574f'],
+    mobile: ['মোবাইলখাতা', 'মোবাইল · এক্সেসরিজ · ইলেকট্রনিক্স ব্যবসার হিসাব', 'demomobile', '01900000008', '#4c1d95', '#6d28d9', '#9a6cf0'],
+    furniture: ['ফার্নিচারখাতা', 'খাট · সোফা · টেবিল · আলমারি ব্যবসার হিসাব', 'demofurniture', '01900000010', '#134e4a', '#0f766e', '#2fae9f'],
+    car: ['গাড়িখাতা', 'পুরাতন গাড়ি কেনা-বেচার হিসাব', 'democar', '01900000012', '#1e3a8a', '#1d4ed8', '#5b86f0'],
+    hardware: ['হার্ডওয়্যারখাতা', 'হার্ডওয়্যার ও স্যানিটারি ব্যবসার হিসাব', 'demohardware', '01900000014', '#155e75', '#0e7490', '#3aa6c0']
+  };
+  var key = A && A.brand ? A.brand() : 'agri', b = BR[key];
+  if (b) {
+    demoSlug = b[2];
+    document.title = b[0];
+    document.getElementById('bname').textContent = b[0];
+    document.getElementById('bsub').textContent = b[1];
+    document.getElementById('demo').textContent = b[2];
+    document.getElementById('dphone').textContent = b[3];
+    document.documentElement.style.setProperty('--g', b[4]);
+    document.documentElement.style.setProperty('--g2', b[5]);
+    document.documentElement.style.setProperty('--bg', '#f3f5f8');
+    document.documentElement.style.setProperty('--line', '#dde3ea');
+    document.documentElement.style.setProperty('--fieldbg', '#f8fafc');
+    document.querySelector('header').style.background = 'linear-gradient(135deg,' + b[4] + ',' + b[5] + ' 60%,' + b[6] + ')';
+    document.querySelector('.logo').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="' + b[5] + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + ICON[key] + '</svg>';
   }
   document.getElementById('dom').textContent = '.' + dom;
   document.getElementById('demo').onclick = function (e) { e.preventDefault(); document.getElementById('slug').value = demoSlug; };

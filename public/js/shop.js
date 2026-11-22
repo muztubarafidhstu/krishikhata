@@ -118,7 +118,7 @@ VIEWS.public = () => {
   return `<section class="shop-h">${heroScene()}<div style="position:relative;z-index:1"><span class="pill" style="background:rgba(255,255,255,.2);color:#fff">${BI()} ${esc(s.place)}</span>
     <h2 style="font-size:2rem;margin-top:8px">${esc(s.name)}</h2><p style="max-width:44ch;opacity:.92">${N(brand().hero)}</p>
     ${s.phone ? `<p style="margin:0;font-weight:700" class="num">${I('phone')} ${esc(dg(fmtPhone(s.phone)))}</p>` : ''}</div></section>
-  ${s.cats.map((k) => { const list = s.products.filter((p) => p.cat === k); return list.length ? `<h3 style="margin-top:6px">${catPill(k)}</h3><div class="grid g-kpi">${list.map((p) => `<div class="card prod"><div class="img" style="background:${CAT[p.cat].bg};color:${CAT[p.cat].color}">${I(CAT[p.cat].icon)}</div>
+  ${s.cats.map((k) => { const list = s.products.filter((p) => p.cat === k && !(isVehicle(p) && !p.inStock)); return list.length ? `<h3 style="margin-top:6px">${catPill(k)}</h3><div class="grid g-kpi">${list.map((p) => `<div class="card prod"><div class="img" style="background:${CAT[p.cat].bg};color:${CAT[p.cat].color}">${I(CAT[p.cat].icon)}</div>
     <b>${esc(p.name)}</b>${pspec(p) ? `<span class="muted" style="font-size:.85rem">${esc(pspec(p))}</span>` : ''}<div style="display:flex;justify-content:space-between;align-items:center"><span class="num" style="font-family:var(--display);font-size:1.2rem;font-weight:800;color:var(--leaf-d)">${tk(p.sell)}</span><span class="muted">/ ${U(p.unit)}</span></div>
     <span class="pill ${p.inStock ? 'p-ok' : 'p-out'}" style="align-self:flex-start">${p.inStock ? L('স্টকে আছে', 'In stock') : L('স্টকে নেই', 'Out of stock')}</span></div>`).join('')}</div>` : ''; }).join('')}`;
 };
@@ -286,6 +286,7 @@ function prodResults() {
 }
 function lineHTML(l, i) {
   const p = S.cur.products.find((x) => x.id == l.pid);
+  if (isVehicle(p)) return vehicleLineHTML(l, i, p);
   return `<div class="line" data-line="${i}">
     <div style="min-width:0"><b style="display:block;overflow-wrap:anywhere">${esc(p?.name || '—')}</b><span class="muted num" style="font-size:.8rem">${p && pspec(p) ? esc(pspec(p)) + ' · ' : ''}${L('স্টক', 'Stock')} ${bn(p?.stock)} ${U(p?.unit)}</span>
       ${pcsConv(p) ? `<span class="pcsbox"><input class="in num" type="text" inputmode="decimal" data-amt data-lpcs="${i}" value="${l.pcs ?? ''}" placeholder="0" aria-label="${L('কত পিস', 'How many pieces')}"> ${L('পিস', 'pcs')} → <b class="num" data-lpq="${i}">${l.pcs ? bn(l.qty) + ' ' + U(p.unit) : L('পিস লিখলে হিসাব হবে', 'type pieces to convert')}</b></span>` : ''}</div>
@@ -294,6 +295,13 @@ function lineHTML(l, i) {
     <span class="tot num" data-lt="${i}">${tk(l.qty * l.price)}</span>
     <button class="iconbtn" data-dline="${i}" aria-label="${L('সারি মুছুন', 'Remove row')}">${I('x')}</button></div>`;
 }
+// A vehicle on the memo: always one, with its papers shown.
+const vehicleLineHTML = (l, i, p) => `<div class="line" data-line="${i}">
+    <div style="min-width:0"><b style="display:block;overflow-wrap:anywhere">${esc(p.name)}</b><span class="muted num" style="font-size:.8rem">${esc(vspec(p))}</span></div>
+    <input class="in num" type="text" value="1" readonly aria-label="${L('পরিমাণ', 'Quantity')}" data-lq="${i}">
+    <input class="in num" type="text" inputmode="decimal" data-amt data-lr="${i}" value="${l.price}" aria-label="${L('দর', 'Rate')}" ${role() === 'seller' ? 'readonly' : ''}>
+    <span class="tot num" data-lt="${i}">${tk(l.qty * l.price)}</span>
+    <button class="iconbtn" data-dline="${i}" aria-label="${L('সারি মুছুন', 'Remove row')}">${I('x')}</button></div>`;
 const linesHead = () => `<div class="line line-h"><span>${L('পণ্য', 'Product')}</span><span>${L('পরিমাণ', 'Qty')}</span><span>${L('দর (৳)', 'Rate (৳)')}</span><span style="text-align:right">${L('টাকা', 'Amount')}</span><span></span></div>`;
 const linesHTML = () => (draft.lines.length ? linesHead() + draft.lines.map(lineHTML).join('') : `<div class="empty" style="padding:12px;border:1.5px dashed var(--line);border-radius:12px">${L('উপরে থেকে পণ্যে ক্লিক করে যোগ করুন।', 'Click a product above to add it.')}</div>`);
 function addProduct(pid) {
@@ -391,12 +399,15 @@ const CAT_HINT = {
 function productForm(p, x = 'c') {
   const b = S.cur, build = btype() === 'build';
   const cat = p?.cat || b.cats[0], sp = SPEC[cat] || SPEC.other;
+  if (isVehicle(cat)) return vehicleForm(p, x, cat);
   if (!build) {
-    const unit = p?.unit || 'kg';
+    const units = SEG_UNITS[btype()] || Object.keys(UNIT);
+    const unit = p?.unit && units.includes(p.unit) ? p.unit : units[0];
+    const hasV = b.cats.some(isVehicle);
     return `<div class="form-g" id="${x}-pf">
-    <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat">${b.cats.map((k) => `<option value="${k}" ${cat === k ? 'selected' : ''}>${CN(k)}</option>`).join('')}</select></label>
+    <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat" ${hasV ? `data-pfcat="${x}"` : ''}>${b.cats.map((k) => `<option value="${k}" ${cat === k ? 'selected' : ''}>${CN(k)}</option>`).join('')}</select></label>
     <label class="f">${L('পণ্যের নাম', 'Product name')}<input class="in" id="${x}-name" maxlength="80" value="${esc(p?.name || '')}" placeholder="${L('যেমন: বোরো ধান বীজ (ব্রি-৮৯)', 'e.g. Boro rice seed (BRRI-89)')}"></label>
-    <label class="f">${L('একক', 'Unit')}<select class="in" id="${x}-unit">${Object.keys(UNIT).map((u) => `<option value="${u}" ${unit === u ? 'selected' : ''}>${U(u)}</option>`).join('')}</select></label>
+    <label class="f">${L('একক', 'Unit')}<select class="in" id="${x}-unit">${units.map((u) => `<option value="${u}" ${unit === u ? 'selected' : ''}>${U(u)}</option>`).join('')}</select></label>
     ${priceFields(p, x, b)}</div>`;
   }
   const mem = unitMem.get(cat);
@@ -433,8 +444,14 @@ function formVals(x) {
 }
 // Category changed: draw the fields for the new category, keeping the name and prices.
 function updateProductForm(x) {
-  const el = document.getElementById(`${x}-pf`); if (!el || btype() !== 'build') return;
+  const el = document.getElementById(`${x}-pf`); if (!el) return;
   const f = formVals(x);
+  if (isVehicle(f.cat) || S.cur.cats.some(isVehicle)) {
+    const v = vehicleVals(x), keep = isVehicle(f.cat) && isVehicle(v.cat) ? v : {};
+    el.outerHTML = productForm({ cat: f.cat, name: '', box: f.box, buy: f.buy, sell: f.sell, min: f.min, meta: keep.cat ? keep : null, _paid: v.paid }, x);
+    return;
+  }
+  if (btype() !== 'build') return;
   el.outerHTML = productForm({ cat: f.cat, name: f.name, box: f.box, buy: f.buy, sell: f.sell, min: f.min }, x);
 }
 // Details changed: show the automatic name in the empty name box.
@@ -444,10 +461,124 @@ function updateAutoName(x) {
 }
 const productBody = (x = 'c') => {
   const f = formVals(x), build = btype() === 'build';
+  if (isVehicle(f.cat)) return { ...vehicleVals(x), buy: toNum(f.buy), sell: toNum(f.sell), box: f.box };
   if (build && f.unit) unitMem.set(f.cat, f.unit);
   return { name: f.name || (build ? autoNameOf(f) : ''), cat: f.cat, catName: SPEC[f.cat] ? SPEC[f.cat].en : '', unit: f.unit, box: f.box, buy: toNum(f.buy), sell: toNum(f.sell), min: toNum(f.min),
     brand: f.brand, size: f.size, dims: f.dims, weight: '', perPack: f.perPack !== '' ? toNum(f.perPack) : '' };
 };
+/* ---------- Bikes & cars (one vehicle at a time, with papers) ---------- */
+const VBRANDS = { bike: ['Honda', 'Yamaha', 'Bajaj', 'TVS', 'Suzuki', 'Hero', 'Runner', 'Lifan', 'Walton', 'KTM'], car: ['Toyota', 'Honda', 'Nissan', 'Mitsubishi', 'Hyundai', 'Suzuki', 'Mazda', 'Kia', 'Mercedes-Benz', 'BMW'] };
+const condName = (c) => (c === 'new' ? L('নতুন', 'New') : L('পুরাতন', 'Used'));
+const vName = (cat) => (cat === 'car' ? L('গাড়ি', 'car') : L('বাইক', 'bike'));
+function vehicleForm(p, x, cat) {
+  const b = S.cur, m = p?.meta || {}, edit = x === 'pe';
+  const cond = cat === 'car' ? 'old' : m.cond === 'new' ? 'new' : 'old';
+  const inp = (k, label, val, extra = '') => `<label class="f">${label}<input class="in" id="${x}-v${k}" value="${esc(val ?? '')}" ${extra}></label>`;
+  return `<div id="${x}-pf"><div class="form-g">
+    <label class="f">${L('ক্যাটাগরি', 'Category')}<select class="in" id="${x}-cat" data-pfcat="${x}">${b.cats.map((k) => `<option value="${k}" ${cat === k ? 'selected' : ''}>${CN(k)}</option>`).join('')}</select></label>
+    ${cat === 'bike' ? segField(`${x}-vcond`, L(`নতুন না পুরাতন ${vName(cat)}?`, `New or used ${vName(cat)}?`), ['new', 'old'], cond, condName) : `<input type="hidden" id="${x}-vcond" value="old">`}
+    ${pickField(`${x}-vbrand`, L('কোম্পানি', 'Make'), VBRANDS[cat], m.brand, L('কোম্পানির নাম', 'Make'))}
+    ${inp('model', L('মডেল *', 'Model *'), m.model, `maxlength="60" placeholder="${cat === 'car' ? 'Axio, Premio' : 'Pulsar 150, FZS'}"`)}
+    ${inp('year', L('তৈরির সাল', 'Year of production'), m.year, 'inputmode="numeric" maxlength="4" placeholder="2019"')}
+    ${inp('cc', L('সিসি (CC)', 'CC'), m.cc, 'inputmode="numeric" maxlength="5" placeholder="' + (cat === 'car' ? '1500' : '150') + '"')}
+    ${inp('color', L('রং', 'Colour'), m.color, `maxlength="30" placeholder="${L('যেমন: লাল', 'e.g. red')}"`)}
+    ${inp('engine', L('ইঞ্জিন নম্বর', 'Engine number'), m.engine, 'maxlength="40" autocapitalize="characters" spellcheck="false"')}
+    ${inp('chassis', L('চেসিস নম্বর', 'Chassis number'), m.chassis, 'maxlength="40" autocapitalize="characters" spellcheck="false"')}
+    ${inp('buydate', L('কেনার তারিখ *', 'Buying date *'), m.buyDate || todayStr(), `type="date" max="${todayStr()}"`)}
+  </div>
+  ${cond === 'old' ? `<fieldset class="vbox"><legend>${L('পুরাতন — কাগজপত্র ও আগের মালিক', 'Used — papers and previous owner')}</legend><div class="form-g">
+    ${inp('regno', L('রেজিস্ট্রেশন নম্বর (ঐচ্ছিক)', 'Registration number (optional)'), m.regNo, `maxlength="40" placeholder="${cat === 'car' ? 'ঢাকা মেট্রো-গ ১২-৩৪৫৬' : 'বগুড়া-ল ১১-২৩৪৫'}"`)}
+    ${inp('regdate', L('রেজিস্ট্রেশনের তারিখ (ঐচ্ছিক)', 'Registration date (optional)'), m.regDate, 'type="date"')}
+    ${inp('owner', L('আগের মালিকের নাম', 'Previous owner’s name'), m.ownerName, 'maxlength="60"')}
+    ${inp('ownerph', L('আগের মালিকের মোবাইল', 'Previous owner’s mobile'), m.ownerPhone, 'type="tel" inputmode="tel" placeholder="01XXXXXXXXX"')}
+  </div></fieldset>` : `<fieldset class="vbox"><legend>${L('নতুন — কোথা থেকে কেনা', 'New — bought from')}</legend><div class="form-g">
+    ${inp('dealer', L('শোরুম / ডিলারের নাম', 'Showroom / dealer'), m.dealer, `maxlength="80" placeholder="${L('যেমন: উত্তরা মোটরস', 'e.g. Uttara Motors')}"`)}
+    ${inp('regno', L('রেজিস্ট্রেশন নম্বর (ঐচ্ছিক)', 'Registration number (optional)'), m.regNo, 'maxlength="40"')}
+    ${inp('regdate', L('রেজিস্ট্রেশনের তারিখ (ঐচ্ছিক)', 'Registration date (optional)'), m.regDate, 'type="date"')}
+  </div></fieldset>`}
+  <div class="form-g" style="margin-top:12px">
+    <label class="f">${L('ক্রয় মূল্য (৳) *', 'Buying price (৳) *')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-buy" value="${p?.buy ?? ''}"></label>
+    <label class="f">${L('বিক্রয় মূল্য / চাওয়া দাম (৳)', 'Selling / asking price (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-sell" value="${p?.sell ?? ''}"></label>
+    ${edit ? '' : `<label class="f">${L('কেনার সময় কত টাকা দিলেন (৳)', 'Paid when buying (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="${x}-vpaid" value="${esc(p?._paid ?? '')}" placeholder="${L('খালি = পুরো টাকা', 'Empty = paid in full')}"></label>`}
+    ${hasBox(b) ? `<label class="f">${L('বক্স / জায়গা নম্বর', 'Box / place no.')}<input class="in" id="${x}-box" maxlength="20" value="${esc(p?.box || '')}" placeholder="V-01"></label>` : ''}
+  </div>
+  <p class="muted fhint">${I('alert')} ${L(`কেনার তারিখে খরচ হিসাবে যোগ হবে। বিক্রি করলে বিক্রির তারিখ ও লাভ "${vName(cat)} রেজিস্টার"-এ দেখা যাবে।`, `Saved as bought on the buying date. When sold, the selling date and profit appear in the ${vName(cat)} register.`)}</p></div>`;
+}
+function vehicleVals(x) {
+  const v = (k) => (document.getElementById(`${x}-v${k}`)?.value || '').trim();
+  return { cat: document.getElementById(`${x}-cat`)?.value, cond: v('cond') || 'old', brand: v('brand'), model: v('model'), year: toAscii(v('year')), cc: toAscii(v('cc')), color: v('color'),
+    engine: v('engine'), chassis: v('chassis'), buyDate: v('buydate'), regNo: v('regno'), regDate: v('regdate'), ownerName: v('owner'), ownerPhone: pk(v('ownerph')), dealer: v('dealer'),
+    paid: v('paid') === '' ? '' : toNum(v('paid')) };
+}
+// Vehicle details for lists and memos: "Used · 2019 · 160 cc · লাল · Engine KC08… · Chassis ME4…"
+const vspec = (p) => { const m = p.meta || {}; return [condName(m.cond), m.year, m.cc && m.cc + ' cc', m.color, m.engine && L('ইঞ্জিন ', 'Engine ') + m.engine, m.chassis && L('চেসিস ', 'Chassis ') + m.chassis, m.regNo].filter(Boolean).join(' · '); };
+// One row per vehicle: when and from whom it was bought, when and to whom it was sold.
+function vehicleRows(b) {
+  const sold = new Map(), bought = new Map();
+  for (const s of b.sales) for (const it of s.items) if (!sold.has(it.pid)) sold.set(it.pid, { date: s.date, price: it.price, cust: s.cust, memo: s.id });
+  for (const pu of b.purchases) if (!bought.has(pu.items[0].pid)) bought.set(pu.items[0].pid, pu);
+  return b.products.filter(isVehicle).map((p) => {
+    const m = p.meta || {}, pu = bought.get(p.id), sd = sold.get(p.id), cost = pu ? pu.items[0].price : p.buy;
+    const cu = sd && sd.cust ? b.customers.find((c) => c.id === sd.cust) : null;
+    const from = m.cond === 'new' ? m.dealer : m.ownerName;
+    return { p, m, buyDate: m.buyDate || pu?.date || '', cost, from, sold: sd ? { ...sd, buyer: cu } : null, profit: sd && cost != null ? sd.price - cost : null };
+  }).sort((a, z) => (z.sold?.date || z.buyDate).localeCompare(a.sold?.date || a.buyDate));
+}
+const vMatch = (r, q) => { q = toAscii(q).toLowerCase(); const m = r.m; return [r.p.name, r.p.box, m.brand, m.model, m.year, m.cc, m.color, m.engine, m.chassis, m.regNo, m.ownerName, m.ownerPhone, m.dealer, r.sold?.buyer?.name, r.sold?.buyer?.phone, '#' + r.p.id].filter(Boolean).some((x) => toAscii(String(x)).toLowerCase().includes(q)); };
+const monthName = (ym) => new Date(ym + '-01T00:00:00Z').toLocaleDateString(LANG === 'bn' ? 'bn-BD' : 'en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+VIEWS.vehicles = () => {
+  const b = S.cur, cat = b.cats.find(isVehicle) || 'bike', admin = role() === 'admin';
+  const rows = vehicleRows(b), q = (S.vq || '').trim();
+  const months = [...new Set(rows.flatMap((r) => [r.buyDate, r.sold?.date]).filter(Boolean).map((d) => d.slice(0, 7)).concat(todayStr().slice(0, 7)))].sort().reverse();
+  const mon = S.vm || todayStr().slice(0, 7);
+  const list = q ? rows.filter((r) => vMatch(r, q)) : mon === 'all' ? rows : rows.filter((r) => r.buyDate.startsWith(mon) || (r.sold && r.sold.date.startsWith(mon)));
+  const inM = (d) => mon === 'all' || (d || '').startsWith(mon);
+  const bIn = rows.filter((r) => inM(r.buyDate)), sIn = rows.filter((r) => r.sold && inM(r.sold.date));
+  const title = cat === 'car' ? L('গাড়ি রেজিস্টার', 'Car register') : L('বাইক রেজিস্টার', 'Bike register');
+  return `<div class="pagehead"><div><h2>${I(cat)} ${title}</h2><p>${L(`প্রতিটি ${cat === 'car' ? 'গাড়ির' : 'বাইকের'} কেনা ও বিক্রির তারিখ, কাগজপত্র আর লাভ — মাস অনুযায়ী বা নম্বর দিয়ে খুঁজুন।`, `Every ${cat === 'car' ? 'car' : 'bike'}’s buying and selling dates, papers and profit — by month or by searching a number.`)}</p></div>
+    ${admin ? `<button class="btn" data-nav="catalog">${I('plus')} ${L(`নতুন ${vName(cat)} যোগ`, `Add a ${vName(cat)}`)}</button>` : ''}</div>
+  <div class="card">
+    <div class="vfilters">
+      <span class="searchbar">${I('search')}<input id="vq" type="search" value="${esc(S.vq || '')}" placeholder="${L('মডেল, ইঞ্জিন/চেসিস, রেজি. নম্বর, মালিক বা ক্রেতার মোবাইল', 'Model, engine/chassis, reg. no., owner or buyer mobile')}" autocomplete="off"></span>
+      <label class="f" style="flex:0 0 220px">${L('মাস', 'Month')}<select class="in" id="vm" ${q ? 'disabled' : ''}>${months.map((m) => `<option value="${m}" ${m === mon ? 'selected' : ''}>${monthName(m)}</option>`).join('')}<option value="all" ${mon === 'all' ? 'selected' : ''}>${L('সব সময়', 'All time')}</option></select></label>
+    </div>
+    ${q ? `<p class="muted" style="margin:0 0 10px">${L(`"${esc(q)}" — সব তারিখের ফলাফল (${bn(list.length)} টি)`, `"${esc(q)}" — results from all dates (${bn(list.length)})`)}</p>` : `<div class="vstat">
+      <div><span>${L('এই সময়ে কেনা', 'Bought in this period')}</span><b class="num">${bn(bIn.length)} ${L('টি', '')}</b>${admin ? `<span class="num">${tk(bIn.reduce((a, r) => a + (r.cost || 0), 0))}</span>` : ''}</div>
+      <div><span>${L('এই সময়ে বিক্রি', 'Sold in this period')}</span><b class="num">${bn(sIn.length)} ${L('টি', '')}</b><span class="num">${tk(sIn.reduce((a, r) => a + r.sold.price, 0))}</span></div>
+      ${admin ? `<div><span>${L('বিক্রিতে লাভ', 'Profit on sales')}</span><b class="num" style="color:var(--leaf-d)">${tk(sIn.reduce((a, r) => a + (r.profit || 0), 0))}</b></div>` : ''}
+      <div><span>${L('এখন স্টকে', 'In stock now')}</span><b class="num">${bn(rows.filter((r) => !r.sold).length)} ${L('টি', '')}</b></div></div>`}
+    ${list.length ? `<div class="tablewrap"><table><thead><tr><th>${vName(cat)}</th><th>${L('ইঞ্জিন / চেসিস', 'Engine / chassis')}</th><th>${L('কেনা', 'Bought')}</th><th>${L('বিক্রি', 'Sold')}</th>${admin ? `<th class="r">${L('লাভ', 'Profit')}</th>` : ''}<th></th></tr></thead><tbody>
+    ${list.map((r) => `<tr class="vrow" data-vdet="${r.p.id}"><td><b>${esc(r.p.name)}</b><div class="vmeta">${esc([condName(r.m.cond), r.m.cc && r.m.cc + ' cc', r.m.regNo].filter(Boolean).join(' · '))}</div></td>
+      <td class="vmeta num">${esc(r.m.engine || '—')}<br>${esc(r.m.chassis || '—')}</td>
+      <td class="num"><b>${fmtDate(r.buyDate)}</b><div class="vmeta">${admin && r.cost != null ? tk(r.cost) + ' · ' : ''}${esc(r.from || '')}</div></td>
+      <td class="num">${r.sold ? `<b>${fmtDate(r.sold.date)}</b><div class="vmeta">${tk(r.sold.price)} · ${esc(r.sold.buyer?.name || L('নগদ ক্রেতা', 'Walk-in'))}</div>` : `<span class="pill p-ok">${L('স্টকে আছে', 'In stock')}</span>`}</td>
+      ${admin ? `<td class="r num" style="font-weight:700;color:${(r.profit || 0) < 0 ? 'var(--berry)' : 'var(--leaf-d)'}">${r.profit == null ? '—' : tk(r.profit)}</td>` : ''}
+      <td class="r"><button class="btn ghost sm" data-vdet="${r.p.id}">${L('বিস্তারিত', 'Details')}</button></td></tr>`).join('')}</tbody></table></div>`
+    : `<div class="empty">${q ? L('কিছু পাওয়া যায়নি।', 'Nothing found.') : L('এই মাসে কোনো কেনা বা বিক্রি নেই।', 'Nothing bought or sold this month.')}</div>`}
+  </div>`;
+};
+// All the papers and every date of one vehicle.
+function vehicleDetail(pid) {
+  const b = S.cur, r = vehicleRows(b).find((x) => x.p.id == pid); if (!r) return;
+  const m = r.m, admin = role() === 'admin', days = r.buyDate ? Math.round((Date.parse((r.sold?.date || todayStr()) + 'T00:00:00Z') - Date.parse(r.buyDate + 'T00:00:00Z')) / 86400000) : null;
+  const f = (label, val) => (val ? `<div><span>${label}</span><b>${esc(val)}</b></div>` : '');
+  modal(`<h3>${I(r.p.cat)} ${esc(r.p.name)}</h3><div style="opacity:.9">#${dg(r.p.id)} · ${condName(m.cond)} · ${r.sold ? L('বিক্রি হয়েছে', 'Sold') : L('স্টকে আছে', 'In stock')}</div>`, `
+    <div class="vdates">
+      ${m.regDate ? `<div><span>${L('রেজিস্ট্রেশনের তারিখ', 'Registration date')}</span><b class="num">${fmtLong(m.regDate)}</b></div>` : ''}
+      <div><span>${L('কেনার তারিখ', 'Buying date')}</span><b class="num">${fmtLong(r.buyDate)}</b>${admin && r.cost != null ? `<span class="num">${tk(r.cost)}</span>` : ''}</div>
+      <div><span>${L('বিক্রির তারিখ', 'Selling date')}</span><b class="num">${r.sold ? fmtLong(r.sold.date) : '—'}</b>${r.sold ? `<span class="num">${tk(r.sold.price)} · ${L('মেমো', 'Memo')} #${dg(r.sold.memo)}</span>` : ''}</div>
+      ${days != null ? `<div><span>${r.sold ? L('কত দিনে বিক্রি', 'Days to sell') : L('কত দিন ধরে স্টকে', 'Days in stock')}</span><b class="num">${bn(days)} ${L('দিন', 'days')}</b>${admin && r.profit != null ? `<span class="num">${L('লাভ ', 'Profit ')}${tk(r.profit)}</span>` : ''}</div>` : ''}
+    </div>
+    <div class="vgrid">
+      ${f(L('কোম্পানি', 'Make'), m.brand)}${f(L('মডেল', 'Model'), m.model)}${f(L('তৈরির সাল', 'Year'), m.year)}${f('CC', m.cc)}${f(L('রং', 'Colour'), m.color)}
+      ${f(L('ইঞ্জিন নম্বর', 'Engine no.'), m.engine)}${f(L('চেসিস নম্বর', 'Chassis no.'), m.chassis)}${f(L('রেজিস্ট্রেশন নম্বর', 'Registration no.'), m.regNo)}
+      ${m.cond === 'new' ? f(L('কোথা থেকে কেনা', 'Bought from'), m.dealer) : f(L('আগের মালিক', 'Previous owner'), [m.ownerName, m.ownerPhone && fmtPhone(m.ownerPhone)].filter(Boolean).join(' · '))}
+      ${r.sold ? f(L('ক্রেতা', 'Buyer'), r.sold.buyer ? `${r.sold.buyer.name} · ${fmtPhone(r.sold.buyer.phone)}` : L('নগদ ক্রেতা', 'Walk-in customer')) : ''}
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">${r.sold ? `<button class="btn ghost" data-showinv="${r.sold.memo}">${I('receipt')} ${L('বিক্রির মেমো', 'Sale memo')}</button>` : ''}
+      ${admin ? `<button class="btn ghost" data-editprod="${r.p.id}">${I('edit')} ${L('বদলান', 'Edit')}</button>` : ''}<button class="btn" data-close>${L('বন্ধ করুন', 'Close')}</button></div>`, { width: 640 });
+}
+
 VIEWS.catalog = () => {
   const b = S.cur;
   return `<div class="pagehead"><div><h2>${L('পণ্য তালিকা', 'Product catalog')}</h2><p>${L('নতুন পণ্য যোগ করুন, দর বদলান। স্টক যোগ হয় ক্রয় থেকে।', 'Add products and change prices. Stock is added through Purchases.')}</p></div></div>
@@ -473,7 +604,7 @@ VIEWS.purchase = () => {
   ${b.vendors.length ? `<div class="card"><h3 style="margin-bottom:10px">${I('truck')} ${L('নতুন ক্রয় বিল', 'New purchase bill')}</h3>
   <div class="form-g">
     <label class="f">${L('ভেন্ডর / কোম্পানি', 'Vendor / company')}<select class="in" id="p-vendor">${b.vendors.map((v) => `<option value="${v.id}">${esc(v.name)}</option>`).join('')}</select></label>
-    <label class="f">${L('পণ্য', 'Product')}<select class="in" id="p-prod">${b.products.map((p) => `<option value="${p.id}">#${dg(p.id)} ${esc(p.name)} (${U(p.unit)})</option>`).join('')}</select></label>
+    <label class="f">${L('পণ্য', 'Product')}<select class="in" id="p-prod">${b.products.filter((p) => !isVehicle(p)).map((p) => `<option value="${p.id}">#${dg(p.id)} ${esc(p.name)} (${U(p.unit)})</option>`).join('')}</select></label>
     <label class="f">${L('পরিমাণ', 'Quantity')}<input class="in num" type="text" inputmode="decimal" data-amt id="p-qty" value="10"></label>
     <label class="f">${L('ক্রয় দর / একক (৳)', 'Cost per unit (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="p-rate" value="${b.products[0]?.buy || 0}"></label>
     <label class="f">${L('এখন পরিশোধ (৳)', 'Paid now (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="p-paid" placeholder="${L('০ = পুরোটা বাকি', '0 = all on credit')}"></label>
@@ -664,7 +795,7 @@ function showInvoice(memo) {
       <div class="two"><div><span class="muted">${L('ক্রেতা', 'Customer')}</span><br><b>${esc(custName(b, s))}</b>${cu ? `<br><span class="muted">${esc(cu.village)}</span>` : ''}${ph ? `<br><span class="muted num">${L('মোবাইল', 'Mobile')}: ${esc(dg(fmtPhone(ph)))}</span>` : ''}</div>
         <div style="text-align:right"><span class="muted">${L('বিক্রেতা', 'Sold by')}</span><br><b>${esc(sellerLabel(b, s.seller))}</b></div></div>
       <div class="tablewrap"><table><thead><tr><th>${L('পণ্য', 'Product')}</th><th class="r">${L('পরিমাণ', 'Qty')}</th><th class="r">${L('দর', 'Rate')}</th><th class="r">${L('মোট', 'Amount')}</th></tr></thead><tbody>
-        ${s.items.map((it) => { const p = b.products.find((x) => x.id == it.pid); return `<tr><td>${esc(p?.name || '—')}${it.pcs ? ` <span class="muted">(${bn(it.pcs)} ${L('পিস', 'pcs')})</span>` : ''}</td><td class="r num">${bn(it.qty)} ${U(p?.unit)}</td><td class="r num">${tk(it.price)}</td><td class="r num">${tk(it.qty * it.price)}</td></tr>`; }).join('')}
+        ${s.items.map((it) => { const p = b.products.find((x) => x.id == it.pid); return `<tr><td>${esc(p?.name || '—')}${p?.meta ? `<div class="muted" style="font-size:.78rem">${esc(vspec(p))}</div>` : ''}${it.pcs ? ` <span class="muted">(${bn(it.pcs)} ${L('পিস', 'pcs')})</span>` : ''}</td><td class="r num">${bn(it.qty)} ${U(p?.unit)}</td><td class="r num">${tk(it.price)}</td><td class="r num">${tk(it.qty * it.price)}</td></tr>`; }).join('')}
       </tbody></table></div>
       <div class="summary num"><div><span>${L('সর্বমোট', 'Grand total')}</span><span class="grand">${tk(s.total)}</span></div><div><span>${L('জমা', 'Paid')}</span><b>${tk(s.paid)}</b></div><div><span>${L('বাকি', 'Due')}</span><span class="due">${tk(s.total - s.paid)}</span></div></div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">

@@ -147,6 +147,42 @@ const lastOtp = () => {
     r = await bown('POST', '/api/biz/sellers', { name: 'Rafiq', phone: '01811000077', password: 'Sell#8' }); assert.equal(r.status, 200, 're-add removed seller');
     r = await client()('POST', '/api/login', { phone: '01811000077', password: 'Sell#8' }); assert.equal(r.status, 200);
 
+    // Bike shop: vehicles with papers, buying date as the purchase date, sold one shows its selling date
+    r = await sup('POST', '/api/super/businesses?type=bike', { slug: 'bike-shop', name: 'Bike House', owner: 'Owner C', cats: ['bike', 'parts'], modules: ['pur', 'due'], admin: { phone: '01711000033', password: 'Owner@3' }, sellers: [], plan: 'trial' });
+    assert.equal(r.status, 200);
+    const vown = client();
+    r = await vown('POST', '/api/login', { phone: '01711000033', password: 'Owner@3' }); assert.equal(r.status, 200);
+    const oldBike = { cat: 'bike', cond: 'old', brand: 'Honda', model: 'CBR 150R', year: '2020', cc: '150', color: 'Red', engine: 'kc23e1', chassis: 'me4kc1', regNo: 'Bogura-L 13-9999', regDate: '2020-08-15', buyDate: '2026-01-10', ownerName: 'Mizan', ownerPhone: '01755123456', buy: 230000, sell: 255000, paid: 200000 };
+    r = await vown('POST', '/api/biz/vehicles', oldBike); assert.equal(r.status, 200); const vid1 = r.data.id;
+    r = await vown('POST', '/api/biz/vehicles', { ...oldBike, model: 'Other', engine: 'x', chassis: 'ME4KC1' }); assert.equal(r.status, 409, 'same chassis twice');
+    r = await vown('POST', '/api/biz/vehicles', { ...oldBike, buyDate: '2099-01-01', chassis: 'zz' }); assert.equal(r.status, 400, 'future buying date');
+    r = await vown('POST', '/api/biz/products', { cat: 'bike', name: 'x', unit: 'piece', buy: 1, sell: 2 }); assert.equal(r.status, 400, 'bikes only through the vehicle form');
+    r = await vown('POST', '/api/biz/vehicles', { cat: 'bike', cond: 'new', brand: 'Bajaj', model: 'Pulsar N160', year: '2025', chassis: 'md2b1', dealer: 'Uttara Motors', buy: 205000, sell: 222000 }); assert.equal(r.status, 200); const vid2 = r.data.id;
+    r = await vown('GET', '/api/biz/state');
+    const v1 = r.data.products.find((p) => p.id === vid1);
+    assert.equal(v1.name, 'Honda CBR 150R (2020, Red)'); assert.equal(v1.stock, 1); assert.equal(v1.meta.chassis, 'ME4KC1'); assert.equal(v1.meta.ownerPhone, '01755123456');
+    const pu1 = r.data.purchases.find((x) => x.items[0].pid === vid1); assert.equal(pu1.date, '2026-01-10'); assert.equal(pu1.paid, 200000);
+    assert.equal(r.data.vendors.find((x) => x.name === 'Mizan').due, 30000);
+    assert.equal(r.data.products.find((p) => p.id === vid2).meta.dealer, 'Uttara Motors');
+    r = await vown('POST', '/api/biz/sales', { cust: 'new', newCustomer: { name: 'Buyer', phone: '01922000033' }, items: [{ pid: vid1, qty: 1, price: 250000 }], paid: 250000 }); assert.equal(r.status, 200);
+    r = await vown('POST', '/api/biz/sales', { cust: '0', items: [{ pid: vid1, qty: 1, price: 250000 }] }); assert.equal(r.status, 409, 'a sold bike cannot be sold again');
+    r = await vown('PUT', `/api/biz/vehicles/${vid1}`, { ...oldBike, buyDate: '2026-01-12', color: 'Black' }); assert.equal(r.status, 200);
+    r = await vown('GET', '/api/biz/state'); assert.equal(r.data.purchases.find((x) => x.items[0].pid === vid1).date, '2026-01-12'); assert.equal(r.data.products.find((p) => p.id === vid1).meta.color, 'Black');
+    const pu2 = r.data.purchases.find((x) => x.items[0].pid === vid2);
+    r = await vown('POST', `/api/biz/purchases/${pu2.id}/void`); assert.equal(r.status, 200);
+    r = await vown('GET', '/api/biz/state'); assert.ok(!r.data.products.find((p) => p.id === vid2), 'cancelling the purchase removes the bike');
+    // Car shop: used cars only
+    r = await sup('POST', '/api/super/businesses?type=car', { slug: 'car-shop', name: 'Car House', owner: 'Owner D', cats: ['car'], modules: [], admin: { phone: '01711000044', password: 'Owner@4' }, sellers: [], plan: 'trial' });
+    const cown = client(); await cown('POST', '/api/login', { phone: '01711000044', password: 'Owner@4' });
+    r = await cown('POST', '/api/biz/vehicles', { cat: 'car', cond: 'new', model: 'Axio', buy: 1650000, sell: 1800000 }); assert.equal(r.status, 200);
+    r = await cown('GET', '/api/biz/state'); assert.equal(r.data.products[0].meta.cond, 'old'); assert.equal(r.data.btype, 'car');
+    r = await sup('GET', '/api/super/state?type=car'); assert.equal(r.data.businesses.length, 1); assert.equal(r.data.plans.monthly, 799);
+
+    // Sales pages: /app1 … /app8, old links redirect
+    for (const n of [1, 2, 3, 8]) { const pr = await fetch(base + '/app' + n); assert.equal(pr.status, 200, '/app' + n); assert.ok((await pr.text()).includes('id="finder"')); }
+    assert.equal((await fetch(base + '/app9')).status, 404);
+    assert.equal((await fetch(base + '/nirman', { redirect: 'manual' })).headers.get('location'), '/app2');
+
     // Public shop page
     r = await anon('GET', '/api/public/shop/test-shop'); assert.equal(r.status, 200); assert.equal(r.data.products[0].buy, undefined);
 

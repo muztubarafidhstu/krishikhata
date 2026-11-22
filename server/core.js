@@ -1,5 +1,6 @@
 'use strict';
 // Shared helpers: errors, money, SMS queue, notifications, OTP gate, subscription state, audit.
+const { SEGMENTS, SEG } = require('./segments');
 const { get, all, run, getSetting, today, daysBetween } = require('./db');
 const { hmac, normPhone, maskPhone } = require('./security');
 
@@ -41,11 +42,12 @@ function subState(b) {
 const isLocked = (b) => ['off', 'expired'].includes(subState(b));
 // A shop can have its own price; empty means the standard price.
 const plansFor = (b) => { const P = plans(b.btype); return { ...P, monthly: b.price_monthly ?? P.monthly, yearly: b.price_yearly ?? P.yearly, custom: b.price_monthly != null || b.price_yearly != null }; };
-// Each business type (agri / build) has its own standard prices. Agri keeps the original setting names.
-const sk = (k, t) => (t === 'build' ? k + '_build' : k);
+// Each business type has its own standard prices. Agri keeps the original setting names ("plan_monthly"),
+// the others add their key ("plan_monthly_build", "plan_monthly_bike" …).
+const sk = (k, t) => (!t || t === 'agri' ? k : k + '_' + t);
 const plans = (t = 'agri') => ({
-  monthly: Number(getSetting(sk('plan_monthly', t), t === 'build' ? '700' : '500')),
-  yearly: Number(getSetting(sk('plan_yearly', t), t === 'build' ? '7000' : '5000')),
+  monthly: Number(getSetting(sk('plan_monthly', t), String((SEG[t] || SEG.agri).monthly))),
+  yearly: Number(getSetting(sk('plan_yearly', t), String((SEG[t] || SEG.agri).monthly * 10))),
   trialDays: Number(getSetting(sk('plan_trial_days', t), '14')),
   payTo: getSetting('pay_to', ''),
   whatsapp: getSetting('whatsapp', ''),
@@ -85,7 +87,7 @@ function otpGate(req, { purpose, key, phone, label }) {
 }
 
 // Product name for messages: KrishiKhata or NirmanKhata, from a shop row or a request.
-const brandOf = (t) => TYPES[t === 'build' ? 'build' : 'agri'];
+const brandOf = (t) => TYPES[btypeOk(t)];
 function brandForReq(req) {
   if (req.biz) return brandOf(req.biz.btype);
   if (req.btype) return brandOf(req.btype);
@@ -95,14 +97,11 @@ function brandForReq(req) {
 function audit(userId, action, detail = '') { run('INSERT INTO audit(user_id,action,detail) VALUES(?,?,?)', userId || null, action, String(detail).slice(0, 500)); }
 
 // Business types: agricultural inputs (KrishiKhata) and building materials (NirmanKhata).
-const TYPES = {
-  agri: { cats: ['seed', 'fert', 'pest'], brand: 'KrishiKhata', bn: 'কৃষিখাতা' },
-  build: { cats: ['rod', 'cement', 'tin', 'sheet', 'angle', 'bar', 'other'], brand: 'NirmanKhata', bn: 'নির্মাণখাতা' },
-};
+const TYPES = Object.fromEntries(SEGMENTS.map((s) => [s.key, { cats: s.cats, brand: s.en, bn: s.bn, num: s.num }]));
 const btypeOk = (t) => (TYPES[t] ? t : 'agri');
-const CATS = [...TYPES.agri.cats, ...TYPES.build.cats];
+const CATS = [...new Set(SEGMENTS.flatMap((s) => s.cats))];
 const MODULE_KEYS = ['inv', 'cat', 'pur', 'sale', 'invc', 'due', 'exp', 'rep', 'box', 'shop', 'app'];
-const UNITS = ['kg', 'bag', 'bottle', 'packet', 'liter', 'ton', 'piece', 'bundle', 'feet'];
+const UNITS = ['kg', 'bag', 'bottle', 'packet', 'liter', 'ton', 'piece', 'bundle', 'feet', 'thousand', 'cft', 'set', 'box', 'meter'];
 const EXP_TYPES = ['rent', 'salary', 'transport', 'power', 'tea', 'other'];
 const METHODS = ['bkash', 'nagad', 'rocket', 'cash', 'bank'];
 
@@ -134,7 +133,49 @@ const STARTER = [
   { cat: 'angle', name: 'SS Angle', size: 'SS', unit: 'kg', buy: 330, sell: 370, min: 50 },
   { cat: 'bar', name: 'MS Flat Bar', size: 'MS', unit: 'kg', buy: 100, sell: 110, min: 100 },
   { cat: 'bar', name: 'MS Square Bar', size: 'MS', unit: 'kg', buy: 100, sell: 110, min: 100 },
+  // Bike & car shops: the vehicles themselves are added one by one (with papers); these are parts.
+  { cat: 'parts', name: 'হেলমেট (ফুল ফেস)', unit: 'piece', buy: 1200, sell: 1550, min: 5 },
+  { cat: 'parts', name: 'ইঞ্জিন অয়েল (১ লিটার)', unit: 'piece', buy: 450, sell: 540, min: 10 },
+  { cat: 'parts', name: 'চেইন-স্প্রোকেট সেট', unit: 'set', buy: 950, sell: 1200, min: 5 },
+  // Brick field
+  { cat: 'brick', name: '১ম শ্রেণির ইট', unit: 'thousand', buy: 9000, sell: 10500, min: 20 },
+  { cat: 'brick', name: '২য় শ্রেণির ইট', unit: 'thousand', buy: 7500, sell: 9000, min: 20 },
+  { cat: 'brick', name: 'পিকেট ইট', unit: 'thousand', buy: 6000, sell: 7200, min: 10 },
+  { cat: 'khoa', name: 'ইটের খোয়া (১ম শ্রেণি)', unit: 'cft', buy: 110, sell: 135, min: 500 },
+  { cat: 'block', name: 'কংক্রিট ব্লক (৮ ইঞ্চি)', unit: 'piece', buy: 45, sell: 56, min: 200 },
+  { cat: 'other', name: 'বালু (সিলেট)', unit: 'cft', buy: 38, sell: 48, min: 500, types: ['brick'] },
+  // Mobile & electronics
+  { cat: 'phone', name: 'Samsung Galaxy A15 (4/128)', unit: 'piece', buy: 17500, sell: 19000, min: 3 },
+  { cat: 'phone', name: 'Xiaomi Redmi 13C (4/128)', unit: 'piece', buy: 13800, sell: 15000, min: 3 },
+  { cat: 'phone', name: 'Symphony বাটন ফোন', unit: 'piece', buy: 1300, sell: 1550, min: 5 },
+  { cat: 'accessory', name: 'ফাস্ট চার্জার (২০W)', unit: 'piece', buy: 350, sell: 550, min: 10 },
+  { cat: 'accessory', name: 'মোবাইল কভার', unit: 'piece', buy: 80, sell: 200, min: 20 },
+  { cat: 'accessory', name: 'হেডফোন', unit: 'piece', buy: 250, sell: 450, min: 10 },
+  { cat: 'electronics', name: 'LED টিভি ৩২ ইঞ্চি', unit: 'piece', buy: 14500, sell: 16500, min: 2 },
+  { cat: 'electronics', name: 'সিলিং ফ্যান ৫৬ ইঞ্চি', unit: 'piece', buy: 2800, sell: 3300, min: 4 },
+  // Furniture
+  { cat: 'bed', name: 'সেগুন কাঠের খাট (৬x৭ ফুট)', unit: 'piece', buy: 32000, sell: 38000, min: 2 },
+  { cat: 'sofa', name: '৫ সিটের সোফা সেট', unit: 'set', buy: 28000, sell: 34000, min: 2 },
+  { cat: 'table', name: 'ডাইনিং টেবিল (৬ চেয়ার)', unit: 'set', buy: 30000, sell: 36000, min: 1 },
+  { cat: 'almirah', name: 'কাঠের আলমারি (৩ দরজা)', unit: 'piece', buy: 26000, sell: 31000, min: 1 },
+  { cat: 'door', name: 'মেহগনি কাঠের দরজা', unit: 'piece', buy: 9000, sell: 11000, min: 3 },
+  { cat: 'other', name: 'ড্রেসিং টেবিল', unit: 'piece', buy: 12000, sell: 14500, min: 1, types: ['furniture'] },
+  // Hardware & sanitary
+  { cat: 'pipe', name: 'পিভিসি পাইপ ১/২" (২০ ফুট)', unit: 'piece', buy: 180, sell: 230, min: 30 },
+  { cat: 'pipe', name: 'জিআই পাইপ ১" (২০ ফুট)', unit: 'piece', buy: 1450, sell: 1650, min: 10 },
+  { cat: 'fitting', name: 'এলবো ১/২"', unit: 'piece', buy: 12, sell: 20, min: 100 },
+  { cat: 'fitting', name: 'বল ভালভ ১/২"', unit: 'piece', buy: 140, sell: 190, min: 20 },
+  { cat: 'sanitary', name: 'কমোড (সেট)', unit: 'set', buy: 6500, sell: 7800, min: 3 },
+  { cat: 'sanitary', name: 'বেসিন', unit: 'piece', buy: 2200, sell: 2700, min: 3 },
+  { cat: 'tiles', name: 'ফ্লোর টাইলস ২৪x২৪', unit: 'box', buy: 1300, sell: 1550, min: 20 },
+  { cat: 'paint', name: 'প্লাস্টিক পেইন্ট (৩.৬৪ লি)', unit: 'piece', buy: 1450, sell: 1700, min: 10 },
+  { cat: 'electric', name: 'ইলেকট্রিক তার ১.৫ মিমি (রোল)', unit: 'piece', buy: 2100, sell: 2450, min: 5 },
+  { cat: 'electric', name: 'সুইচ (ওয়ান-ওয়ে)', unit: 'piece', buy: 45, sell: 70, min: 50 },
+  { cat: 'tools', name: 'হাতুড়ি', unit: 'piece', buy: 250, sell: 350, min: 5 },
 ];
 
+// Starter products for a new shop of type t with the chosen categories.
+const starterFor = (t, cats) => STARTER.filter((x) => cats.includes(x.cat) && (!x.types || x.types.includes(t)));
+
 module.exports = { brandOf, brandForReq, HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, plansFor, otpEnabled, otpGate, audit,
-  TYPES, btypeOk, CATS, MODULE_KEYS, UNITS, EXP_TYPES, METHODS, STARTER, all };
+  TYPES, btypeOk, CATS, MODULE_KEYS, UNITS, EXP_TYPES, METHODS, STARTER, starterFor, all };

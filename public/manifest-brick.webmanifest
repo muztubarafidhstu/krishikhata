@@ -1,0 +1,16 @@
+{
+  "name": "ইটখাতা — ItKhata",
+  "short_name": "ইটখাতা",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f5f8",
+  "theme_color": "#7f1d1d",
+  "icons": [
+    {
+      "src": "/icon-brick.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

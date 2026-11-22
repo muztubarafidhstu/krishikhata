@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- বাইকখাতা: app mark inside the 72dp safe area of a 108dp adaptive icon (replaces the KrishiKhata leaf) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:scaleX="2.6" android:scaleY="2.6" android:translateX="22.8" android:translateY="20.5">
+        <path android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF" android:strokeWidth="2.1"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M2,16.5a3.5,3.5 0 1,0 7,0a3.5,3.5 0 1,0 -7,0" />
+        <path android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF" android:strokeWidth="2.1"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M15,16.5a3.5,3.5 0 1,0 7,0a3.5,3.5 0 1,0 -7,0" />
+        <path android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF" android:strokeWidth="2.1"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M5.5 16.5l4-7h5l4 7M9.5 9.5L8 6H5.5M14.5 9.5l2-3.5h2.5M12 16.5l2.5-7" />
+    </group>
+    <path android:fillColor="#F2A516" android:pathData="M0,94h108v14h-108z" />
+</vector>

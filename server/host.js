@@ -3,15 +3,32 @@
 const { get } = require('./db');
 const { DOMAIN, ADMIN_DOMAIN, BUILD_ADMIN_DOMAIN } = require('./config');
 
-const RESERVED = new Set(['www', 'admin', 'api', 'app', 'mail', 'smtp', 'ftp', 'shop', 'static', 'cdn', 'ns1', 'ns2', 'test', 'demo', 'login', 'support']);
+const { SEGMENTS, segByNum } = require('./segments');
+
+const RESERVED = new Set(['www', 'admin', 'api', 'app', 'mail', 'smtp', 'ftp', 'shop', 'static', 'cdn', 'ns1', 'ns2', 'test', 'demo', 'login', 'support', 'go']);
 for (const a of [ADMIN_DOMAIN, BUILD_ADMIN_DOMAIN]) if (a && DOMAIN && a.endsWith('.' + DOMAIN)) RESERVED.add(a.slice(0, -DOMAIN.length - 1));
+for (const s of SEGMENTS) if (s.legacyAdmin) RESERVED.add(s.legacyAdmin);
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
-const slugValid = (s) => SLUG_RE.test(s) && !RESERVED.has(s) && !s.includes('--');
+const slugValid = (s) => SLUG_RE.test(s) && !RESERVED.has(s) && !s.includes('--') && !/^(admin|app)\d+$/.test(s);
+
+// Mother panels: admin1.<domain> … admin8.<domain> (one per segment), plus the older addresses.
+function adminTypeOf(host) {
+  host = String(host || '').toLowerCase();
+  if (ADMIN_DOMAIN && host === ADMIN_DOMAIN) return 'agri';
+  if (BUILD_ADMIN_DOMAIN && host === BUILD_ADMIN_DOMAIN) return 'build';
+  if (!DOMAIN || !host.endsWith('.' + DOMAIN)) return null;
+  const sub = host.slice(0, -DOMAIN.length - 1);
+  const m = sub.match(/^admin(\d{1,2})$/);
+  if (m && segByNum(m[1])) return segByNum(m[1]).key;
+  const leg = SEGMENTS.find((s) => s.legacyAdmin === sub);
+  return leg ? leg.key : null;
+}
+const adminUrl = (t) => { const s = SEGMENTS.find((x) => x.key === t); return DOMAIN && s ? `https://admin${s.num}.${DOMAIN}` : ''; };
 
 function hostInfo(req) {
   const host = String(req.hostname || '').toLowerCase();
-  if (ADMIN_DOMAIN && host === ADMIN_DOMAIN) return { kind: 'admin', host, btype: 'agri' };
-  if (BUILD_ADMIN_DOMAIN && host === BUILD_ADMIN_DOMAIN) return { kind: 'admin', host, btype: 'build' };
+  const at = adminTypeOf(host);
+  if (at) return { kind: 'admin', host, btype: at };
   if (DOMAIN && host.endsWith('.' + DOMAIN)) {
     const sub = host.slice(0, -DOMAIN.length - 1);
     if (sub && !sub.includes('.') && sub !== 'www') {
@@ -24,4 +41,4 @@ function hostInfo(req) {
 // Address of a shop, e.g. https://karim.rafid5.com
 const shopUrl = (slug) => (DOMAIN ? `https://${slug}.${DOMAIN}` : `/shop/${slug}`);
 
-module.exports = { hostInfo, slugValid, shopUrl, RESERVED };
+module.exports = { hostInfo, adminTypeOf, adminUrl, slugValid, shopUrl, RESERVED };

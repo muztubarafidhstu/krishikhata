@@ -1,0 +1,16 @@
+{
+  "name": "গাড়িখাতা — GariKhata",
+  "short_name": "গাড়িখাতা",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f5f8",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "/icon-car.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

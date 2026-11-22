@@ -1,0 +1,16 @@
+{
+  "name": "হার্ডওয়্যারখাতা — HardwareKhata",
+  "short_name": "হার্ডওয়্যারখাতা",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f5f8",
+  "theme_color": "#155e75",
+  "icons": [
+    {
+      "src": "/icon-hardware.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

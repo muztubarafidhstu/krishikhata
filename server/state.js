@@ -22,8 +22,8 @@ function bizState(bid, viewer) {
     .map((n) => ({ id: n.id, d: n.d, text: { bn: n.text_bn, en: n.text_en }, read: !!n.read })) : [];
   if (base.locked) return { ...base, notes, products: [], customers: [], vendors: [], sales: [], purchases: [], expenses: [], collections: [], vpay: [], sellers: [], opening: 0 };
 
-  const products = all('SELECT id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,dims,weight,per_pack FROM products WHERE business_id=? AND active=1 ORDER BY id', bid)
-    .map((p) => { const o = { id: p.id, name: p.name, cat: p.cat, unit: p.unit, sell: p.sell, stock: p.stock, min: p.min_stock, box: p.box, brand: p.brand || '', size: p.size || '', dims: p.dims || '', weight: p.weight, perPack: p.per_pack }; if (isAdmin) o.buy = p.buy; return o; });
+  const products = all('SELECT id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,dims,weight,per_pack,meta FROM products WHERE business_id=? AND active=1 ORDER BY id', bid)
+    .map((p) => { const o = { id: p.id, name: p.name, cat: p.cat, unit: p.unit, sell: p.sell, stock: p.stock, min: p.min_stock, box: p.box, brand: p.brand || '', size: p.size || '', dims: p.dims || '', meta: p.meta ? JSON.parse(p.meta) : null, weight: p.weight, perPack: p.per_pack }; if (isAdmin) o.buy = p.buy; return o; });
   const customers = all('SELECT id,name,village,phone,due FROM customers WHERE business_id=? ORDER BY name', bid);
   const saleRows = isAdmin
     ? all('SELECT * FROM sales WHERE business_id=? AND void=0 ORDER BY id', bid)

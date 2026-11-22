@@ -433,3 +433,42 @@ td.r.num,th.r,.summary div > :last-child{white-space:nowrap}
 .shop-h .scene{position:absolute;right:0;bottom:0;height:100%;max-width:55%;opacity:.95;pointer-events:none}
 @media (max-width:720px){.shop-h .scene{opacity:.35;max-width:100%}}
 :root[data-brand="build"] .rolebar button.on{color:#7a3b1d}
+
+/* ---------- Segments 3–8 (bike, brick, mobile, furniture, car, hardware): neutral page, own brand colour ---------- */
+:root[data-palette="seg"]{--bg:#f3f5f8;--bg2:#e8ecf1;--surface2:#f8fafc;--fg:#1d2430;--muted:#5b6574;--line:#dde3ea;--leaf:var(--brand);--leaf-d:var(--brand-d);--leaf-l:var(--brand-l);--shadow:0 6px 20px -10px rgba(20,30,50,.3)}
+@media (prefers-color-scheme: dark){:root[data-palette="seg"]:not([data-theme="light"]){--bg:#0f1318;--bg2:#141a20;--surface:#171c23;--surface2:#1d242c;--fg:#e7ebf0;--muted:#9aa5b4;--line:#2a333d;--leaf:var(--brand-lt);--leaf-d:var(--brand-lt2);--leaf-l:var(--brand-dl);--on-leaf:#10151c}}
+:root[data-palette="seg"][data-theme="dark"]{--bg:#0f1318;--bg2:#141a20;--surface:#171c23;--surface2:#1d242c;--fg:#e7ebf0;--muted:#9aa5b4;--line:#2a333d;--leaf:var(--brand-lt);--leaf-d:var(--brand-lt2);--leaf-l:var(--brand-dl);--on-leaf:#10151c}
+:root[data-palette="seg"] .top{background:linear-gradient(100deg,var(--brand-d),var(--brand) 55%,var(--brand-2))}
+:root[data-palette="seg"] body::before{background:var(--brand-d)}
+:root[data-palette="seg"] .hero,:root[data-palette="seg"] .shop-h,:root[data-palette="seg"] .inv-h{background:linear-gradient(120deg,var(--brand-d) 0%,var(--brand) 55%,var(--brand-2) 100%)}
+:root[data-palette="seg"] .logo{color:var(--brand)}
+:root[data-palette="seg"] body::after{background-image:radial-gradient(var(--brand) 1.3px,transparent 1.9px);background-size:28px 28px}
+:root[data-palette="seg"] .top::after,:root[data-palette="seg"] .side::after{display:none}
+:root[data-palette="seg"] .rolebar button.on{color:var(--brand-d)}
+:root[data-palette="seg"] .hero .btn{color:var(--brand-d)!important}
+:root[data-palette="seg"] .inv-paper{--leaf:var(--brand);--leaf-d:var(--brand-d);--surface2:#f8fafc;--line:#dde3ea;--muted:#5b6574;--fg:#1d2430;color:#1d2430}
+:root[data-palette="seg"] .cartbar{background:var(--brand-d)}
+.p-sky{background:var(--sky-l);color:var(--sky)}
+
+/* Vehicle register (bike / car shops) */
+.vfilters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.vfilters .searchbar{flex:1 1 260px}
+.vstat{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}
+.vstat div{background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.vstat b{display:block;font-family:var(--display);font-size:1.2rem}
+.vstat span{font-size:.82rem;color:var(--muted)}
+.vrow{cursor:pointer}
+.vrow:hover td{background:var(--surface2)}
+.vmeta{font-size:.8rem;color:var(--muted);line-height:1.5}
+.vdates{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:6px 0 4px}
+.vdates div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface2)}
+.vdates b{display:block;font-size:1.02rem}
+.vdates span{font-size:.8rem;color:var(--muted)}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px 16px}
+.vgrid div span{display:block;font-size:.78rem;color:var(--muted)}
+.vgrid div b{font-weight:600}
+.pill.p-sold{background:var(--leaf-l);color:var(--leaf-d)}
+fieldset.vbox{border:1.5px dashed var(--line);border-radius:14px;padding:10px 12px 12px;margin:12px 0 0}
+fieldset.vbox legend{padding:0 6px;font-weight:700;color:var(--muted);font-size:.85rem}
+.panels{display:flex;flex-direction:column;gap:10px}
+.panels .chips a{text-decoration:none}

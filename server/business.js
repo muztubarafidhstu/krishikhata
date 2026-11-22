@@ -1,7 +1,7 @@
 'use strict';
 const { get, run, tx, today, addMonths, addDays } = require('./db');
 const { hashPassword, encrypt, normPhone } = require('./security');
-const { STARTER, plans } = require('./core');
+const { starterFor, plans, btypeOk } = require('./core');
 
 function slugify(name, id) {
   const base = String(name).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
@@ -24,7 +24,7 @@ function addUser({ bid, role, name, phone, password, code }) {
           admin:{phone,password}, sellers:[{name,phone,password}], plan, payMethod, payRef} */
 function createBusiness(data) {
   return tx(() => {
-    const btype = data.btype === 'build' ? 'build' : 'agri';
+    const btype = btypeOk(data.btype);
     const P = plans(btype);
     const t = today();
     const plan = ['trial', 'monthly', 'yearly'].includes(data.plan) ? data.plan : 'trial';
@@ -39,7 +39,7 @@ function createBusiness(data) {
     data.sellers.forEach((s, i) => addUser({ bid, role: 'seller', name: s.name, phone: s.phone, password: s.password, code: 'S-0' + (i + 1) }));
     if (data.starter !== false) {
       let n = 1;
-      for (const p of STARTER.filter((x) => data.cats.includes(x.cat)))
+      for (const p of starterFor(btype, data.cats))
         run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,dims,weight,per_pack) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', bid, p.name, p.cat, p.unit, p.buy, p.sell, 0, p.min, 'B-' + String(n++).padStart(2, '0'), p.brand || '', p.size || '', p.dims || '', p.weight ?? null, p.per_pack ?? null);
     }
     if (plan !== 'trial') run('INSERT INTO sub_payments(business_id,date,plan,qty,amount,method,ref) VALUES(?,?,?,?,?,?,?)', bid, t, plan, 1, plan === 'yearly' ? P.yearly : P.monthly, data.payMethod || 'cash', data.payRef || '');

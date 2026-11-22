@@ -183,6 +183,35 @@ docker compose start app
 
 > OTP চালু থাকা অবস্থায় গেটওয়ে বন্ধ হয়ে গেলে নতুন আইডি বা পাসওয়ার্ড বদলানো যাবে না। তখন সুপার অ্যাডমিন হিসেবে OTP বন্ধ করে দিন — সুপার অ্যাডমিনের লগইনে কখনো OTP লাগে না।
 
+## ৮টি সফটওয়্যার — ঠিকানাগুলো (একই সার্ভার, একই সুপার অ্যাডমিন লগইন)
+
+| # | সফটওয়্যার | বিজ্ঞাপন ও অ্যাপ ডাউনলোড | মাদার প্যানেল | অ্যাপ (APK) | ফ্রি ডেমো |
+|---|---|---|---|---|---|
+| ১ | কৃষিখাতা (বীজ-সার-কীটনাশক) | example.com/app1 | admin1.example.com | krishikhata.apk | demoshop · 01900000000 |
+| ২ | নির্মাণখাতা (রড-সিমেন্ট) | example.com/app2 | admin2.example.com | nirmankhata.apk | demosteel · 01900000002 |
+| ৩ | বাইকখাতা (নতুন ও পুরাতন বাইক) | example.com/app3 | admin3.example.com | bikekhata.apk | demobike · 01900000004 |
+| ৪ | ইটখাতা (ইট-খোয়া-ব্লক) | example.com/app4 | admin4.example.com | itkhata.apk | demobrick · 01900000006 |
+| ৫ | মোবাইলখাতা (মোবাইল-ইলেকট্রনিক্স) | example.com/app5 | admin5.example.com | mobilekhata.apk | demomobile · 01900000008 |
+| ৬ | ফার্নিচারখাতা | example.com/app6 | admin6.example.com | furniturekhata.apk | demofurniture · 01900000010 |
+| ৭ | গাড়িখাতা (পুরাতন গাড়ি) | example.com/app7 | admin7.example.com | garikhata.apk | democar · 01900000012 |
+| ৮ | হার্ডওয়্যারখাতা (হার্ডওয়্যার-স্যানিটারি) | example.com/app8 | admin8.example.com | hardwarekhata.apk | demohardware · 01900000014 |
+
+- `example.com` (মূল ঠিকানা) সব সফটওয়্যারের তালিকা দেখায়; প্রতিটি পেজে "নিজের দোকানে যান" বক্সে দোকানের নাম বা মোবাইল নম্বর লিখলে নিজের দোকানে চলে যায়।
+- আগের ঠিকানাগুলো (`/app`, `/nirman`, `ADMIN_DOMAIN`, `BUILD_ADMIN_DOMAIN`) আগের মতোই কাজ করে।
+- যে মাদার প্যানেল থেকে দোকান খোলা হয়, দোকানটি সেই সফটওয়্যারের হয়।
+- DNS-এ নতুন কিছু লাগবে না (`*` রেকর্ডটাই যথেষ্ট); প্রথমবার খুললে HTTPS সার্টিফিকেট নিজে তৈরি হয়।
+
+ডেমো দোকান তৈরি (একবার, একটা একটা করে; পাসওয়ার্ড Demo@123):
+```bash
+cd /opt/krishikhata
+docker compose exec app npm run demo-shop -- demobike 01900000004 "Demo@123" --type=bike
+docker compose exec app npm run demo-shop -- demobrick 01900000006 "Demo@123" --type=brick
+docker compose exec app npm run demo-shop -- demomobile 01900000008 "Demo@123" --type=mobile
+docker compose exec app npm run demo-shop -- demofurniture 01900000010 "Demo@123" --type=furniture
+docker compose exec app npm run demo-shop -- democar 01900000012 "Demo@123" --type=car
+docker compose exec app npm run demo-shop -- demohardware 01900000014 "Demo@123" --type=hardware
+```
+
 ## আপডেট করা (নতুন ফিচার এলে)
 
 ```bash

@@ -9,7 +9,7 @@ const { fail, otpGate, otpEnabled, audit, queueSms, brandForReq } = require('../
 const r = express.Router();
 const PASS_MSG = ['পাসওয়ার্ডে কমপক্ষে ৫ অক্ষর, একটি ইংরেজি অক্ষর, একটি সংখ্যা ও একটি চিহ্ন লাগবে', 'The password needs 5+ characters with a letter, a number and a symbol'];
 
-const { hostInfo, shopUrl } = require('../host');
+const { hostInfo, adminTypeOf, shopUrl } = require('../host');
 const isAdminHost = (req) => hostInfo(req).kind === 'admin';
 r.get('/site', (req, res) => {
   const h = hostInfo(req);
@@ -18,7 +18,7 @@ r.get('/site', (req, res) => {
 // Caddy asks this before creating an HTTPS certificate for a new address — only real shops get one.
 r.get('/tls-check', (req, res) => {
   const d = String(req.query.domain || '').toLowerCase();
-  if (d && (d === DOMAIN || d === ADMIN_DOMAIN || d === BUILD_ADMIN_DOMAIN)) return res.sendStatus(200);
+  if (d && (d === DOMAIN || adminTypeOf(d))) return res.sendStatus(200);
   if (DOMAIN && d.endsWith('.' + DOMAIN) && get('SELECT 1 x FROM businesses WHERE slug=?', d.slice(0, -DOMAIN.length - 1))) return res.sendStatus(200);
   res.sendStatus(404);
 });
@@ -37,7 +37,7 @@ r.post('/login', (req, res) => {
   const ok = u && (verifyPassword(pw, u.pass_hash) || (pw.trim() !== pw && verifyPassword(pw.trim(), u.pass_hash)));
   if (!ok) { addFail(kIp); addFail(kPhone); fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true }); }
   // With ADMIN_DOMAIN set, the super admin signs in only on that address and shop users only on their shop address.
-  if (ADMIN_DOMAIN || BUILD_ADMIN_DOMAIN) {
+  if (DOMAIN || ADMIN_DOMAIN || BUILD_ADMIN_DOMAIN) {
     const onAdmin = isAdminHost(req);
     if (u.role === 'super' && !onAdmin) fail(401, 'মোবাইল নম্বর বা পাসওয়ার্ড ভুল', 'Wrong mobile number or password', { login: true });
     if (u.role !== 'super' && onAdmin) {

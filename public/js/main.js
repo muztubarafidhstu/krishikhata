@@ -39,12 +39,12 @@ const refocus = (id, pos) => { const n = document.getElementById(id); if (n) { n
 document.addEventListener('submit', (e) => { if (e.target.id === 'loginform') { e.preventDefault(); doLogin(e.target.querySelector('button[type=submit]')); } });
 
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('button,a[data-copy],[data-nav],[data-close],[data-addseller]'); if (!t) return;
+  const t = e.target.closest('button,a[data-copy],[data-nav],[data-close],[data-addseller],[data-vdet]'); if (!t) return;
   const d = t.dataset;
   if (d.seg) { // MS / SS, Kilogram / Ton buttons
     document.getElementById(d.seg).value = d.v;
     t.parentElement.querySelectorAll('button').forEach((x) => { x.classList.toggle('on', x === t); x.setAttribute('aria-pressed', x === t); });
-    const pf = t.closest('[id$="-pf"]'); if (pf) updateAutoName(pf.id.slice(0, -3));
+    const pf = t.closest('[id$="-pf"]'); if (pf) { if (d.seg.endsWith('-vcond')) updateProductForm(pf.id.slice(0, -3)); else updateAutoName(pf.id.slice(0, -3)); }
     return;
   }
   if (d.otp) return otpAnswer(d.otp);
@@ -110,6 +110,8 @@ document.addEventListener('click', async (e) => {
     return bizAct(null, () => call('POST', bizUrl(`/sales/${d.voidsale}/void`)), L('মেমো বাতিল হয়েছে', 'Memo cancelled'));
   }
   if (d.rper) { S.rper = d.rper; return render(); }
+  if (d.vdet) return vehicleDetail(d.vdet);
+  if (d.showinv) { closeModal(); return showInvoice(Number(d.showinv)); }
   if (d.gobill !== undefined) { const bc = $('#billcard'); if (bc) bc.scrollIntoView({ behavior: 'smooth', block: 'start' }); const pi = $('#s-paid'); if (pi) setTimeout(() => pi.focus({ preventScroll: true }), 400); return; }
   if (d.voidpur) {
     const p = S.cur.purchases.find((x) => x.id == d.voidpur), pr = p && S.cur.products.find((x) => x.id === p.items[0].pid);
@@ -120,9 +122,13 @@ document.addEventListener('click', async (e) => {
     if (!(await ask(L('এই খরচটি মুছে ফেলবেন?', 'Delete this expense?'), L('মুছে ফেলুন', 'Delete'), true))) return;
     return bizAct(t, () => call('POST', bizUrl(`/expenses/${d.delexp}/remove`)), L('খরচ মুছে ফেলা হয়েছে', 'Expense deleted'));
   }
-  if (d.addprod !== undefined) return bizAct(t, () => call('POST', bizUrl('/products'), productBody()), L('নতুন পণ্য যোগ হয়েছে — ক্রয় থেকে স্টক যোগ করুন', 'Product added — add stock from Purchases'));
+  if (d.addprod !== undefined) {
+    const body = productBody();
+    if (isVehicle(body.cat)) return bizAct(t, () => call('POST', bizUrl('/vehicles'), body), L(`${vName(body.cat)} যোগ হয়েছে — রেজিস্টারে দেখুন`, `${vName(body.cat)} added — see the register`));
+    return bizAct(t, () => call('POST', bizUrl('/products'), body), L('নতুন পণ্য যোগ হয়েছে — ক্রয় থেকে স্টক যোগ করুন', 'Product added — add stock from Purchases'));
+  }
   if (d.editprod) return editProduct(d.editprod);
-  if (d.saveprod) return bizAct(t, async () => { await call('PUT', bizUrl('/products/' + d.saveprod), productBody('pe')); closeModal(); }, L('পণ্য আপডেট হয়েছে', 'Product updated'));
+  if (d.saveprod) { const body = productBody('pe'); return bizAct(t, async () => { await call('PUT', bizUrl((isVehicle(body.cat) ? '/vehicles/' : '/products/') + d.saveprod), body); closeModal(); }, L('আপডেট হয়েছে', 'Updated')); }
   if (d.delprod) { if (!(await ask(L('পণ্যটি তালিকা থেকে সরাবেন? পুরোনো মেমো ঠিক থাকবে।', 'Remove this product from the list? Old memos stay as they are.'), L('সরান', 'Remove'), true))) return; return bizAct(null, () => call('POST', bizUrl(`/products/${d.delprod}/remove`)), L('সরানো হয়েছে', 'Removed')); }
   if (d.addvendor !== undefined) return addVendor();
   if (d.savevendor !== undefined) return bizAct(t, async () => { await call('POST', bizUrl('/vendors'), { name: $('#v-name').value, phone: pk($('#v-phone').value) }); closeModal(); }, L('ভেন্ডর যোগ হয়েছে', 'Vendor added'));
@@ -169,6 +175,7 @@ document.addEventListener('change', (e) => {
   if (t.id === 'pay-plan' || t.id === 'pay-qty') updPay();
   if (t.id === 'pay-date') { t.dataset.touched = '1'; updPay(); }
   if (t.id === 're-date') updReact();
+  if (t.id === 'vm') { S.vm = t.value; render(); }
   if (t.id === 's-cust' && draft) { draft.cust = t.value; $('#newcustwrap').hidden = t.value !== 'new'; if (t.value === 'new') $('#s-newname').focus(); }
 });
 
@@ -178,6 +185,7 @@ document.addEventListener('input', (e) => {
   if (t.id === 'pay-qty') updPay();
   if (t.id === 'q' || t.id === 'sq') { if (t.id === 'q') S.q = t.value; else S.sq = t.value; const pos = t.selectionStart; render(); return refocus(t.id, pos); }
   if (t.id === 'd-q') { S.dq = t.value; $('#d-res').innerHTML = personResults(); return; }
+  if (t.id === 'vq') { S.vq = t.value; const pos = t.selectionStart; render(); return refocus('vq', pos); }
   { const pf = t.closest('[id$="-pf"]'); if (pf) return updateAutoName(pf.id.slice(0, -3)); }
   if (!draft) return;
   if (t.id === 's-pq') { draft.pq = t.value; $('#p-res').innerHTML = prodResults(); return; }
