@@ -166,6 +166,40 @@ ${allAppsHTML(s.key, v.prices)}
 </body></html>`;
 }
 
+// All 8 free demos as one-tap buttons (no login details): used on the home page and on rafid5.com/demo.
+const DEMO_CSS = `
+.demos8{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.demos8 a{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:190px;border-radius:20px;overflow:hidden;color:#fff;text-decoration:none;padding:12px 14px;box-shadow:0 14px 30px -18px rgba(0,0,0,.6);transition:transform .15s}
+.demos8 a:hover{transform:translateY(-3px)}
+.demos8 img{position:absolute;left:0;top:0;width:100%;height:auto;opacity:.95}
+.demos8 a::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 35%,rgba(0,0,0,.55))}
+.demos8 b,.demos8 span{position:relative;z-index:1}
+.demos8 b{font:800 1.25rem/1.2 var(--display)}
+.demos8 span{display:inline-flex;align-self:flex-start;margin-top:6px;background:#ffd34d;color:#3a2700;font-weight:800;border-radius:10px;padding:6px 12px;font-size:.95rem}
+.demohead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.demohead h2{margin:0}.demohead p{margin:2px 0 0;color:var(--mu)}
+`;
+const demoCards = () => `<div class="demos8">${SEGMENTS.map((x) => `<a href="/demo${x.num}" style="background:radial-gradient(120% 90% at 85% 0%,${x.color} 0%,${x.dark} 85%)"><img src="/art/${x.key}.svg" alt="" width="480" height="300" loading="lazy"><b>${x.emoji} ${esc(x.bn)}</b><span>▶ ফ্রি ডেমো দেখুন</span></a>`).join('')}</div>`;
+
+// rafid5.com/demo: every free demo on one shareable page.
+function demoPage(v) {
+  const s = { key: 'hub', color: '#1f2937', dark: '#0b1220', emoji: '▶' };
+  return `${HEAD('ফ্রি ডেমো — লগইন ছাড়াই চালিয়ে দেখুন', 'কৃষিখাতা, নির্মাণখাতা, বাইকখাতা, ইটখাতা, মোবাইলখাতা, ফার্নিচারখাতা, গাড়িখাতা, হার্ডওয়্যারখাতা — এক চাপে ফ্রি ডেমো, লগইন লাগবে না।', s.color, v.base, '/demo', '<link rel="icon" href="/icon.svg" type="image/svg+xml">')}
+<style>${BASE_CSS(s)}${DEMO_CSS}
+.hero{padding:28px 0 34px;background:radial-gradient(120% 120% at 90% 0%,#334155 0%,#0b1220 70%)}.hero .wrap{grid-template-columns:minmax(0,1fr)}
+.hero::before,body::before{background:none}</style></head><body>
+<header class="hero"><div class="wrap"><div>
+  <span class="badge">▶ লগইন লাগবে না</span>
+  <h1>ফ্রি ডেমো — <em>এক চাপে চালিয়ে দেখুন</em></h1>
+  <p class="lead">আপনার ব্যবসার ধরন বেছে নিন। নমুনা পণ্য, বিক্রি, বাকি ও রিপোর্টসহ সাজানো একটি দোকান খুলে যাবে — যা খুশি চালিয়ে দেখুন। প্রতি রাতে নতুন করে সাজানো হয়।</p>
+  <div class="btns"><a class="btn wa" href="${v.waQ}" target="_blank" rel="noopener">${v.WA}WhatsApp: ${esc(v.waShow)}</a><a class="btn dl" href="/">সব সফটওয়্যার →</a></div>
+</div></div></header>
+<main class="wrap" style="margin-top:26px">${demoCards()}</main>
+<footer>© ${esc(v.domain)} · ফ্রি ডেমো</footer>
+<a class="float" href="${v.waQ}" target="_blank" rel="noopener" aria-label="WhatsApp-এ প্রশ্ন করুন">${v.WA}<span>প্রশ্ন করুন</span></a>
+</body></html>`;
+}
+
 // rafid5.com home: an advert for every software, with its page, app download and free demo.
 function hubPage(v) {
   const s = { key: 'hub', color: '#1f2937', dark: '#0b1220', emoji: '📒' };
@@ -186,7 +220,7 @@ function hubPage(v) {
   return `${HEAD('ব্যবসার হিসাবের অ্যাপ — খাতা-কলম ছাড়ুন', 'কৃষিখাতা, নির্মাণখাতা, বাইকখাতা, ইটখাতা, মোবাইলখাতা, ফার্নিচারখাতা, গাড়িখাতা, হার্ডওয়্যারখাতা — আপনার ব্যবসার জন্য আলাদা অ্যাপ।', s.color, v.base, '/', '<link rel="icon" href="/icon.svg" type="image/svg+xml">')}
 <style>${BASE_CSS(s)}
 .hero{padding:30px 0 40px;background:radial-gradient(120% 120% at 90% 0%,#334155 0%,#0b1220 70%)}
-.hero::before,body::before{background:none}
+.hero::before,body::before{background:none}${DEMO_CSS}
 .hero .wrap{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)}
 .mosaic{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .mosaic a{display:block;aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;box-shadow:0 10px 24px -14px rgba(0,0,0,.6);transition:transform .15s}
@@ -222,16 +256,17 @@ function hubPage(v) {
   <span class="badge">📒 বাংলাদেশের দোকানের জন্য বানানো</span>
   <h1>খাতা-কলম ছাড়ুন, <em>ব্যবসার সব হিসাব মোবাইলে</em></h1>
   <p class="lead">বিক্রি, ক্যাশ মেমো, স্টক, বাকি, লাভ-ক্ষতি — আপনার ব্যবসার ধরন বেছে নিন। প্রতিটির নিজস্ব অ্যাপ, প্রতিটিতে ${bnNum(14)} দিন সম্পূর্ণ ফ্রি।</p>
-  <div class="btns"><a class="btn wa" href="${v.waQ}" target="_blank" rel="noopener">${v.WA}WhatsApp: ${esc(v.waShow)}</a><a class="btn dl" href="#ads">আপনার ব্যবসা বেছে নিন ↓</a></div>
+  <div class="btns"><a class="btn wa" href="${v.waQ}" target="_blank" rel="noopener">${v.WA}WhatsApp: ${esc(v.waShow)}</a><a class="btn dl" href="#ads">আপনার ব্যবসা বেছে নিন ↓</a><a class="btn ghost" href="#demos">▶ ফ্রি ডেমো</a></div>
   <div class="jump">${SEGMENTS.map((x) => `<a href="#s${x.num}" style="--c:${x.color};--d:${x.dark}">${x.emoji} ${esc(x.bn)}</a>`).join('')}</div>
 </div>
 <div class="mosaic">${SEGMENTS.map((x) => `<a href="/app${x.num}" style="background:radial-gradient(120% 90% at 85% 0%,${x.color} 0%,${x.dark} 85%)" aria-label="${esc(x.bn)}"><img src="/art/${x.key}.svg" alt=""><span>${esc(x.bn)}</span></a>`).join('')}</div>
 </div></header>
 ${finderHTML(v.nf, v.q)}
-<main class="wrap"><div class="ads" id="ads">${SEGMENTS.map(ad).join('')}</div></main>
+<main class="wrap"><section id="demos" style="margin-top:28px"><div class="demohead"><div><h2>▶ ফ্রি ডেমো — লগইন লাগবে না</h2><p>যেকোনোটিতে চাপ দিন — সাজানো দোকান খুলে যাবে। শেয়ার করার লিংক: <a href="/demo">${esc(v.domain)}/demo</a></p></div></div>${demoCards()}</section>
+<div class="ads" id="ads">${SEGMENTS.map(ad).join('')}</div></main>
 <footer>© ${esc(v.domain)} · ব্যবসার হিসাবের অ্যাপ · WhatsApp ${esc(v.waShow)}</footer>
 <a class="float" href="${v.waQ}" target="_blank" rel="noopener" aria-label="WhatsApp-এ প্রশ্ন করুন">${v.WA}<span>প্রশ্ন করুন</span></a>
 </body></html>`;
 }
 
-module.exports = { SHARED_CSS, finderHTML, allAppsHTML, segPage, hubPage };
+module.exports = { SHARED_CSS, finderHTML, allAppsHTML, segPage, hubPage, demoPage };

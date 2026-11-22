@@ -106,6 +106,8 @@ function createApp() {
   const { createSession } = require('./auth');
   app.get('/demo', (req, res) => {
     const h = hostOf(req);
+    // rafid5.com/demo: the page listing every free demo.
+    if (DOMAIN && h.kind === 'main') return sendPage(res, pages.demoPage(pageVars(req, null)));
     const slug = h.kind === 'shop' ? h.slug : !DOMAIN ? String(req.query.shop || '') : '';
     const b = slug && get('SELECT id,slug,demo FROM businesses WHERE slug=?', slug);
     if (!b || !b.demo) return res.redirect(302, '/');
