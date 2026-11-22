@@ -196,6 +196,7 @@ docker compose start app
 | ৭ | গাড়িখাতা (পুরাতন গাড়ি) | example.com/app7 | admin7.example.com | garikhata.apk | example.com/demo7 |
 | ৮ | হার্ডওয়্যারখাতা (হার্ডওয়্যার-স্যানিটারি) | example.com/app8 | admin8.example.com | hardwarekhata.apk | example.com/demo8 |
 
+- `adminr.example.com` — সুপার অ্যাডমিনের শুরুর পেজ: ৮টি মাদার প্যানেলের লিংক ও সারাংশ (প্রতিটি প্যানেলে আবার পাসওয়ার্ড লাগে)।
 - `example.com` (মূল ঠিকানা) সব সফটওয়্যারের তালিকা দেখায়; প্রতিটি পেজে "নিজের দোকানে যান" বক্সে দোকানের নাম বা মোবাইল নম্বর লিখলে নিজের দোকানে চলে যায়।
 - আগের ঠিকানাগুলো (`/app`, `/nirman`, `ADMIN_DOMAIN`, `BUILD_ADMIN_DOMAIN`) আগের মতোই কাজ করে।
 - যে মাদার প্যানেল থেকে দোকান খোলা হয়, দোকানটি সেই সফটওয়্যারের হয়।

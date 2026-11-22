@@ -18,7 +18,8 @@ async function boot() {
   }
   if (!S.me) { render(); return; }
   try {
-    if (S.me.role === 'super') { await loadSuper(); S.otp = S.sup.otp; S.view = 'home'; }
+    if (S.me.role === 'super' && S.site && S.site.launcher) { S.over = await call('GET', '/api/super/overview'); S.view = 'launch'; }
+    else if (S.me.role === 'super') { await loadSuper(); S.otp = S.sup.otp; S.view = 'home'; }
     else { await loadBiz(); S.view = S.me.role === 'admin' ? 'dash' : 'sale'; }
   } catch (e) { if (!(e instanceof ApiErr)) console.error(e); }
   render();

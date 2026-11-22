@@ -194,6 +194,9 @@ const BRAND = {
   BRAND[k] = { name: { bn: bnN, en: enN }, sub: { bn: subB, en: subE }, seller: { bn: selB, en: selE }, note: { bn: 'পণ্য বুঝে নিয়ে মেমোটি সংরক্ষণ করুন। ধন্যবাদ।', en: 'Please check the goods and keep this memo. Thank you.' },
     search: { bn: srB, en: srE }, hero: { bn: heB, en: heE }, login: { bn: subB, en: subE }, apk: '/' + enN.toLowerCase() + '.apk', page: '/app' + num, icon, num, color, dark };
 });
+// Super admin start page (adminr.<domain>): links to every mother panel.
+BRAND.all = { name: { bn: 'সুপার অ্যাডমিন', en: 'Super admin' }, sub: { bn: 'সব সফটওয়্যারের মাদার প্যানেল এক জায়গায়', en: 'Every mother panel in one place' }, seller: { bn: '', en: '' }, note: { bn: '', en: '' },
+  search: { bn: '', en: '' }, hero: { bn: '', en: '' }, login: { bn: 'সব সফটওয়্যারের মাদার প্যানেল এক জায়গায়', en: 'Every mother panel in one place' }, apk: '/krishikhata.apk', page: '/', icon: 'crown', num: 0, color: '#334155', dark: '#0f172a' };
 // Product details for building materials.
 //  Rod, sheet, angle, bar: MS or SS + company, sold by weight (kg / ton).
 //  Cement: company, by bag.   Tin: company + thickness + size in feet + pieces per bundle.
@@ -226,7 +229,7 @@ const pspecOld = (p) => [p.brand && !String(p.name).includes(p.brand) ? p.brand 
   p.perPack ? `${bn(p.perPack)} ${L('পিস', 'pcs')}/${U(p.unit)}` : ''].filter(Boolean).join(' · ');
 // Selling tin by piece count: pieces ÷ pieces per bundle.
 const pcsConv = (p) => (p && p.perPack > 0 && p.unit === 'bundle' ? 1 / p.perPack : 0);
-const btype = () => (S.cur && S.cur.btype) || (S.sup && S.sup.btype) || (S.pub && S.pub.btype) || (S.site && ((S.site.shop && S.site.shop.btype) || S.site.btype)) || 'agri';
+const btype = () => (S.site && S.site.launcher ? 'all' : null) || (S.cur && S.cur.btype) || (S.sup && S.sup.btype) || (S.pub && S.pub.btype) || (S.site && ((S.site.shop && S.site.shop.btype) || S.site.btype)) || 'agri';
 const brand = () => BRAND[btype()] || BRAND.agri;
 const hasBox = (b) => (b.modules || []).includes('box');
 
@@ -405,7 +408,7 @@ function renderChrome() {
   $('#brandsub').textContent = N(brand().sub);
   const bz = $('#bizname');
   bz.hidden = r === 'guest' || r === 'public';
-  bz.innerHTML = r === 'super' ? `${I('crown')} ${L('মাদার প্যানেল', 'Mother panel')}` : S.cur ? `${I('build')} ${esc(S.cur.name)}${S.cur.demo ? ` · ${L('ডেমো', 'Demo')}` : ''}` : '';
+  bz.innerHTML = r === 'super' && S.site && S.site.launcher ? `${I('crown')} ${L('সব মাদার প্যানেল', 'All mother panels')}` : r === 'super' ? `${I('crown')} ${L('মাদার প্যানেল', 'Mother panel')}` : S.cur ? `${I('build')} ${esc(S.cur.name)}${S.cur.demo ? ` · ${L('ডেমো', 'Demo')}` : ''}` : '';
   const ub = $('#userbar');
   ub.hidden = !S.me;
   if (S.me) ub.innerHTML = (S.bid ? `<button data-backsuper>${I('back')} ${L('মাদার প্যানেল', 'Mother panel')}</button>` : '') +
@@ -416,7 +419,7 @@ function renderChrome() {
   $('#langbtn').innerHTML = `${I('lang')} <span class="lfull">${LANG === 'bn' ? 'English' : 'বাংলা'}</span><span class="lshort">${LANG === 'bn' ? 'EN' : 'বাং'}</span>`;
   $('#langbtn').setAttribute('aria-label', LANG === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন');
   $('#themebtn').setAttribute('aria-label', L('লাইট / ডার্ক থিম', 'Light / dark theme'));
-  const showSide = r !== 'guest' && r !== 'public';
+  const showSide = r !== 'guest' && r !== 'public' && !(S.site && S.site.launcher);
   $('#side').hidden = !showSide;
   $('#shell').classList.toggle('noside', !showSide);
   $('#sidehead').textContent = r === 'super' ? L('মাদার সফটওয়্যার', 'Mother software') : r === 'admin' ? L('অ্যাডমিন মেনু', 'Admin menu') : L('সেলার মেনু', 'Seller menu');

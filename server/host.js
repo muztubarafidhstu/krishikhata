@@ -8,6 +8,7 @@ const { SEGMENTS, segByNum } = require('./segments');
 const RESERVED = new Set(['www', 'admin', 'api', 'app', 'mail', 'smtp', 'ftp', 'shop', 'static', 'cdn', 'ns1', 'ns2', 'test', 'demo', 'login', 'support', 'go']);
 for (const a of [ADMIN_DOMAIN, BUILD_ADMIN_DOMAIN]) if (a && DOMAIN && a.endsWith('.' + DOMAIN)) RESERVED.add(a.slice(0, -DOMAIN.length - 1));
 for (const s of SEGMENTS) if (s.legacyAdmin) RESERVED.add(s.legacyAdmin);
+RESERVED.add('adminr');
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
 const slugValid = (s) => SLUG_RE.test(s) && !RESERVED.has(s) && !s.includes('--') && !/^(admin|app)\d+$/.test(s);
 
@@ -23,10 +24,14 @@ function adminTypeOf(host) {
   const leg = SEGMENTS.find((s) => s.legacyAdmin === sub);
   return leg ? leg.key : null;
 }
+// Super admin start page: adminr.<domain> (also admin.<domain>) — links to every mother panel.
+const LAUNCHER = ['adminr', 'admin'];
+const isLauncherHost = (host) => { host = String(host || '').toLowerCase(); return !!DOMAIN && LAUNCHER.some((l) => host === `${l}.${DOMAIN}`); };
 const adminUrl = (t) => { const s = SEGMENTS.find((x) => x.key === t); return DOMAIN && s ? `https://admin${s.num}.${DOMAIN}` : ''; };
 
 function hostInfo(req) {
   const host = String(req.hostname || '').toLowerCase();
+  if (isLauncherHost(host)) return { kind: 'admin', host, btype: 'agri', launcher: true };
   const at = adminTypeOf(host);
   if (at) return { kind: 'admin', host, btype: at };
   if (DOMAIN && host.endsWith('.' + DOMAIN)) {
@@ -41,4 +46,4 @@ function hostInfo(req) {
 // Address of a shop, e.g. https://karim.rafid5.com
 const shopUrl = (slug) => (DOMAIN ? `https://${slug}.${DOMAIN}` : `/shop/${slug}`);
 
-module.exports = { hostInfo, adminTypeOf, adminUrl, slugValid, shopUrl, RESERVED };
+module.exports = { hostInfo, adminTypeOf, adminUrl, isLauncherHost, slugValid, shopUrl, RESERVED };

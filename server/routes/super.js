@@ -7,7 +7,8 @@ const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, audit, i
 const { bizSummary } = require('../state');
 const { createBusiness } = require('../business');
 const { PASS_MSG } = require('./auth');
-const { slugValid, shopUrl, hostInfo } = require('../host');
+const { slugValid, shopUrl, hostInfo, adminUrl } = require('../host');
+const { SEGMENTS } = require('../segments');
 const SLUG_MSG = ['ঠিকানায় শুধু ইংরেজি ছোট অক্ষর, সংখ্যা ও - চলবে (৩–৩০ অক্ষর)', 'Use only small English letters, numbers and - (3–30 characters)'];
 const slugFree = (s, except) => !get('SELECT 1 x FROM businesses WHERE slug=? AND id<>?', s, except || 0);
 
@@ -28,6 +29,24 @@ const bizOr404 = (id, req) => { const b = get('SELECT * FROM businesses WHERE id
 const phoneTaken = (p, exceptId) => !!get('SELECT 1 x FROM users WHERE phone=? AND active=1 AND id<>?', normPhone(p), exceptId || 0);
 const fmtDateEn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const fmtDateBn = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+// Super admin start page (adminr.<domain>): every software at a glance, with a link to its mother panel.
+r.get('/overview', (req, res) => {
+  const month = today().slice(0, 7);
+  res.json(SEGMENTS.map((s) => {
+    const shops = all("SELECT * FROM businesses WHERE COALESCE(btype,'agri')=?", s.key);
+    const ids = shops.map((b) => Number(b.id)).join(',');
+    const sum = (sql) => (ids ? get(sql.replace('IDS', ids), month).v : 0);
+    return {
+      key: s.key, num: s.num, url: adminUrl(s.key), shops: shops.length,
+      active: shops.filter((b) => !isLocked(b)).length, locked: shops.filter((b) => isLocked(b)).length,
+      trial: shops.filter((b) => b.plan === 'trial' && !isLocked(b)).length,
+      sales: sum('SELECT COALESCE(SUM(total),0) v FROM sales WHERE business_id IN (IDS) AND void=0 AND substr(date,1,7)=?'),
+      income: sum('SELECT COALESCE(SUM(amount),0) v FROM sub_payments WHERE business_id IN (IDS) AND substr(date,1,7)=?'),
+      price: plans(s.key).monthly,
+    };
+  }));
+});
 
 r.get('/state', (req, res) => {
   const lastSeen = Number(getSetting('gateway_last_seen', '0'));

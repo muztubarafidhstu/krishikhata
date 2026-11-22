@@ -12,6 +12,23 @@ function matchBiz(b) {
 }
 const subIncomeMonth = () => { const m = todayStr().slice(0, 7); return S.sup.businesses.reduce((a, b) => a + b.sub.payments.filter((p) => p.date.slice(0, 7) === m).reduce((x, p) => x + p.amount, 0), 0); };
 
+// Super admin start page (adminr.<domain>): every software, its numbers and a link to its mother panel.
+// Each mother panel asks for the password again (that is on purpose).
+VIEWS.launch = () => {
+  const O = S.over || [], t = (k) => O.reduce((a, x) => a + x[k], 0);
+  return `<div class="pagehead"><div><h2>${I('crown')} ${L('সব মাদার প্যানেল', 'All mother panels')}</h2><p>${L('প্রতিটি সফটওয়্যারের সারাংশ — প্যানেল খুলতে চাপ দিন (প্রতিটিতে নিরাপত্তার জন্য পাসওয়ার্ড লাগবে)।', 'A summary of every software — tap a panel to open it (each asks for the password, for safety).')}</p></div></div>
+  <div class="grid g-kpi">${kpi('k-leaf', 'build', L('মোট দোকান', 'Total shops'), bn(t('shops')), L(`${bn(t('active'))} সক্রিয় · ${bn(t('locked'))} বন্ধ/মেয়াদ শেষ`, `${bn(t('active'))} active · ${bn(t('locked'))} locked`))}
+    ${kpi('k-sun', 'leaf', L('ফ্রি ট্রায়ালে', 'On free trial'), bn(t('trial')))}
+    ${kpi('k-sky', 'cart', L('এই মাসে সব দোকানের বিক্রি', 'All shops’ sales this month'), tk(t('sales')))}
+    ${kpi('k-berry', 'crown', L('এই মাসে সাবস্ক্রিপশন আয়', 'Subscription income this month'), tk(t('income')))}</div>
+  <div class="launch">${O.map((o) => { const B = BRAND[o.key]; return `
+    <a class="lcard" href="${esc(o.url)}" style="--c:${B.color || (o.key === 'build' ? '#a8532b' : '#2f8f3a')};--d:${B.dark || (o.key === 'build' ? '#7a3b1d' : '#1f6b2a')}">
+      <span class="pic" style="background:radial-gradient(120% 90% at 85% 0%,var(--c) 0%,var(--d) 85%)"><img src="/art/${o.key}.svg" alt=""><span class="n">${bn(o.num)}</span></span>
+      <span class="body"><b>${N(B.name)}</b><small>${esc(o.url.replace('https://', ''))}</small>
+        <span class="st"><span><b>${bn(o.shops)}</b>${L('দোকান', 'shops')}</span><span><b>${bn(o.active)}</b>${L('সক্রিয়', 'active')}</span><span><b>${bn(o.locked)}</b>${L('বন্ধ', 'locked')}</span></span>
+        <span class="mo">${L('এই মাসে', 'This month')}: ${tk(o.sales)} ${L('বিক্রি', 'sales')} · ${tk(o.income)} ${L('আয়', 'income')}</span>
+        <span class="go">${L('প্যানেল খুলুন', 'Open panel')} →</span></span></a>`; }).join('')}</div>`;
+};
 VIEWS.home = () => {
   const B = S.sup.businesses;
   const tot = B.reduce((a, b) => ({ s: a.s + b.stats.sales, r: a.r + b.stats.recv }), { s: 0, r: 0 });
@@ -22,7 +39,7 @@ VIEWS.home = () => {
   <div class="pagehead"><div><h2>${L('সব ব্যবসা', 'All businesses')}</h2><p>${L('প্রতিটি ব্যবসায়ীর আলাদা অ্যাকাউন্ট সেটআপ ও নিয়ন্ত্রণ করুন।', 'Set up and control a separate account for each business owner.')}</p></div>
   <button class="btn sun" data-nav="wizard">${I('plus')} ${L('নতুন ব্যবসা সেটআপ', 'Set up new business')}</button></div>
   ${appCard('super')}
-  ${S.site && S.site.domain ? `<div class="card panels"><b>${I('crown')} ${L('সব মাদার প্যানেল', 'All mother panels')}</b><div class="chips">${Object.entries(BRAND).sort((a, z) => a[1].num - z[1].num).map(([k, B]) => `<a class="chip-btn ${k === btype() ? 'on' : ''}" href="https://admin${B.num}.${esc(S.site.domain)}">${I(B.icon)} ${B.num}. ${N(B.name)}</a>`).join('')}</div></div>` : ''}
+  ${S.site && S.site.domain ? `<div class="card panels"><b>${I('crown')} ${L('সব মাদার প্যানেল', 'All mother panels')}</b><div class="chips">${Object.entries(BRAND).filter(([k]) => k !== 'all').sort((a, z) => a[1].num - z[1].num).map(([k, B]) => `<a class="chip-btn ${k === btype() ? 'on' : ''}" href="https://admin${B.num}.${esc(S.site.domain)}">${I(B.icon)} ${B.num}. ${N(B.name)}</a>`).join('')}<a class="chip-btn" href="https://adminr.${esc(S.site.domain)}">${I('crown')} ${L('সব প্যানেল', 'All panels')}</a></div></div>` : ''}
   <div class="grid g-kpi">
     ${kpi('k-leaf', 'build', L('মোট ব্যবসা', 'Businesses'), bn(B.length), L(`${bn(B.filter((b) => isLockedSub(b.sub)).length)} টি বন্ধ / মেয়াদ শেষ`, `${bn(B.filter((b) => isLockedSub(b.sub)).length)} locked`))}
     ${kpi('k-sky', 'cart', L('মোট বিক্রি (সব ব্যবসা)', 'Total sales (all)'), tk(tot.s))}
