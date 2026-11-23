@@ -41,14 +41,25 @@ function subState(b) {
 }
 const isLocked = (b) => ['off', 'expired'].includes(subState(b));
 // A shop can have its own price; empty means the standard price.
-const plansFor = (b) => { const P = plans(b.btype); return { ...P, monthly: b.price_monthly ?? P.monthly, yearly: b.price_yearly ?? P.yearly, custom: b.price_monthly != null || b.price_yearly != null }; };
+// Months a shop has already paid for (a yearly payment counts as 12).
+const paidMonths = (bid) => get("SELECT COALESCE(SUM(CASE WHEN plan='yearly' THEN qty*12 ELSE qty END),0) n FROM sub_payments WHERE business_id=?", bid).n;
+const plansFor = (b) => {
+  const P = plans(b.btype), monthly = b.price_monthly ?? P.monthly;
+  // Starter offer: a shop's first paid months cost less (e.g. 2 months at ৳200), then the normal price.
+  const introLeft = P.introMonths > 0 && P.introPrice < monthly ? Math.max(0, P.introMonths - paidMonths(b.id)) : 0;
+  return { ...P, monthly, yearly: b.price_yearly ?? P.yearly, custom: b.price_monthly != null || b.price_yearly != null, introLeft };
+};
+// What `qty` monthly payments cost: the starter months first, then the normal monthly price.
+const monthlyCost = (P, qty) => { const a = Math.min(qty, P.introLeft || 0); return a * P.introPrice + (qty - a) * P.monthly; };
 // Each business type has its own standard prices. Agri keeps the original setting names ("plan_monthly"),
 // the others add their key ("plan_monthly_build", "plan_monthly_bike" …).
 const sk = (k, t) => (!t || t === 'agri' ? k : k + '_' + t);
 const plans = (t = 'agri') => ({
   monthly: Number(getSetting(sk('plan_monthly', t), String((SEG[t] || SEG.agri).monthly))),
   yearly: Number(getSetting(sk('plan_yearly', t), String((SEG[t] || SEG.agri).monthly * 10))),
-  trialDays: Number(getSetting(sk('plan_trial_days', t), '14')),
+  trialDays: Number(getSetting(sk('plan_trial_days', t), '30')),
+  introPrice: Number(getSetting(sk('plan_intro_price', t), '200')),
+  introMonths: Number(getSetting(sk('plan_intro_months', t), '2')),
   payTo: getSetting('pay_to', ''),
   whatsapp: getSetting('whatsapp', ''),
 });
@@ -177,5 +188,5 @@ const STARTER = [
 // Starter products for a new shop of type t with the chosen categories.
 const starterFor = (t, cats) => STARTER.filter((x) => cats.includes(x.cat) && (!x.types || x.types.includes(t)));
 
-module.exports = { brandOf, brandForReq, HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, plansFor, otpEnabled, otpGate, audit,
+module.exports = { brandOf, brandForReq, HttpError, fail, money, str, queueSms, notify, subState, isLocked, plans, plansFor, monthlyCost, otpEnabled, otpGate, audit,
   TYPES, btypeOk, CATS, MODULE_KEYS, UNITS, EXP_TYPES, METHODS, STARTER, starterFor, all };

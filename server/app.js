@@ -87,6 +87,8 @@ function createApp() {
       '{{BASE}}': v.base, '{{DOMAIN}}': v.domain,
       '{{PRICE_M}}': bnNum(v.P.monthly), '{{PRICE_Y}}': bnNum(v.P.yearly), '{{TRIAL}}': bnNum(v.P.trialDays), '{{PER_DAY}}': bnNum(Math.max(1, v.P.monthly / 30)),
       '{{SAVE_LINE}}': save > 0 ? `<div class="save">মাসিকের চেয়ে ৳${bnNum(save)} সাশ্রয়</div>` : '',
+      '{{INTRO_SPAN}}': pages.introOf(v.P) ? `<span>${pages.introOf(v.P)}</span>` : '',
+      '{{INTRO_LINE}}': pages.introOf(v.P) ? `<div class="save">🎁 শুরুর অফার: ফ্রি মাসের ${pages.introOf(v.P)}</div>` : '',
       '{{WA_ICON}}': WA_ICON, '{{WA_LOCAL}}': v.waLocal, '{{WA_SHOW}}': v.waShow,
       '{{WA_LINK_TRIAL}}': v.waTrial, '{{WA_LINK_M}}': v.waM, '{{WA_LINK_Y}}': v.waY, '{{WA_LINK_Q}}': v.waQ,
       '{{SHARED_CSS}}': `:root{--seg:${s.color};--seg-d:${s.dark}}` + pages.SHARED_CSS,

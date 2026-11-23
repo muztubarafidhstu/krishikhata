@@ -1,7 +1,7 @@
 'use strict';
 // Demo shops: sample data for each segment, refilling a demo shop, and the nightly reset of the official demos.
 const { get, all, run, tx, today, addDays } = require('./db');
-const { starterFor } = require('./core');
+const { starterFor, plans } = require('./core');
 const { SEGMENTS } = require('./segments');
 
 const DEMO_NAME = { agri: 'ডেমো কৃষি ভাণ্ডার', build: 'ডেমো স্টিল অ্যান্ড সিমেন্ট', bike: 'ডেমো বাইক হাউজ', brick: 'ডেমো ব্রিকস', mobile: 'ডেমো মোবাইল গ্যালারি', furniture: 'ডেমো ফার্নিচার', car: 'ডেমো কার হাউজ', hardware: 'ডেমো হার্ডওয়্যার অ্যান্ড স্যানিটারি' };
@@ -89,8 +89,8 @@ function refillDemo(b, empty = false) {
     if (!empty) for (const p of starterFor(b.btype || 'agri', JSON.parse(b.cats)))
       run('INSERT INTO products(business_id,name,cat,unit,buy,sell,stock,min_stock,box,brand,size,dims,weight,per_pack) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', b.id, p.name, p.cat, p.unit, p.buy, p.sell, 0, p.min, 'B-' + String(n++).padStart(2, '0'), p.brand || '', p.size || '', p.dims || '', p.weight ?? null, p.per_pack ?? null);
     if (empty) {
-      // Looks like the first day: 14 days of free trial left, no cash, only the welcome note.
-      run("UPDATE businesses SET plan='trial', status='on', sub_start=?, expiry=?, opening=0 WHERE id=?", today(), addDays(today(), 14), b.id);
+      // Looks like the first day: the whole free trial left, no cash, only the welcome note.
+      run("UPDATE businesses SET plan='trial', status='on', sub_start=?, expiry=?, opening=0 WHERE id=?", today(), addDays(today(), plans(b.btype || 'agri').trialDays), b.id);
       run('DELETE FROM notifications WHERE business_id=? AND id NOT IN (SELECT MIN(id) FROM notifications WHERE business_id=?)', b.id, b.id);
       run('UPDATE notifications SET read=0, date=? WHERE business_id=?', today(), b.id);
     } else fillSample(b.id, b.btype || 'agri');

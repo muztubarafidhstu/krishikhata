@@ -748,7 +748,7 @@ function renewCard(b) {
   const P = b.plans;
   return `<div class="card" style="border-color:var(--sun)"><h3 style="margin-bottom:10px">${I('crown')} ${L('কীভাবে নবায়ন করবেন', 'How to renew')}</h3>
     <div class="grid g2">
-      <div class="summary num"><div><span>${N(PLAN_N.monthly)}</span><b>${tk(P.monthly)} ${L('/ মাস', '/ month')}</b></div><div><span>${N(PLAN_N.yearly)}</span><b>${tk(P.yearly)} ${L('/ বছর', '/ year')}</b></div>
+      <div class="summary num">${P.introLeft ? `<div><span>${L('শুরুর অফার', 'Starter offer')}</span><b style="color:var(--leaf-d)">${L(`পরের ${dg(P.introLeft)} মাস ${tk(P.introPrice)} করে`, `next ${P.introLeft} month(s) at ${tk(P.introPrice)}`)}</b></div>` : ''}<div><span>${N(PLAN_N.monthly)}</span><b>${tk(P.monthly)} ${L('/ মাস', '/ month')}</b></div><div><span>${N(PLAN_N.yearly)}</span><b>${tk(P.yearly)} ${L('/ বছর', '/ year')}</b></div>
         ${P.monthly * 12 > P.yearly ? `<div><span class="muted">${L('বার্ষিকে সাশ্রয়', 'Yearly saves')}</span><b style="color:var(--leaf-d)">${tk(P.monthly * 12 - P.yearly)}</b></div>` : ''}</div>
       <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
         <li>${L(`বিকাশ / নগদে <b class="num">${esc(dg(fmtPhone(P.payTo)))}</b> নম্বরে টাকা পাঠান।`, `Send the money by bKash / Nagad to <b class="num">${esc(fmtPhone(P.payTo))}</b>.`)}</li>

@@ -89,7 +89,11 @@ const lastOtp = () => {
     r = await sup('POST', `/api/super/businesses/${bid}/deactivate`); assert.equal(r.status, 200);
     r = await own('POST', '/api/biz/expenses', { type: 'tea', amount: 50 }); assert.equal(r.status, 402);
     r = await own('GET', '/api/biz/state'); assert.equal(r.data.locked, true); assert.equal(r.data.sales.length, 0);
-    r = await sup('POST', `/api/super/businesses/${bid}/payment`, { plan: 'monthly', qty: 2, method: 'bkash' }); assert.equal(r.status, 200); assert.equal(r.data.amount, 1000);
+    // Starter offer: the first 2 paid months cost ৳200 each, then the normal ৳500.
+    r = await sup('GET', '/api/super/state'); assert.equal(r.data.plans.trialDays, 30); assert.equal(r.data.plans.introPrice, 200); assert.equal(r.data.plans.introMonths, 2);
+    r = await sup('POST', `/api/super/businesses/${bid}/payment`, { plan: 'monthly', qty: 1, method: 'bkash' }); assert.equal(r.status, 200); assert.equal(r.data.amount, 200);
+    r = await sup('POST', `/api/super/businesses/${bid}/payment`, { plan: 'monthly', qty: 2, method: 'bkash' }); assert.equal(r.status, 200); assert.equal(r.data.amount, 700, 'one starter month left, then the normal price');
+    r = await sup('POST', `/api/super/businesses/${bid}/payment`, { plan: 'monthly', qty: 1, method: 'cash' }); assert.equal(r.data.amount, 500);
     r = await own('POST', '/api/biz/expenses', { type: 'tea', amount: '৫০' }); assert.equal(r.status, 200);
 
     // Super admin must re-enter the password to open a shop panel

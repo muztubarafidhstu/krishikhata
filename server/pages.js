@@ -5,6 +5,8 @@ const { SEGMENTS } = require('./segments');
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const bnNum = (n) => Math.round(n).toLocaleString('bn-BD');
+// The starter offer in words ("পরের ২ মাস ৳২০০ করে"), or '' when it is switched off.
+const introOf = (P) => (P && P.introMonths > 0 && P.introPrice < P.monthly ? `পরের ${bnNum(P.introMonths)} মাস ৳${bnNum(P.introPrice)} করে` : '');
 
 // Styles for the shared blocks; each page sets --seg (its colour) and --seg-d.
 const SHARED_CSS = `
@@ -41,7 +43,7 @@ const finderHTML = (nf, q = '') => `<div class="finder" id="finder"><form action
   ${nf ? `<p class="nf">"${esc(q)}" — এই নাম বা নম্বরে কোনো দোকান পাওয়া যায়নি। দোকানের ঠিকানার নাম বা মালিক/সেলারের মোবাইল নম্বর ঠিকমতো লিখুন, অথবা WhatsApp করুন।</p>` : ''}
 </form></div>`;
 
-const allAppsHTML = (current, prices) => `<section class="allapps" id="all"><h2>আমাদের সব সফটওয়্যার</h2><p class="sub">যে ব্যবসা, সেই অনুযায়ী আলাদা অ্যাপ — সবগুলোতে ${bnNum(14)} দিন ফ্রি</p>
+const allAppsHTML = (current, prices) => `<section class="allapps" id="all"><h2>আমাদের সব সফটওয়্যার</h2><p class="sub">যে ব্যবসা, সেই অনুযায়ী আলাদা অ্যাপ — সবগুলোতে ${bnNum((prices[current] || prices.agri).trialDays)} দিন ফ্রি${introOf(prices[current] || prices.agri) ? ', ' + introOf(prices[current] || prices.agri) : ''}</p>
   <div class="apps">${SEGMENTS.map((s) => `<a href="/app${s.num}" class="${s.key === current ? 'cur' : ''}"><span class="em" style="background:${s.color}">${s.emoji}</span>
     <span><span class="n">${bnNum(s.num)}</span> <b>${esc(s.bn)}</b><small>${esc(s.what.bn)}</small><small>৳${bnNum(prices[s.key].monthly)} / মাস</small></span></a>`).join('')}</div></section>`;
 
@@ -96,6 +98,7 @@ h2{font-size:clamp(1.4rem,3vw,1.9rem);margin:2px 0 14px}
 .prices{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .price{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:18px;text-align:center}
 .price.best{border-color:var(--seg)}
+.intro-of{margin-top:8px;font-weight:700;font-size:.92rem;color:#7a4b00;background:#fff4d6;border-radius:12px;padding:6px 10px}
 .price .amt{font-family:var(--display);font-size:2.4rem;font-weight:800;color:var(--seg)}
 .demo{background:var(--card);border:2px dashed var(--seg);border-radius:20px;padding:16px 18px;display:grid;gap:4px}
 .demo.dbig{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:20px;align-items:center;border-style:solid;background:radial-gradient(120% 90% at 85% 0%,var(--seg) 0%,var(--seg-d) 85%);color:#fff;padding:18px 22px}
@@ -132,7 +135,7 @@ function segPage(s, v) {
   <p class="lead">${isV ? `প্রতিটি ${s.key === 'car' ? 'গাড়ির' : 'বাইকের'} ইঞ্জিন/চেসিস নম্বর, কেনা ও বিক্রির তারিখ, আগের মালিক আর লাভ — সব এক জায়গায়, এক চাপে খুঁজে পান।` : 'কে কত বাকি, কোন মাল কত আছে, আজ কত বিক্রি, মাস শেষে কত লাভ — এক চাপে দেখুন।'} বাংলায়, সহজে।</p>
   <div class="btns"><a class="btn wa" href="${v.waTrial}" target="_blank" rel="noopener">${v.WA}${bnNum(P.trialDays)} দিন ফ্রি শুরু করুন</a>
     <a class="btn dl" href="/${s.apk}" download="${s.apk}">${DL_ICON}অ্যাপ ডাউনলোড</a><a class="btn ghost" href="/demo${s.num}">▶ ফ্রি ডেমো</a></div>
-  <div class="meta"><span>${bnNum(P.trialDays)} দিন ফ্রি</span><span>মাসিক মাত্র ৳${bnNum(P.monthly)}</span><span>কোনো সেটআপ খরচ নেই</span><span>মোবাইল ও কম্পিউটারে</span></div>
+  <div class="meta"><span>${bnNum(P.trialDays)} দিন ফ্রি</span>${introOf(P) ? `<span>${introOf(P)}</span>` : ''}<span>মাসিক মাত্র ৳${bnNum(P.monthly)}</span><span>কোনো সেটআপ খরচ নেই</span><span>মোবাইল ও কম্পিউটারে</span></div>
 </div><img class="art" src="/art/${s.key}.svg" alt="" width="480" height="300"></div></header>
 ${finderHTML(v.nf, v.q)}
 <main class="wrap">
@@ -146,7 +149,7 @@ ${finderHTML(v.nf, v.q)}
       <div><span class="e">🌐</span><b>নিজস্ব ওয়েবসাইট</b>যেমন yourshop.${esc(v.domain)} — ক্রেতারা পণ্য ও দাম দেখবে</div></div></div></section>
   <section id="price"><div class="eyebrow">দাম</div><h2>সহজ দাম, কোনো লুকানো খরচ নেই</h2>
     <div class="prices"><div class="price"><div>ফ্রি ট্রায়াল</div><div class="amt">${bnNum(P.trialDays)} দিন</div><div>সব সুবিধা চালু</div></div>
-      <div class="price best"><div>মাসিক</div><div class="amt">৳${bnNum(P.monthly)}</div><div>প্রতি মাসে</div></div>
+      <div class="price best"><div>মাসিক</div><div class="amt">৳${bnNum(P.monthly)}</div><div>প্রতি মাসে</div>${introOf(P) ? `<div class="intro-of">🎁 শুরুর অফার: ফ্রি মাসের ${introOf(P)}</div>` : ''}</div>
       <div class="price"><div>বার্ষিক</div><div class="amt">৳${bnNum(P.yearly)}</div><div>${P.monthly * 12 > P.yearly ? `৳${bnNum(P.monthly * 12 - P.yearly)} সাশ্রয়` : 'প্রতি বছরে'}</div></div></div></section>
   <section id="demo"><div class="eyebrow">নিজে চালিয়ে দেখুন</div><h2>ফ্রি ডেমো — লগইন লাগবে না</h2>
     <div class="demo dbig"><img src="/art/${s.key}.svg" alt="" width="480" height="300"><div><b>এক চাপে পুরো অ্যাপ ঘুরে দেখুন</b>
@@ -232,7 +235,7 @@ function hubPage(v) {
       <div class="nm"><span class="em">${x.emoji}</span><div><b>${esc(x.bn)}</b><small>${esc(x.what.bn)}</small></div></div>
       <p class="tl">${esc(x.tagline)}</p>
       <ul>${x.feats.slice(0, 4).map(([e, b, t]) => `<li><span>${e}</span><b>${esc(b)}</b> — ${esc(t)}</li>`).join('')}</ul>
-      <div class="pr"><b>৳${bnNum(P.monthly)}</b> / মাস <span>· ${bnNum(P.trialDays)} দিন সম্পূর্ণ ফ্রি</span></div>
+      <div class="pr"><b>৳${bnNum(P.monthly)}</b> / মাস <span>· ${bnNum(P.trialDays)} দিন সম্পূর্ণ ফ্রি${introOf(P) ? ' · ' + introOf(P) : ''}</span></div>
       <div class="go"><a class="b1" href="/app${x.num}">বিস্তারিত দেখুন →</a><a class="b2" href="/${x.apk}" download="${x.apk}">${DL} অ্যাপ ডাউনলোড</a>
         <a class="b3" href="/demo${x.num}">▶ ফ্রি ডেমো</a></div>
       <small class="dlg">ফ্রি ডেমো: লগইন লাগবে না — এক চাপে পুরো অ্যাপ ঘুরে দেখুন</small>
@@ -289,4 +292,4 @@ ${finderHTML(v.nf, v.q)}
 </body></html>`;
 }
 
-module.exports = { SHARED_CSS, finderHTML, allAppsHTML, segPage, hubPage, demoPage, demoDirPage };
+module.exports = { introOf, SHARED_CSS, finderHTML, allAppsHTML, segPage, hubPage, demoPage, demoDirPage };

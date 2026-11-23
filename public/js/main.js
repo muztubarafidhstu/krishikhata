@@ -82,7 +82,7 @@ document.addEventListener('click', async (e) => {
     if (on && !(await ask(L('OTP চালু করবেন? ESP32 SMS গেটওয়ে ঠিকমতো কাজ না করলে কেউ কোড পাবে না।', 'Switch OTP on? If the ESP32 SMS gateway is not working, nobody will receive codes.'), L('চালু করুন', 'Switch on')))) return;
     return act(t, async () => { const r = await call('PUT', '/api/super/settings', { otp: on }); S.otp = r.otp; S.sup.otp = r.otp; render(); toast(r.otp ? L('OTP চালু হয়েছে', 'OTP switched on') : L('OTP বন্ধ হয়েছে', 'OTP switched off')); });
   }
-  if (d.saveplans !== undefined) return act(t, async () => { S.sup.plans = await call('PUT', '/api/super/plans', { monthly: toNum($('#pl-m').value), yearly: toNum($('#pl-y').value), trialDays: toNum($('#pl-t').value), payTo: pk($('#pl-to').value), whatsapp: pk($('#pl-wa').value) }); render(); toast(L('সেভ হয়েছে', 'Saved')); });
+  if (d.saveplans !== undefined) return act(t, async () => { S.sup.plans = await call('PUT', '/api/super/plans', { monthly: toNum($('#pl-m').value), yearly: toNum($('#pl-y').value), trialDays: toNum($('#pl-t').value), introPrice: toNum($('#pl-ip').value), introMonths: toNum($('#pl-im').value), payTo: pk($('#pl-to').value), whatsapp: pk($('#pl-wa').value) }); render(); toast(L('সেভ হয়েছে', 'Saved')); });
   if (d.wnext !== undefined) {
     saveWizInputs(); const err = wizCheck(S.wiz); if (err) return toast(err, 'err');
     if (S.wiz.step === 0) { const ok = await act(t, async () => (await call('GET', '/api/super/slug-check?slug=' + encodeURIComponent(S.wiz.slug))).ok); if (!ok) return toast(L('এই ওয়েব ঠিকানা আগেই নেওয়া হয়েছে বা ব্যবহার করা যাবে না', 'This web address is taken or not allowed'), 'err'); }

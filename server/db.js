@@ -107,6 +107,11 @@ CREATE INDEX IF NOT EXISTS ix_notif_b ON notifications(business_id);
       db.exec('COMMIT');
     } catch (e) { db.exec('ROLLBACK'); throw e; }
   }
+  // v1.2 offer: the free trial is now the first month. A trial still saved at the old 14-day default moves to 30 (once).
+  if (!db.prepare("SELECT 1 x FROM settings WHERE key='mig_offer_v1'").get()) {
+    db.prepare("UPDATE settings SET value='30' WHERE key LIKE 'plan_trial_days%' AND value='14'").run();
+    db.prepare("INSERT INTO settings(key,value) VALUES('mig_offer_v1','1')").run();
+  }
 }
 
 // node:sqlite does not accept undefined — convert to null.

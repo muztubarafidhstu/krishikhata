@@ -3,7 +3,7 @@ const express = require('express');
 const { get, all, run, tx, getSetting, setSetting, today, addMonths } = require('../db');
 const { decrypt, verifyPassword, hashPassword, encrypt, normPhone, validPhone, passOk } = require('../security');
 const { requireSuper, unlockShop, tooMany, addFail, clearFails } = require('../auth');
-const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, audit, isLocked, CATS, TYPES, btypeOk, MODULE_KEYS, METHODS, brandOf } = require('../core');
+const { fail, money, str, notify, otpGate, otpEnabled, plans, plansFor, monthlyCost, audit, isLocked, CATS, TYPES, btypeOk, MODULE_KEYS, METHODS, brandOf } = require('../core');
 const { bizSummary } = require('../state');
 const { createBusiness } = require('../business');
 const { PASS_MSG } = require('./auth');
@@ -174,7 +174,7 @@ r.post('/businesses/:id/payment', (req, res) => {
   const plan = req.body.plan === 'yearly' ? 'yearly' : 'monthly';
   const qty = Math.min(Math.max(parseInt(req.body.qty, 10) || 1, 1), 12);
   const P = plansFor(b);
-  const amount = (plan === 'yearly' ? P.yearly : P.monthly) * qty;
+  const amount = plan === 'yearly' ? P.yearly * qty : monthlyCost(P, qty);
   const base = b.expiry > today() ? b.expiry : today();
   let expiry = addMonths(base, plan === 'yearly' ? 12 * qty : qty);
   if (req.body.expiry) { if (!/^\d{4}-\d{2}-\d{2}$/.test(req.body.expiry) || req.body.expiry <= today()) fail(400, 'মেয়াদ আজকের পরের কোনো তারিখ হতে হবে', 'The expiry must be after today'); expiry = req.body.expiry; }
@@ -251,6 +251,9 @@ r.put('/plans', (req, res) => {
   const m = money(req.body.monthly, { name: 'monthly' }), y = money(req.body.yearly, { name: 'yearly' }), t = Math.round(money(req.body.trialDays, { max: 365, name: 'trial' }));
   const k = (x) => (req.btype === 'agri' ? x : x + '_' + req.btype);
   setSetting(k('plan_monthly'), m); setSetting(k('plan_yearly'), y); setSetting(k('plan_trial_days'), t);
+  // Starter offer (e.g. the first 2 paid months at ৳200); 0 months switches it off.
+  if (req.body.introPrice !== undefined) setSetting(k('plan_intro_price'), money(req.body.introPrice, { name: 'intro price' }));
+  if (req.body.introMonths !== undefined) setSetting(k('plan_intro_months'), Math.round(money(req.body.introMonths, { max: 12, name: 'intro months' })));
   if (req.body.payTo !== undefined) setSetting('pay_to', str(req.body.payTo, 40));
   if (req.body.whatsapp !== undefined) setSetting('whatsapp', str(req.body.whatsapp, 20).replace(/\D/g, ''));
   audit(req.user.id, 'plans', `${m}/${y}/${t}`);

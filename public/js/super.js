@@ -123,12 +123,15 @@ function showPay(id) {
 function payCalc() {
   const b = supBiz(payFor), plan = $('#pay-plan').value, qty = Math.min(Math.max(Math.round(toNum($('#pay-qty').value)) || 1, 1), 12);
   const base = b.sub.expiry > todayStr() ? b.sub.expiry : todayStr();
-  return { b, plan, qty, amount: (plan === 'yearly' ? b.prices.yearly : b.prices.monthly) * qty, newExp: addMonths(base, plan === 'yearly' ? 12 * qty : qty) };
+  const P = b.prices, intro = plan === 'monthly' ? Math.min(qty, P.introLeft || 0) : 0;
+  const amount = plan === 'yearly' ? P.yearly * qty : intro * P.introPrice + (qty - intro) * P.monthly;
+  return { b, plan, qty, intro, amount, newExp: addMonths(base, plan === 'yearly' ? 12 * qty : qty) };
 }
 function updPay() {
   if (!$('#pay-sum')) return; const c = payCalc(); const di = $('#pay-date');
   if (di && !di.dataset.touched) di.value = c.newExp;
-  $('#pay-sum').innerHTML = `<div><span class="muted">${L('টাকা', 'Amount')}</span><span class="grand">${tk(c.amount)}</span></div>
+  $('#pay-sum').innerHTML = `${c.b.prices.introLeft && c.plan === 'monthly' ? `<div><span class="muted">${L('শুরুর অফার', 'Starter offer')}</span><span>${L(`আরও ${bn(c.b.prices.introLeft)} মাস ${tk(c.b.prices.introPrice)} করে`, `${c.b.prices.introLeft} more month(s) at ${tk(c.b.prices.introPrice)}`)}</span></div>` : ''}
+    <div><span class="muted">${L('টাকা', 'Amount')}</span><span class="grand">${tk(c.amount)}</span></div>
     <div><span class="muted">${L('বর্তমান মেয়াদ', 'Current expiry')}</span><span>${fmtLong(c.b.sub.expiry)}</span></div>
     <div><b>${L('নতুন মেয়াদ', 'New expiry')}</b><b style="color:var(--leaf-d)">${fmtLong(di.value || c.newExp)}</b></div>`;
 }
@@ -261,6 +264,8 @@ VIEWS.settings = () => {
         <label class="f">${L('মাসিক (৳)', 'Monthly (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="pl-m" value="${P.monthly}"></label>
         <label class="f">${L('বার্ষিক (৳)', 'Yearly (৳)')}<input class="in num" type="text" inputmode="decimal" data-amt id="pl-y" value="${P.yearly}"></label>
         <label class="f">${L('ফ্রি ট্রায়াল (দিন)', 'Free trial (days)')}<input class="in num" type="text" inputmode="decimal" data-amt id="pl-t" value="${P.trialDays}"></label>
+        <label class="f">${L('শুরুর অফার: দাম (৳ / মাস)', 'Starter offer: price (৳ / month)')}<input class="in num" type="text" inputmode="decimal" data-amt id="pl-ip" value="${P.introPrice}"></label>
+        <label class="f">${L('শুরুর অফার: প্রথম কত মাস (০ = বন্ধ)', 'Starter offer: first how many paid months (0 = off)')}<input class="in num" type="text" inputmode="decimal" data-amt id="pl-im" value="${P.introMonths}"></label>
         <label class="f">${L('টাকা পাঠানোর নম্বর (বিকাশ/নগদ)', 'Payment number (bKash/Nagad)')}<input class="in num" id="pl-to" value="${esc(P.payTo)}"></label>
         <label class="f">${L('WhatsApp নম্বর (অ্যাপ পেজের বোতাম)', 'WhatsApp number (app page buttons)')}<input class="in num" id="pl-wa" type="tel" value="${esc(P.whatsapp || P.payTo)}" placeholder="01XXXXXXXXX"></label>
       </div>
